@@ -5,10 +5,324 @@
 //  Created by Thomas Foster on 11/2/22.
 //
 
+#include "main.h"
+#include "debug.h"
+
+#include "mathlib.h"
+#include "sound.h"
+#include "video.h"
+
 #include <stdio.h>
 
-int main(int argc, const char * argv[]) {
-    // insert code here...
-    printf("Hello, World!\n");
+void AnimateAllActors(game_t * game, float dt);
+
+void IdleUpdate(game_t * game, float dt)
+{
+    // Update actor standing animations.
+    for ( int i = 0; i < game->num_actors; i++ ) {
+        actor_t * actor = &game->actors[i];
+
+        if ( game->ticks % MS2TICKS(actor->frame_msec, FPS) == 0 ) {
+            actor->frame = (actor->frame + 1) % actor->num_frames;
+        }
+    }
+}
+
+void PlayerCastSightLines(map_t * map, const actor_t * player)
+{
+    int num_lines = 0;
+
+    int min_x, min_y, max_x, max_y;
+    GetVisibleRegion(player, &min_x, &min_y, &max_x, &max_y);
+
+    for ( int y = min_y; y <= max_y; y++ ) {
+        for ( int x = min_x; x <= max_x; x++ ) {
+            map->tiles[y][x].visible = false; // Reset it.
+
+            // Update tile visibility along the way.
+            LineOfSight(map->tiles, player->x, player->y, x, y, true);
+            num_lines++;
+        }
+    }
+
+    printf("cast %d sight lines\n", num_lines);
+}
+
+void SetUpAnimationGameState(game_t * game)
+{
+    game->move_timer = 0.0f;
+    game->update = AnimateAllActors;
+    game->do_input = NULL;
+}
+
+void MovePlayer(game_t * game, int dx, int dy)
+{
+    actor_t * player = &game->actors[0];
+
+    switch ( game->map.tiles[player->y + dy][player->x + dx].type ) {
+        case TILE_WALL:
+            SetUpBumpAnimation(player, dx, dy);
+            SetUpAnimationGameState(game);
+            S_Play("l32o0de-");
+            return; // do nothing with other actors
+        case TILE_FLOOR:
+            if ( TryMoveActor(player, game, dx, dy) ) {
+                PlayerCastSightLines(&game->map, player);
+                UpdateDistanceMap(game->map.tiles, player->x, player->y);
+                game->player_turns--;
+                SetUpAnimationGameState(game);
+            }
+            break;
+        default:
+            break;
+    }
+
+    // Update all actors when player is out of turns.
+    if ( game->player_turns == 0 ) {
+        game->player_turns = INITIAL_TURNS;
+
+        // Do all actor turns.
+        for ( int i = 1; i < game->num_actors; i++ ) {
+            actor_t * actor = &game->actors[i];
+
+            if ( actor->action ) {
+                actor->action(actor, game);
+            }
+        }
+    }
+}
+
+bool IdleDoInput(game_t * game, const SDL_Event * event)
+{
+    switch ( event->type ) {
+        case SDL_KEYDOWN:
+
+            if ( event->key.repeat > 0 ) {
+                return false;
+            }
+
+            switch ( event->key.keysym.sym ) {
+                case SDLK_w:
+                    MovePlayer(game, 0, -1);
+                    return true;
+                case SDLK_s:
+                    MovePlayer(game, 0, 1);
+                    return true;
+                case SDLK_a:
+                    MovePlayer(game, -1, 0);
+                    return true;
+                case SDLK_d:
+                    MovePlayer(game, 1, 0);
+                    return true;
+                default:
+                    return false;
+            }
+            break;
+        default:
+            return false;
+    }
+}
+
+/// Run the move timer and move actors.
+void AnimateAllActors(game_t * game, float dt)
+{
+    game->move_timer += 5.0f * dt;
+    bool done = false;
+
+    if ( game->move_timer >= 1.0f ) {
+        // We're done.
+        game->move_timer = 1.0f;
+        game->update = IdleUpdate;
+        game->do_input = IdleDoInput;
+        done = true;
+    }
+
+    for ( int i = 0; i < game->num_actors; i++ ) {
+        actor_t * actor = &game->actors[i];
+
+        if ( actor->animation ) {
+            actor->animation(actor, game->move_timer);
+            if ( done ) {
+                actor->offsets[0].x = 0;
+                actor->offsets[0].y = 0;
+            }
+        }
+    }
+}
+
+void DoFrame(game_t * game, float dt)
+{
+    debug_row = 0;
+
+    int mouse_tile_x, mouse_tile_y;
+    SDL_GetMouseState(&mouse_tile_x, &mouse_tile_y);
+    mouse_tile_x /= TILE_SIZE * DRAW_SCALE;
+    mouse_tile_y /= TILE_SIZE * DRAW_SCALE;
+
+    SDL_Event event;
+    while ( SDL_PollEvent(&event) ) {
+
+        if ( game->do_input && game->do_input(game, &event) ) {
+            continue;
+        }
+
+        // Game didn't process this event. Handle some universal events:
+        switch ( event.type ) {
+            case SDL_QUIT:
+                game->is_running = false;
+                return;
+            case SDL_KEYDOWN:
+                switch ( event.key.keysym.sym ) {
+                    case SDLK_g:
+                        GenerateMap(game);
+                        break;
+                    case SDLK_BACKQUOTE:
+                        show_debug_info = !show_debug_info;
+                        break;
+                    case SDLK_BACKSLASH:
+                        V_ToggleFullscreen(DESKTOP);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    int min_x, min_y, max_x, max_y;
+
+    // Reset tile lighting.
+    GetVisibleRegion(&game->actors[0], &min_x, &min_y, &max_x, &max_y);
+    for ( int y = min_y; y <= max_y; y++ ) {
+        for ( int x = min_x; x <= max_x; x++ ) {
+            tile_t * tile = &game->map.tiles[y][x];
+
+            if ( tile->revealed ) {
+                tile->light_target = (SDL_Color){ 64, 64, 64 };
+            }
+        }
+    }
+
+    if ( game->update ) {
+        game->update(game, dt);
+    }
+
+    // Cast actor light.
+    for ( int i = 0; i < game->num_actors; i++ ) {
+        CastLight(&game->actors[i], game->map.tiles);
+    }
+
+    // Update light.
+    GetVisibleRegion(&game->actors[0], &min_x, &min_y, &max_x, &max_y);
+    for ( int y = min_y; y <= max_y; y++ ) {
+        for ( int x = min_x; x <= max_x; x++ ) {
+            tile_t * tile = &game->map.tiles[y][x];
+
+            // Decide what light level to fade this tile to, and at what rate.
+            float w; // lerp factor
+            SDL_Color target;
+            if ( tile->visible ) {
+                int min = 80;
+                // Tile is visible, light it to at least 'min', maybe more.
+                target.r = MAX(min, tile->light_target.r);
+                target.g = MAX(min, tile->light_target.g);
+                target.b = MAX(min, tile->light_target.b);
+                w = 0.2f; // Light it up quickly.
+            } else if ( tile->revealed ) {
+                // Not visible, but seen it before. It's dim.
+                int c = 40;
+                target = (SDL_Color){ c, c, c };
+                w = 0.05f; // fade it out slowly.
+            } else {
+                // Completely unrevealed.
+                target = (SDL_Color){ 0, 0, 0 };
+                w = 1.0f; // (Shouldn't actually matter)
+            }
+
+            tile->light.r = Lerp(tile->light.r, target.r, w);
+            tile->light.g = Lerp(tile->light.g, target.g, w);
+            tile->light.b = Lerp(tile->light.b, target.b, w);
+        }
+    }
+
+    V_ClearRGB(0, 0, 0);
+    RenderMap(game);
+
+#if 0
+    // TODO: TEMP
+    // middle-of-screen indicators
+    V_SetRGB(64, 0, 0);
+    V_DrawVLine(GAME_WIDTH / 2, 0, GAME_HEIGHT);
+    V_DrawHLine(0, GAME_WIDTH, GAME_HEIGHT / 2);
+#endif
+
+    int hud_x = V_CharWidth();
+    int hud_y = GAME_HEIGHT - V_CharHeight() * 2;
+    V_SetGray(255);
+    V_PrintString(hud_x, hud_y, "TURNS: %d", game->player_turns);
+
+    int signature = CalcTileSignature(game->map.tiles, mouse_tile_x, mouse_tile_y);
+    char string[9] = { 0 };
+    IntToBinaryString(signature, 8, string);
+    DEBUG_PRINT("TILE %d, %d:", mouse_tile_x, mouse_tile_y);
+    DEBUG_PRINT("  type: %d", game->map.tiles[mouse_tile_y][mouse_tile_x]);
+    DEBUG_PRINT("  signature: %s", string);
+
+    V_Refresh();
+
+    game->ticks++;
+}
+
+int main(void)
+{
+    Randomize();
+
+    video_info_t info = {
+        .window_width = 1920,
+        .window_height = 1080,
+        .render_flags = SDL_RENDERER_PRESENTVSYNC,
+    };
+    V_InitVideo(&info);
+    SDL_RenderSetLogicalSize(renderer, GAME_WIDTH, GAME_HEIGHT);
+    V_SetFont(FONT_CP437_8X8);
+    V_SetTextScale(DRAW_SCALE, DRAW_SCALE);
+
+    S_InitSound();
+
+    game_t * game = calloc(1, sizeof(*game));
+    if ( game == NULL ) {
+        Error("Could not allocate game");
+    }
+
+    GenerateMap(game);
+    game->do_input = IdleDoInput;
+    game->update = IdleUpdate;
+    game->is_running = true;
+    game->ticks = 0;
+    game->player_turns = INITIAL_TURNS;
+    PlayerCastSightLines(&game->map, &game->actors[0]);
+
+    u64 old_time = SDL_GetPerformanceCounter();
+
+    while ( game->is_running ) {
+        float new_time = SDL_GetPerformanceCounter();
+        float dt = (float)(new_time - old_time) / (float)SDL_GetPerformanceFrequency();
+
+        if ( dt < 1.0f / FPS ) {
+            SDL_Delay(1);
+            continue;
+        }
+
+        dt = 1.0f / FPS;
+
+        DoFrame(game, dt);
+
+        old_time = new_time;
+    }
+
+    free(game);
+
     return 0;
 }

@@ -7,7 +7,25 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		601121372915ED80004A0AF3 /* gen.c in Sources */ = {isa = PBXBuildFile; fileRef = 601121362915ED80004A0AF3 /* gen.c */; };
+		6011213B2915EF8A004A0AF3 /* map.c in Sources */ = {isa = PBXBuildFile; fileRef = 6011213A2915EF8A004A0AF3 /* map.c */; };
+		6011213D2915F06B004A0AF3 /* debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 6011213C2915F06B004A0AF3 /* debug.c */; };
+		6011214029189F4B004A0AF3 /* actor.c in Sources */ = {isa = PBXBuildFile; fileRef = 6011213F29189F4B004A0AF3 /* actor.c */; };
+		60558AAA291AF9CC00814C16 /* contact.c in Sources */ = {isa = PBXBuildFile; fileRef = 60558AA9291AF9CC00814C16 /* contact.c */; };
+		60558AAC291B08F400814C16 /* action.c in Sources */ = {isa = PBXBuildFile; fileRef = 60558AAB291B08F400814C16 /* action.c */; };
 		60637F2D29136A4200352516 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F2C29136A4200352516 /* main.c */; };
+		60637F5329136DAD00352516 /* sprite.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F3929136DAC00352516 /* sprite.c */; };
+		60637F5429136DAD00352516 /* genlib.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F3A29136DAC00352516 /* genlib.c */; };
+		60637F5529136DAD00352516 /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F3C29136DAC00352516 /* list.c */; };
+		60637F5629136DAD00352516 /* array.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F3D29136DAC00352516 /* array.c */; };
+		60637F5729136DAD00352516 /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F3E29136DAC00352516 /* video.c */; };
+		60637F5829136DAD00352516 /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F3F29136DAC00352516 /* stack.c */; };
+		60637F5929136DAD00352516 /* vector.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F4129136DAC00352516 /* vector.c */; };
+		60637F5A29136DAD00352516 /* texture.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F4329136DAC00352516 /* texture.c */; };
+		60637F5B29136DAD00352516 /* input.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F4629136DAC00352516 /* input.c */; };
+		60637F5C29136DAD00352516 /* mathlib.c in Sources */ = {isa = PBXBuildFile; fileRef = 60637F4C29136DAC00352516 /* mathlib.c */; };
+		608E80BC29354A830060A04D /* animation.c in Sources */ = {isa = PBXBuildFile; fileRef = 608E80BB29354A830060A04D /* animation.c */; };
+		60C382EB291AB3DD00F9AE9B /* sound.c in Sources */ = {isa = PBXBuildFile; fileRef = 60C382EA291AB3DD00F9AE9B /* sound.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -23,8 +41,46 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		601121362915ED80004A0AF3 /* gen.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gen.c; sourceTree = "<group>"; };
+		6011213A2915EF8A004A0AF3 /* map.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = map.c; sourceTree = "<group>"; };
+		6011213C2915F06B004A0AF3 /* debug.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = debug.c; sourceTree = "<group>"; };
+		6011213E2915FDD3004A0AF3 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = "<group>"; };
+		6011213F29189F4B004A0AF3 /* actor.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = actor.c; sourceTree = "<group>"; };
+		60558AA9291AF9CC00814C16 /* contact.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = contact.c; sourceTree = "<group>"; };
+		60558AAB291B08F400814C16 /* action.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = action.c; sourceTree = "<group>"; };
 		60637F2929136A4200352516 /* GameBeta */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = GameBeta; sourceTree = BUILT_PRODUCTS_DIR; };
 		60637F2C29136A4200352516 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		60637F3329136A6E00352516 /* GameBeta.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GameBeta.entitlements; sourceTree = "<group>"; };
+		60637F3929136DAC00352516 /* sprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sprite.c; sourceTree = "<group>"; };
+		60637F3A29136DAC00352516 /* genlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = genlib.c; sourceTree = "<group>"; };
+		60637F3B29136DAC00352516 /* input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input.h; sourceTree = "<group>"; };
+		60637F3C29136DAC00352516 /* list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = list.c; sourceTree = "<group>"; };
+		60637F3D29136DAC00352516 /* array.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = array.c; sourceTree = "<group>"; };
+		60637F3E29136DAC00352516 /* video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = video.c; sourceTree = "<group>"; };
+		60637F3F29136DAC00352516 /* stack.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stack.c; sourceTree = "<group>"; };
+		60637F4029136DAC00352516 /* inttypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = inttypes.h; sourceTree = "<group>"; };
+		60637F4129136DAC00352516 /* vector.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vector.c; sourceTree = "<group>"; };
+		60637F4229136DAC00352516 /* mathlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mathlib.h; sourceTree = "<group>"; };
+		60637F4329136DAC00352516 /* texture.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = texture.c; sourceTree = "<group>"; };
+		60637F4429136DAC00352516 /* genlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = genlib.h; sourceTree = "<group>"; };
+		60637F4529136DAC00352516 /* list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = list.h; sourceTree = "<group>"; };
+		60637F4629136DAC00352516 /* input.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = input.c; sourceTree = "<group>"; };
+		60637F4729136DAC00352516 /* sprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sprite.h; sourceTree = "<group>"; };
+		60637F4829136DAC00352516 /* array.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = array.h; sourceTree = "<group>"; };
+		60637F4929136DAC00352516 /* stack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stack.h; sourceTree = "<group>"; };
+		60637F4A29136DAC00352516 /* video.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = video.h; sourceTree = "<group>"; };
+		60637F4B29136DAC00352516 /* texture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = texture.h; sourceTree = "<group>"; };
+		60637F4C29136DAC00352516 /* mathlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mathlib.c; sourceTree = "<group>"; };
+		60637F4E29136DAC00352516 /* atari_4x8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = atari_4x8.h; sourceTree = "<group>"; };
+		60637F4F29136DAC00352516 /* cp437_8x8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cp437_8x8.h; sourceTree = "<group>"; };
+		60637F5029136DAC00352516 /* nes_16x16.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nes_16x16.h; sourceTree = "<group>"; };
+		60637F5129136DAD00352516 /* cp437_8x16.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cp437_8x16.h; sourceTree = "<group>"; };
+		60637F5229136DAD00352516 /* vector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vector.h; sourceTree = "<group>"; };
+		608E80BB29354A830060A04D /* animation.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = animation.c; sourceTree = "<group>"; };
+		60C382E9291AB3DD00F9AE9B /* sound.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sound.h; sourceTree = "<group>"; };
+		60C382EA291AB3DD00F9AE9B /* sound.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = sound.c; sourceTree = "<group>"; };
+		60DF52C92915E35300ED43BF /* main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
+		60F9293E2919464400CDCEC8 /* debug.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = debug.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,9 +113,63 @@
 		60637F2B29136A4200352516 /* GameBeta */ = {
 			isa = PBXGroup;
 			children = (
+				6011213E2915FDD3004A0AF3 /* assets */,
+				60637F3829136DAC00352516 /* mylib */,
+				60637F3329136A6E00352516 /* GameBeta.entitlements */,
+				60DF52C92915E35300ED43BF /* main.h */,
 				60637F2C29136A4200352516 /* main.c */,
+				60558AAB291B08F400814C16 /* action.c */,
+				6011213F29189F4B004A0AF3 /* actor.c */,
+				608E80BB29354A830060A04D /* animation.c */,
+				60F9293E2919464400CDCEC8 /* debug.h */,
+				6011213C2915F06B004A0AF3 /* debug.c */,
+				601121362915ED80004A0AF3 /* gen.c */,
+				6011213A2915EF8A004A0AF3 /* map.c */,
+				60558AA9291AF9CC00814C16 /* contact.c */,
 			);
 			path = GameBeta;
+			sourceTree = "<group>";
+		};
+		60637F3829136DAC00352516 /* mylib */ = {
+			isa = PBXGroup;
+			children = (
+				60637F4D29136DAC00352516 /* fonts */,
+				60637F4829136DAC00352516 /* array.h */,
+				60637F3D29136DAC00352516 /* array.c */,
+				60637F4429136DAC00352516 /* genlib.h */,
+				60637F3A29136DAC00352516 /* genlib.c */,
+				60637F3B29136DAC00352516 /* input.h */,
+				60637F4629136DAC00352516 /* input.c */,
+				60637F4029136DAC00352516 /* inttypes.h */,
+				60637F3C29136DAC00352516 /* list.c */,
+				60637F4229136DAC00352516 /* mathlib.h */,
+				60637F4C29136DAC00352516 /* mathlib.c */,
+				60637F4529136DAC00352516 /* list.h */,
+				60C382E9291AB3DD00F9AE9B /* sound.h */,
+				60C382EA291AB3DD00F9AE9B /* sound.c */,
+				60637F4729136DAC00352516 /* sprite.h */,
+				60637F3929136DAC00352516 /* sprite.c */,
+				60637F4929136DAC00352516 /* stack.h */,
+				60637F3F29136DAC00352516 /* stack.c */,
+				60637F4B29136DAC00352516 /* texture.h */,
+				60637F4329136DAC00352516 /* texture.c */,
+				60637F5229136DAD00352516 /* vector.h */,
+				60637F4129136DAC00352516 /* vector.c */,
+				60637F4A29136DAC00352516 /* video.h */,
+				60637F3E29136DAC00352516 /* video.c */,
+			);
+			path = mylib;
+			sourceTree = "<group>";
+		};
+		60637F4D29136DAC00352516 /* fonts */ = {
+			isa = PBXGroup;
+			children = (
+				60637F4E29136DAC00352516 /* atari_4x8.h */,
+				60637F4F29136DAC00352516 /* cp437_8x8.h */,
+				60637F5029136DAC00352516 /* nes_16x16.h */,
+				60637F5129136DAD00352516 /* cp437_8x16.h */,
+			);
+			path = fonts;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,7 +229,25 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				601121372915ED80004A0AF3 /* gen.c in Sources */,
+				608E80BC29354A830060A04D /* animation.c in Sources */,
+				60C382EB291AB3DD00F9AE9B /* sound.c in Sources */,
+				60637F5429136DAD00352516 /* genlib.c in Sources */,
+				60558AAC291B08F400814C16 /* action.c in Sources */,
+				60558AAA291AF9CC00814C16 /* contact.c in Sources */,
+				60637F5329136DAD00352516 /* sprite.c in Sources */,
+				6011214029189F4B004A0AF3 /* actor.c in Sources */,
+				60637F5B29136DAD00352516 /* input.c in Sources */,
 				60637F2D29136A4200352516 /* main.c in Sources */,
+				6011213D2915F06B004A0AF3 /* debug.c in Sources */,
+				60637F5729136DAD00352516 /* video.c in Sources */,
+				60637F5929136DAD00352516 /* vector.c in Sources */,
+				60637F5829136DAD00352516 /* stack.c in Sources */,
+				60637F5529136DAD00352516 /* list.c in Sources */,
+				60637F5629136DAD00352516 /* array.c in Sources */,
+				60637F5A29136DAD00352516 /* texture.c in Sources */,
+				6011213B2915EF8A004A0AF3 /* map.c in Sources */,
+				60637F5C29136DAD00352516 /* mathlib.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,9 +366,16 @@
 		60637F3129136A4200352516 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GameBeta/GameBeta.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = D54ZHB8K4R;
 				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = "$(HEADERS)/SDL2";
+				LIBRARY_SEARCH_PATHS = "$(LIBS)";
+				OTHER_LDFLAGS = (
+					"-lSDL2",
+					"-lSDL2_image",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -248,9 +383,16 @@
 		60637F3229136A4200352516 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GameBeta/GameBeta.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = D54ZHB8K4R;
 				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = "$(HEADERS)/SDL2";
+				LIBRARY_SEARCH_PATHS = "$(LIBS)";
+				OTHER_LDFLAGS = (
+					"-lSDL2",
+					"-lSDL2_image",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
