@@ -121,11 +121,11 @@
 				60558AAB291B08F400814C16 /* action.c */,
 				6011213F29189F4B004A0AF3 /* actor.c */,
 				608E80BB29354A830060A04D /* animation.c */,
+				60558AA9291AF9CC00814C16 /* contact.c */,
 				60F9293E2919464400CDCEC8 /* debug.h */,
 				6011213C2915F06B004A0AF3 /* debug.c */,
 				601121362915ED80004A0AF3 /* gen.c */,
 				6011213A2915EF8A004A0AF3 /* map.c */,
-				60558AA9291AF9CC00814C16 /* contact.c */,
 			);
 			path = GameBeta;
 			sourceTree = "<group>";

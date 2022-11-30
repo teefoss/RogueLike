@@ -197,7 +197,8 @@ void GenerateMap(game_t * game)
             map->tiles[y][x].variety = Random(0, 255);
             map->tiles[y][x].visible = false;
             map->tiles[y][x].revealed = false;
-            map->tiles[y][x].light_target = (SDL_Color){ 0, 0, 0 };
+            map->tiles[y][x].light = 0;
+            map->tiles[y][x].light_target = 0;
         }
     }
 

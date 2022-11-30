@@ -25,6 +25,10 @@ void IdleUpdate(game_t * game, float dt)
         if ( game->ticks % MS2TICKS(actor->frame_msec, FPS) == 0 ) {
             actor->frame = (actor->frame + 1) % actor->num_frames;
         }
+
+        if ( actor->hit_timer > 0.0f ) {
+            actor->hit_timer -= 5.0f * dt;
+        }
     }
 }
 
@@ -70,12 +74,13 @@ void MovePlayer(game_t * game, int dx, int dy)
                 PlayerCastSightLines(&game->map, player);
                 UpdateDistanceMap(game->map.tiles, player->x, player->y);
                 game->player_turns--;
-                SetUpAnimationGameState(game);
             }
             break;
         default:
             break;
     }
+
+    SetUpAnimationGameState(game);
 
     // Update all actors when player is out of turns.
     if ( game->player_turns == 0 ) {
@@ -193,25 +198,17 @@ void DoFrame(game_t * game, float dt)
 
     int min_x, min_y, max_x, max_y;
 
-    // Reset tile lighting.
-    GetVisibleRegion(&game->actors[0], &min_x, &min_y, &max_x, &max_y);
-    for ( int y = min_y; y <= max_y; y++ ) {
-        for ( int x = min_x; x <= max_x; x++ ) {
-            tile_t * tile = &game->map.tiles[y][x];
-
-            if ( tile->revealed ) {
-                tile->light_target = (SDL_Color){ 64, 64, 64 };
-            }
-        }
-    }
-
     if ( game->update ) {
         game->update(game, dt);
     }
 
     // Cast actor light.
-    for ( int i = 0; i < game->num_actors; i++ ) {
-        CastLight(&game->actors[i], game->map.tiles);
+    for ( int i = game->num_actors - 1; i >= 0; i-- ) {
+        if ( game->actors[i].remove ) {
+            game->actors[i] = game->actors[--game->num_actors];
+        } else {
+            CastLight(&game->actors[i], game->map.tiles);
+        }
     }
 
     // Update light.
@@ -222,28 +219,22 @@ void DoFrame(game_t * game, float dt)
 
             // Decide what light level to fade this tile to, and at what rate.
             float w; // lerp factor
-            SDL_Color target;
+            int target;
             if ( tile->visible ) {
-                int min = 80;
-                // Tile is visible, light it to at least 'min', maybe more.
-                target.r = MAX(min, tile->light_target.r);
-                target.g = MAX(min, tile->light_target.g);
-                target.b = MAX(min, tile->light_target.b);
+                // Tile is visible, light it to at least 80, maybe more.
+                target = MAX(80, tile->light_target);
                 w = 0.2f; // Light it up quickly.
             } else if ( tile->revealed ) {
                 // Not visible, but seen it before. It's dim.
-                int c = 40;
-                target = (SDL_Color){ c, c, c };
+                target = 40;
                 w = 0.05f; // fade it out slowly.
             } else {
                 // Completely unrevealed.
-                target = (SDL_Color){ 0, 0, 0 };
+                target = 0;
                 w = 1.0f; // (Shouldn't actually matter)
             }
 
-            tile->light.r = Lerp(tile->light.r, target.r, w);
-            tile->light.g = Lerp(tile->light.g, target.g, w);
-            tile->light.b = Lerp(tile->light.b, target.b, w);
+            tile->light = Lerp((float)tile->light, (float)target, w);
         }
     }
 
@@ -263,12 +254,8 @@ void DoFrame(game_t * game, float dt)
     V_SetGray(255);
     V_PrintString(hud_x, hud_y, "TURNS: %d", game->player_turns);
 
-    int signature = CalcTileSignature(game->map.tiles, mouse_tile_x, mouse_tile_y);
-    char string[9] = { 0 };
-    IntToBinaryString(signature, 8, string);
     DEBUG_PRINT("TILE %d, %d:", mouse_tile_x, mouse_tile_y);
     DEBUG_PRINT("  type: %d", game->map.tiles[mouse_tile_y][mouse_tile_x]);
-    DEBUG_PRINT("  signature: %s", string);
 
     V_Refresh();
 

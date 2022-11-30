@@ -13,6 +13,12 @@ void C_Player(actor_t * player, actor_t * hit)
         case ACTOR_TORCH:
             hit->remove = true;
             break;
+        case ACTOR_BLOB:
+            hit->hit_timer = 1.0f;
+            if ( --hit->health == 0 ) {
+                hit->remove = true;
+            }
+            break;
         default:
             break;
     }

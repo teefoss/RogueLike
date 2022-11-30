@@ -18,19 +18,21 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
         .num_frames = 2,
         .frame_msec = 200,
-        .light = { 255, 255, 255 },
+        .health = 3,
+        .light = 255,
         .light_radius = 3,
         .contact = C_Player,
     },
     [ACTOR_TORCH] = {
         .num_frames = 2,
         .frame_msec = 300,
-        .light = { 255, 255, 128 },
+        .light = 255,
         .light_radius = 1,
     },
     [ACTOR_BLOB] = {
         .num_frames = 2,
         .frame_msec = 300,
+        .health = 2,
         .action = A_Blob,
     },
 };
@@ -83,24 +85,30 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
 
     src.x += TILE_SIZE * actor->frame;
 
-    if ( actor->facing_left ) {
-        V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
-    } else {
-        V_DrawTexture(actor_sheet, &src, &dst);
+    if ( actor->hit_timer == 0.0f
+        || (int)(actor->hit_timer * 10.0f) % 2 == 0 )
+    {
+        if ( actor->facing_left ) {
+            V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
+        } else {
+            V_DrawTexture(actor_sheet, &src, &dst);
+        }
     }
 }
 
+/// Propogate actor's light to surrounding tiles, based on light radius and
+/// tile visibility.
 void CastLight(const actor_t * actor, tiles_t tiles)
 {
     int r = actor->light_radius;
 
+    if ( r == 0 ) {
+        return;
+    }
+
     for ( int y = actor->y - r; y <= actor->y + r; y++ ) {
         for ( int x = actor->x - r; x <= actor->x + r; x++ ) {
             tile_t * t = &tiles[y][x];
-
-            if ( actor->light_radius == 0 ) {
-                continue;
-            }
 
             if ( LineOfSight(tiles, actor->x, actor->y, x, y, false) ) {
                 int distance = DISTANCE(actor->x, actor->y, x, y);
@@ -123,7 +131,7 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
     }
 
     // Check if there's an actor at try_x, try_y
-    for ( int i = 1; i < game->num_actors; i++ ) {
+    for ( int i = 0; i < game->num_actors; i++ ) {
         actor_t * hit = &game->actors[i];
 
         if ( hit == actor ) {
@@ -133,7 +141,9 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
         if ( hit->x == try_x && hit->y == try_y ) {
             // There's something here. Bump into it.
             SetUpBumpAnimation(actor, dx, dy);
-            actor->contact(actor, hit);
+            if ( actor->contact ) {
+                actor->contact(actor, hit);
+            }
             return false;
         }
     }
@@ -145,8 +155,12 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
         actor->facing_left = dx < 0;
     }
 
+    // Set up move animation
     actor->offsets[0].x = -dx * RENDER_TILE_SIZE;
     actor->offsets[0].y = -dy * RENDER_TILE_SIZE;
+    actor->offsets[1].x = 0;
+    actor->offsets[1].y = 0;
     actor->animation = AnimateActorMove;
+
     return true;
 }

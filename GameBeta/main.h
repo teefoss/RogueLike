@@ -41,8 +41,8 @@ typedef struct {
     bool visible; // Player can currently see it.
     bool revealed; // Player has seen it before.
 
-    SDL_Color light; // Current light level.
-    SDL_Color light_target; // Used to lerp (light -> light_target).
+    int light; // Current light level.
+    int light_target; // Used to lerp (light -> light_target).
 
     int distance; // For pathfinding. Updated via UpdateDistanceMap()
 } tile_t;
@@ -89,11 +89,15 @@ struct actor {
     int num_frames;
     int frame_msec;
 
+    int health;
+
     // An actor's light propogates to surrounding tiles.
-    SDL_Color light;
+    int light;
     int light_radius;
 
     bool remove;
+
+    float hit_timer;
 
     void (* animation)(actor_t *, float move_timer);
     void (* contact)(actor_t * self, actor_t * other);
@@ -155,7 +159,6 @@ void GenerateMap(game_t * game);
 extern const int x_dirs[NUM_DIRECTIONS];
 extern const int y_dirs[NUM_DIRECTIONS];
 
-int  CalcTileSignature(const tiles_t map, int x, int y);
 void DebugRenderMap(const game_t * game);
 tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction);
 void GetVisibleRegion

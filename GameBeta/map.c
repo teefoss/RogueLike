@@ -14,47 +14,7 @@
 const int x_dirs[NUM_DIRECTIONS] = {  0, 0, -1, 1, -1,  1, -1, 1 };
 const int y_dirs[NUM_DIRECTIONS] = { -1, 1,  0, 0, -1, -1,  1, 1 };
 
-const SDL_Color unrevealed_color_mod = { 0, 0, 0 };
-const SDL_Color revealed_color_mod = { 32, 32, 32 };
-const SDL_Color lit_color_mod = { 255, 255, 255 };
-
 #define NUM_TILE_SPRITES 15
-
-int tile_signatures[NUM_TILE_SPRITES] = {
-    [ 0] = 255,
-    [ 1] = 2,
-    [ 2] = 0,
-    [ 3] = 206,
-    [ 4] = 87,
-    [ 5] = 171,
-    [ 6] = 223,
-    [ 7] = 239,
-    [ 8] = 138,
-    [ 9] = 70,
-    [10] = 127,
-    [11] = 191,
-    [12] = 2,
-    [13] = 70,
-    [14] = 138,
-};
-
-int tile_masks[NUM_TILE_SPRITES] = {
-    [ 0] = 255,
-    [ 1] = 14,
-    [ 2] = 2,
-    [ 3] = 207,
-    [ 4] = 95,
-    [ 5] = 175,
-    [ 6] = 255,
-    [ 7] = 255,
-    [ 8] = 234,
-    [ 9] = 214,
-    [10] = 255,
-    [11] = 255,
-    [12] = 194,
-    [13] = 79,
-    [14] = 143,
-};
 
 bool IsInBounds(int x, int y)
 {
@@ -66,26 +26,7 @@ tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction)
     return &tiles[y + y_dirs[direction]][x + x_dirs[direction]];
 }
 
-int CalcTileSignature(const tiles_t map, int x, int y)
-{
-    int signature = 0;
-
-    for ( int i = 0; i < NUM_DIRECTIONS; i++ ) {
-        int x2 = x + x_dirs[i];
-        int y2 = y + y_dirs[i];
-
-        // Flag this direction if x2, y2 is a wall.
-        if ( !IsInBounds(x2, y2) ) {
-            signature |= 1 << i;
-        } else if ( map[y2][x2].type == TILE_WALL ) {
-            signature |= 1 << i;
-        }
-    }
-
-    return signature;
-}
-
-void RenderTile(const tile_t * tile, int signature, int x, int y)
+void RenderTile(const tile_t * tile, int x, int y)
 {
     SDL_Texture * tiles = GetTexture("assets/tiles.png");
 
@@ -95,18 +36,12 @@ void RenderTile(const tile_t * tile, int signature, int x, int y)
     dst.x = x;
     dst.y = y;
 
-    SDL_SetTextureColorMod(tiles, tile->light.r, tile->light.g, tile->light.b);
+    SDL_SetTextureColorMod(tiles, tile->light, tile->light, tile->light);
 
     switch ( tile->type ) {
         case TILE_WALL:
             src.x = (tile->variety % 4) * TILE_SIZE;
             src.y = TILE_SIZE * 2;
-//            for ( int i = 0; i < NUM_TILE_SPRITES; i++ ) {
-//                if ( (signature & tile_masks[i]) == tile_signatures[i] ) {
-//                    src.x = i * 8;
-//                    break;
-//                }
-//            }
             break;
         case TILE_FLOOR:
             if ( tile->variety < 112 ) {
@@ -163,8 +98,7 @@ void RenderMap(const game_t * game)
 
             int pixel_x = (x * RENDER_TILE_SIZE) - offset_x;
             int pixel_y = (y * RENDER_TILE_SIZE) - offset_y;
-            int signature = CalcTileSignature(map->tiles, x, y);
-            RenderTile(tile, signature, pixel_x, pixel_y);
+            RenderTile(tile, pixel_x, pixel_y);
         }
     }
 
