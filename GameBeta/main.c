@@ -36,11 +36,10 @@ void PlayerCastSightLines(map_t * map, const actor_t * player)
 {
     int num_lines = 0;
 
-    int min_x, min_y, max_x, max_y;
-    GetVisibleRegion(player, &min_x, &min_y, &max_x, &max_y);
+    box_t visible_region = GetVisibleRegion(player);
 
-    for ( int y = min_y; y <= max_y; y++ ) {
-        for ( int x = min_x; x <= max_x; x++ ) {
+    for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
+        for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
             map->tiles[y][x].visible = false; // Reset it.
 
             // Update tile visibility along the way.
@@ -196,8 +195,6 @@ void DoFrame(game_t * game, float dt)
         }
     }
 
-    int min_x, min_y, max_x, max_y;
-
     if ( game->update ) {
         game->update(game, dt);
     }
@@ -212,9 +209,10 @@ void DoFrame(game_t * game, float dt)
     }
 
     // Update light.
-    GetVisibleRegion(&game->actors[0], &min_x, &min_y, &max_x, &max_y);
-    for ( int y = min_y; y <= max_y; y++ ) {
-        for ( int x = min_x; x <= max_x; x++ ) {
+    box_t visible_region = GetVisibleRegion(&game->actors[0]);
+
+    for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
+        for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
             tile_t * tile = &game->map.tiles[y][x];
 
             // Decide what light level to fade this tile to, and at what rate.

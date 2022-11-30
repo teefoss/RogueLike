@@ -89,11 +89,10 @@ void RenderMap(const game_t * game)
 
     // Draw all tiles.
 
-    int min_x, min_y, max_x, max_y;
-    GetVisibleRegion(&game->actors[0], &min_x, &min_y, &max_x, &max_y);
+    box_t visible_region = GetVisibleRegion(&game->actors[0]);
 
-    for ( int y = min_y; y <= max_y; y++ ) {
-        for ( int x = min_x; x <= max_x; x++ ) {
+    for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
+        for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
             const tile_t * tile = &map->tiles[y][x];
 
             int pixel_x = (x * RENDER_TILE_SIZE) - offset_x;
@@ -160,33 +159,20 @@ bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal)
     }
 }
 
-void GetVisibleRegion
- (const actor_t * player,
-  int * min_x,
-  int * min_y,
-  int * max_x,
-  int * max_y)
+box_t GetVisibleRegion(const actor_t * player)
 {
     int w = GAME_WIDTH / RENDER_TILE_SIZE;
     int h = GAME_HEIGHT / RENDER_TILE_SIZE;
 
     // Include a padding of 1 so tiles don't disappear when scrolling.
 
-    if ( min_x ) {
-        *min_x = MAX(0, (player->x - w / 2) - 1);
-    }
+    box_t region;
+    region.min.x = MAX(0, (player->x - w / 2) - 1);
+    region.min.y = MAX(0, (player->y - h / 2) - 1);
+    region.max.x = MIN((player->x + w / 2) + 1, MAP_WIDTH - 1);
+    region.max.y = MIN((player->y + h / 2) + 1, MAP_HEIGHT - 1);
 
-    if ( min_y ) {
-        *min_y = MAX(0, (player->y - h / 2) - 1);
-    }
-
-    if ( max_x ) {
-        *max_x = MIN((player->x + w / 2) + 1, MAP_WIDTH - 1);
-    }
-
-    if ( max_y ) {
-        *max_y = MIN((player->y + h / 2) + 1, MAP_HEIGHT - 1);
-    }
+    return region;
 }
 
 //

@@ -32,6 +32,11 @@
 
 #define DIR_BIT(direction) (1 << direction)
 
+typedef struct {
+    SDL_Point min; // upper left
+    SDL_Point max; // lower right
+} box_t;
+
 #pragma mark - TILE
 
 typedef struct {
@@ -161,12 +166,7 @@ extern const int y_dirs[NUM_DIRECTIONS];
 
 void DebugRenderMap(const game_t * game);
 tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction);
-void GetVisibleRegion
- (const actor_t * player,
-  int * min_x,
-  int * min_y,
-  int * max_x,
-  int * max_y);
+box_t GetVisibleRegion(const actor_t * player);
 bool IsInBounds(int x, int y);
 bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal);
 void RenderMap(const game_t * game);
