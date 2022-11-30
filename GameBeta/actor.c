@@ -85,19 +85,17 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
 
     src.x += TILE_SIZE * actor->frame;
 
-    if ( actor->hit_timer == 0.0f
-        || (int)(actor->hit_timer * 10.0f) % 2 == 0 )
-    {
-        if ( actor->facing_left ) {
-            V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
-        } else {
-            V_DrawTexture(actor_sheet, &src, &dst);
-        }
+    if ( actor->hit_timer > 0.0f ) {
+        src.x += TILE_SIZE * actor->num_frames;
+    }
+
+    if ( actor->facing_left ) {
+        V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
+    } else {
+        V_DrawTexture(actor_sheet, &src, &dst);
     }
 }
 
-/// Propogate actor's light to surrounding tiles, based on light radius and
-/// tile visibility.
 void CastLight(const actor_t * actor, tiles_t tiles)
 {
     int r = actor->light_radius;
@@ -134,11 +132,7 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
     for ( int i = 0; i < game->num_actors; i++ ) {
         actor_t * hit = &game->actors[i];
 
-        if ( hit == actor ) {
-            continue; // dx and dy are both 0
-        }
-
-        if ( hit->x == try_x && hit->y == try_y ) {
+        if ( hit != actor && hit->x == try_x && hit->y == try_y ) {
             // There's something here. Bump into it.
             SetUpBumpAnimation(actor, dx, dy);
             if ( actor->contact ) {

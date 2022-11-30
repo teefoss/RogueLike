@@ -26,10 +26,6 @@ void GameUpdateIdle(game_t * game, float dt)
         if ( game->ticks % MS2TICKS(actor->frame_msec, FPS) == 0 ) {
             actor->frame = (actor->frame + 1) % actor->num_frames;
         }
-
-        if ( actor->hit_timer > 0.0f ) {
-            actor->hit_timer -= 5.0f * dt;
-        }
     }
 }
 
@@ -181,16 +177,22 @@ void DoFrame(game_t * game, float dt)
         game->update(game, dt);
     }
 
-    // Cast actor light.
+    // Do post-update stuff, cast actor light, remove removeables.
     for ( int i = game->num_actors - 1; i >= 0; i-- ) {
-        if ( game->actors[i].remove ) {
+        actor_t * actor = &game->actors[i];
+
+        if ( actor->remove ) {
             game->actors[i] = game->actors[--game->num_actors];
         } else {
-            CastLight(&game->actors[i], game->map.tiles);
+            CastLight(actor, game->map.tiles);
+
+            if ( actor->hit_timer > 0.0f ) {
+                actor->hit_timer -= 5.0f * dt;
+            }
         }
     }
 
-    // Update light.
+    // Update tile light.
     box_t visible_region = GetVisibleRegion(&game->actors[0]);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {

@@ -144,26 +144,30 @@ struct game {
     void (* update)(game_t *, float dt);
 };
 
-#pragma mark -
 
-// actor.c
+#pragma mark - actor.c
 
+/// Propogate actor's light to surrounding tiles by setting their `light_target`
+/// value.
 void CastLight(const actor_t * actor, tiles_t tiles);
 void SpawnActor(game_t * game, actor_type_t type, int x, int y);
 void RenderActor(const actor_t * actor, int offset_x, int offset_y);
 bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy);
 
-// animation.c
+
+#pragma mark - animation.c
 
 void GameUpdateActorAnimations(game_t * game, float dt);
 void AnimateActorMove(actor_t * actor, float move_timer);
 void SetUpBumpAnimation(actor_t * actor, int dx, int dy);
 
-// gen.c
+
+#pragma mark - gen.c
 
 void GenerateMap(game_t * game);
 
-// map.c
+
+#pragma mark - map.c
 
 extern const int x_dirs[NUM_DIRECTIONS];
 extern const int y_dirs[NUM_DIRECTIONS];
@@ -176,7 +180,8 @@ bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal);
 void RenderMap(const game_t * game);
 void UpdateDistanceMap(tiles_t tiles, int x, int y);
 
-// player.c
+
+#pragma mark - player.c
 
 void PlayerCastSightLines(map_t * map, const actor_t * player);
 
