@@ -14,9 +14,10 @@
 
 #include <stdio.h>
 
-void AnimateAllActors(game_t * game, float dt);
+bool GameInputIdle(game_t * game, const SDL_Event * event);
+void GameUpdateIdle(game_t * game, float dt);
 
-void IdleUpdate(game_t * game, float dt)
+void GameUpdateIdle(game_t * game, float dt)
 {
     // Update actor standing animations.
     for ( int i = 0; i < game->num_actors; i++ ) {
@@ -32,29 +33,37 @@ void IdleUpdate(game_t * game, float dt)
     }
 }
 
-void PlayerCastSightLines(map_t * map, const actor_t * player)
+/// Run the move timer and move actors.
+void GameUpdateActorAnimations(game_t * game, float dt)
 {
-    int num_lines = 0;
+    game->move_timer += 5.0f * dt;
+    bool done = false;
 
-    box_t visible_region = GetVisibleRegion(player);
-
-    for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
-        for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            map->tiles[y][x].visible = false; // Reset it.
-
-            // Update tile visibility along the way.
-            LineOfSight(map->tiles, player->x, player->y, x, y, true);
-            num_lines++;
-        }
+    if ( game->move_timer >= 1.0f ) {
+        // We're done.
+        game->move_timer = 1.0f;
+        game->update = GameUpdateIdle;
+        game->do_input = GameInputIdle;
+        done = true;
     }
 
-    printf("cast %d sight lines\n", num_lines);
+    for ( int i = 0; i < game->num_actors; i++ ) {
+        actor_t * actor = &game->actors[i];
+
+        if ( actor->animation ) {
+            actor->animation(actor, game->move_timer);
+            if ( done ) {
+                actor->offsets[0].x = 0;
+                actor->offsets[0].y = 0;
+            }
+        }
+    }
 }
 
 void SetUpAnimationGameState(game_t * game)
 {
     game->move_timer = 0.0f;
-    game->update = AnimateAllActors;
+    game->update = GameUpdateActorAnimations;
     game->do_input = NULL;
 }
 
@@ -96,7 +105,7 @@ void MovePlayer(game_t * game, int dx, int dy)
     }
 }
 
-bool IdleDoInput(game_t * game, const SDL_Event * event)
+bool GameInputIdle(game_t * game, const SDL_Event * event)
 {
     switch ( event->type ) {
         case SDL_KEYDOWN:
@@ -124,33 +133,6 @@ bool IdleDoInput(game_t * game, const SDL_Event * event)
             break;
         default:
             return false;
-    }
-}
-
-/// Run the move timer and move actors.
-void AnimateAllActors(game_t * game, float dt)
-{
-    game->move_timer += 5.0f * dt;
-    bool done = false;
-
-    if ( game->move_timer >= 1.0f ) {
-        // We're done.
-        game->move_timer = 1.0f;
-        game->update = IdleUpdate;
-        game->do_input = IdleDoInput;
-        done = true;
-    }
-
-    for ( int i = 0; i < game->num_actors; i++ ) {
-        actor_t * actor = &game->actors[i];
-
-        if ( actor->animation ) {
-            actor->animation(actor, game->move_timer);
-            if ( done ) {
-                actor->offsets[0].x = 0;
-                actor->offsets[0].y = 0;
-            }
-        }
     }
 }
 
@@ -282,8 +264,8 @@ int main(void)
     }
 
     GenerateMap(game);
-    game->do_input = IdleDoInput;
-    game->update = IdleUpdate;
+    game->do_input = GameInputIdle;
+    game->update = GameUpdateIdle;
     game->is_running = true;
     game->ticks = 0;
     game->player_turns = INITIAL_TURNS;

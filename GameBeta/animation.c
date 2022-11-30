@@ -7,7 +7,6 @@
 
 #include "main.h"
 
-
 /// Move actor from offset start to end
 void AnimateActorMove(actor_t * actor, float move_timer)
 {
