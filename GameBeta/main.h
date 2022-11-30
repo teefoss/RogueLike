@@ -79,15 +79,21 @@ typedef enum {
     NUM_ACTOR_TYPES
 } actor_type_t;
 
+typedef enum {
+    // Actor can face left or right (sprite gets flipped per facing_left)
+    ACTOR_FLAG_DIRECTIONAL = 0x01,
+} actor_flags_t;
+
 typedef struct game game_t;
 typedef struct actor actor_t;
 
 struct actor {
     actor_type_t type;
+    actor_flags_t flags;
 
     int x;
     int y;
-    vec2_t offsets[2]; // 0 = start, 1 = current
+    vec2_t offset;
     bool facing_left;
 
     int frame;

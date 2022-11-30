@@ -16,6 +16,7 @@ void A_Blob(actor_t * blob, game_t * game);
 
 static actor_t templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
+        .flags = ACTOR_FLAG_DIRECTIONAL,
         .num_frames = 2,
         .frame_msec = 200,
         .health = 3,
@@ -60,36 +61,35 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
     src.h = TILE_SIZE;
 
     SDL_Rect dst;
-    dst.x = (actor->x * RENDER_TILE_SIZE + actor->offsets[1].x) - offset_x;
-    dst.y = (actor->y * RENDER_TILE_SIZE + actor->offsets[1].y) - offset_y - 2;
+    dst.x = (actor->x * RENDER_TILE_SIZE + actor->offset.x) - offset_x;
+    dst.y = (actor->y * RENDER_TILE_SIZE + actor->offset.y) - offset_y - 2;
     dst.y -= 2 * DRAW_SCALE; // Place 2 pixels up on tiles.
     dst.w = RENDER_TILE_SIZE;
     dst.h = RENDER_TILE_SIZE;
 
     switch ( actor->type ) {
         case ACTOR_PLAYER:
-            src.x = 0;
             src.y = 0;
             break;
         case ACTOR_TORCH:
-            src.x = 0;
             src.y = 8;
             break;
         case ACTOR_BLOB:
-            src.x = 0;
             src.y = 16;
             break;
         case NUM_ACTOR_TYPES: // just shut the compiler up
             break;
+        // Don't provide a default here so the compiler will warn if
+        // we're missing an actor type.
     }
 
-    src.x += TILE_SIZE * actor->frame;
+    src.x = TILE_SIZE * actor->frame;
 
     if ( actor->hit_timer > 0.0f ) {
         src.x += TILE_SIZE * actor->num_frames;
     }
 
-    if ( actor->facing_left ) {
+    if ( (actor->flags & ACTOR_FLAG_DIRECTIONAL) && actor->facing_left ) {
         V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
     } else {
         V_DrawTexture(actor_sheet, &src, &dst);
@@ -150,10 +150,10 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
     }
 
     // Set up move animation
-    actor->offsets[0].x = -dx * RENDER_TILE_SIZE;
-    actor->offsets[0].y = -dy * RENDER_TILE_SIZE;
-    actor->offsets[1].x = 0;
-    actor->offsets[1].y = 0;
+    actor->offset.x = -dx * RENDER_TILE_SIZE;
+    actor->offset.y = -dy * RENDER_TILE_SIZE;
+//    actor->offsets[1].x = 0;
+//    actor->offsets[1].y = 0;
     actor->animation = AnimateActorMove;
 
     return true;

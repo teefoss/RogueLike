@@ -47,10 +47,10 @@ void GameUpdateActorAnimations(game_t * game, float dt)
         actor_t * actor = &game->actors[i];
 
         if ( actor->animation ) {
-            actor->animation(actor, game->move_timer);
             if ( done ) {
-                actor->offsets[0].x = 0;
-                actor->offsets[0].y = 0;
+                actor->offset = (vec2_t){ 0 };
+            } else {
+                actor->animation(actor, game->move_timer);
             }
         }
     }

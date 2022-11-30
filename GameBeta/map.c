@@ -82,8 +82,10 @@ void RenderMap(const game_t * game)
         if ( a->type == ACTOR_PLAYER ) {
             int half_w = (GAME_WIDTH - RENDER_TILE_SIZE) / 2;
             int half_h = (GAME_HEIGHT - RENDER_TILE_SIZE) / 2;
-            offset_x = (a->x * RENDER_TILE_SIZE + a->offsets[1].x) - half_w;
-            offset_y = (a->y * RENDER_TILE_SIZE + a->offsets[1].y) - half_h;
+//            offset_x = (a->x * RENDER_TILE_SIZE + a->offsets[1].x) - half_w;
+//            offset_y = (a->y * RENDER_TILE_SIZE + a->offsets[1].y) - half_h;
+            offset_x = (a->x * RENDER_TILE_SIZE + a->offset.x) - half_w;
+            offset_y = (a->y * RENDER_TILE_SIZE + a->offset.y) - half_h;
         }
     }
 
