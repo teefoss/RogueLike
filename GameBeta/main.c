@@ -173,6 +173,15 @@ void DoFrame(game_t * game, float dt)
         }
     }
 
+    // Reset tile light.
+    box_t visible_region = GetVisibleRegion(&game->actors[0]);
+
+    for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
+        for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
+            game->map.tiles[y][x].light_target = 0;
+        }
+    }
+
     if ( game->update ) {
         game->update(game, dt);
     }
@@ -193,7 +202,7 @@ void DoFrame(game_t * game, float dt)
     }
 
     // Update tile light.
-    box_t visible_region = GetVisibleRegion(&game->actors[0]);
+    visible_region = GetVisibleRegion(&game->actors[0]);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
