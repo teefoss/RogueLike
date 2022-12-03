@@ -28,7 +28,7 @@
 #define MAX_ROOMS 200
 #define MAX_ACTORS 200
 
-#define INITIAL_TURNS 2
+#define INITIAL_TURNS 1
 
 #define DIR_BIT(direction) (1 << direction)
 
@@ -39,9 +39,14 @@ typedef struct {
 
 #pragma mark - TILE
 
+typedef enum {
+    TILE_FLAG_DOOR = 0x01, // Floor tile that connects room to hall.
+} tile_flags_t;
+
 typedef struct {
     u8 type; // a tile_type_t
     u8 variety; // A value that can be used for visual randomization.
+    u8 flags;
 
     bool visible; // Player can currently see it.
     bool revealed; // Player has seen it before.
@@ -81,7 +86,9 @@ typedef enum {
 
 typedef enum {
     // Actor can face left or right (sprite gets flipped per facing_left)
-    ACTOR_FLAG_DIRECTIONAL = 0x01,
+    ACTOR_FLAG_DIRECTIONAL  = 0x01,
+    
+    ACTOR_TAKES_DAMAGE      = 0x02,
 } actor_flags_t;
 
 typedef struct game game_t;
@@ -100,6 +107,7 @@ struct actor {
     int num_frames;
     int frame_msec;
 
+    int max_health;
     int health;
 
     // An actor's light propogates to surrounding tiles.
@@ -159,6 +167,7 @@ void CastLight(const actor_t * actor, tiles_t tiles);
 void SpawnActor(game_t * game, actor_type_t type, int x, int y);
 void RenderActor(const actor_t * actor, int offset_x, int offset_y);
 bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy);
+void DamageActor(actor_t * actor);
 
 
 #pragma mark - animation.c
@@ -166,6 +175,14 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy);
 void GameUpdateActorAnimations(game_t * game, float dt);
 void AnimateActorMove(actor_t * actor, float move_timer);
 void SetUpBumpAnimation(actor_t * actor, int dx, int dy);
+
+
+#pragma mark - debug.c
+
+extern bool show_map_gen;
+
+void DebugWaitForKeyPress(void);
+void CheckForShowMapGenCancel(void);
 
 
 #pragma mark - gen.c
@@ -178,7 +195,7 @@ void GenerateMap(game_t * game);
 extern const int x_dirs[NUM_DIRECTIONS];
 extern const int y_dirs[NUM_DIRECTIONS];
 
-void DebugRenderMap(const game_t * game);
+void DebugRenderTiles(tiles_t tiles);
 tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction);
 box_t GetVisibleRegion(const actor_t * player);
 bool IsInBounds(int x, int y);

@@ -146,7 +146,8 @@ typedef enum {
     FONT_ATARI_4X8,
     FONT_CP437_8X16,
     FONT_CP437_8X8,
-    FONT_NES_16X16
+    FONT_NES_16X16,
+    FONT_4X6,
 } font_t;
 
 void V_SetFont(font_t font);
@@ -166,7 +167,8 @@ void V_PrintChar(int x, int y, unsigned char character);
 ///  Render string at pixel coordinate (x, y) using current renderer color.
 ///
 ///  The control characters \n and \t are handled as expected.
-void V_PrintString(int x, int y, const char * format, ...);
+///  Returns the x coordinate of the end of the string.
+int V_PrintString(int x, int y, const char * format, ...);
 
 
 #endif /* __VIDEO_H__ */

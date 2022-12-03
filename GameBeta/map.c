@@ -26,17 +26,21 @@ tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction)
     return &tiles[y + y_dirs[direction]][x + x_dirs[direction]];
 }
 
-void RenderTile(const tile_t * tile, int x, int y)
+void RenderTile(const tile_t * tile, int x, int y, int scale, bool do_light)
 {
     SDL_Texture * tiles = GetTexture("assets/tiles.png");
 
     SDL_Rect src, dst;
     src.w = src.h = TILE_SIZE;
-    dst.w = dst.h = RENDER_TILE_SIZE;
+    dst.w = dst.h = scale;
     dst.x = x;
     dst.y = y;
 
-    SDL_SetTextureColorMod(tiles, tile->light, tile->light, tile->light);
+    if ( do_light ) {
+        SDL_SetTextureColorMod(tiles, tile->light, tile->light, tile->light);
+    } else {
+        SDL_SetTextureColorMod(tiles, 255, 255, 255);
+    }
 
     switch ( tile->type ) {
         case TILE_WALL:
@@ -70,20 +74,14 @@ void RenderMap(const game_t * game)
 {
     const map_t * map = &game->map;
 
-    //int size = DEBUG_TILE_SIZE;
-
     // Calculate the draw offset.
-
     int offset_x = 0;
     int offset_y = 0;
-
     for ( int i = 0; i < game->num_actors; i++ ) {
         const actor_t * a = &game->actors[i];
         if ( a->type == ACTOR_PLAYER ) {
             int half_w = (GAME_WIDTH - RENDER_TILE_SIZE) / 2;
             int half_h = (GAME_HEIGHT - RENDER_TILE_SIZE) / 2;
-//            offset_x = (a->x * RENDER_TILE_SIZE + a->offsets[1].x) - half_w;
-//            offset_y = (a->y * RENDER_TILE_SIZE + a->offsets[1].y) - half_h;
             offset_x = (a->x * RENDER_TILE_SIZE + a->offset.x) - half_w;
             offset_y = (a->y * RENDER_TILE_SIZE + a->offset.y) - half_h;
         }
@@ -99,7 +97,7 @@ void RenderMap(const game_t * game)
 
             int pixel_x = (x * RENDER_TILE_SIZE) - offset_x;
             int pixel_y = (y * RENDER_TILE_SIZE) - offset_y;
-            RenderTile(tile, pixel_x, pixel_y);
+            RenderTile(tile, pixel_x, pixel_y, RENDER_TILE_SIZE, true);
         }
     }
 
@@ -114,10 +112,16 @@ void RenderMap(const game_t * game)
     }
 }
 
-void DebugRenderMap(const game_t * game)
+void DebugRenderTiles(tiles_t tiles)
 {
     V_ClearRGB(0, 0, 0);
-    RenderMap(game);
+
+    for ( int y = 0; y < MAP_HEIGHT; y++ ) {
+        for ( int x = 0; x < MAP_WIDTH; x++ ) {
+            RenderTile(&tiles[y][x], x * 8, y * 8, 8, false);
+        }
+    }
+
     V_Refresh();
 }
 
@@ -137,6 +141,17 @@ bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal)
         if ( reveal ) {
             tile->visible = true;
             tile->revealed = true;
+
+            // For floor tiles, also reveal any surrounding wall tiles.
+            if ( tile->type == TILE_FLOOR ) {
+                for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
+                    tile_t * adjacent = GetAdjacentTile(tiles, x1, y1, d);
+                    if ( adjacent->type == TILE_WALL ) {
+                        adjacent->visible = true;
+                        adjacent->revealed = true;
+                    }
+                }
+            }
         }
 
         if ( x1 == x2 && y1 == y2 ) {

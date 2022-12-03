@@ -10,6 +10,9 @@
 
 typedef char ids_t[MAP_HEIGHT][MAP_WIDTH];
 
+// TODO: this could be better: try another direction if blocked.
+/// Carve out a hallway recursively, setting each new floor tile with the
+/// current region ID.
 static void GenerateHallway_r(tiles_t map,
                               ids_t ids,
                               int current_id,
@@ -18,11 +21,12 @@ static void GenerateHallway_r(tiles_t map,
 {
     map[y][x].type = TILE_FLOOR; // Open up this spot
     ids[y][x] = current_id;
-#if 0
-    DebugRenderMap(map);
+
     int delay = 25;
-    SDL_Delay(delay);
-#endif
+    if ( show_map_gen ) {
+        DebugRenderTiles(map);
+        SDL_Delay(delay);
+    }
 
     struct {
         SDL_Point coord;
@@ -60,15 +64,18 @@ static void GenerateHallway_r(tiles_t map,
     int inbetween_y = next.y - y_dirs[dir];
     map[inbetween_y][inbetween_x].type = TILE_FLOOR;
     ids[inbetween_y][inbetween_x] = current_id;
-#if 0
-    DebugRenderMap(map);
-    printf("place a hallway tile with id %d\n", current_id);
-    SDL_Delay(delay);
-#endif
+
+    if ( show_map_gen ) {
+        CheckForShowMapGenCancel();
+        DebugRenderTiles(map);
+        printf("place a hallway tile with id %d\n", current_id);
+        SDL_Delay(delay);
+    }
 
     GenerateHallway_r(map, ids, current_id, next.x, next.y);
 }
 
+/// Change all `from` IDs to `to`.
 void ChangeAllIDs(ids_t ids, int from, int to)
 {
     for ( int y = 0; y < MAP_HEIGHT; y++ ) {
@@ -80,9 +87,10 @@ void ChangeAllIDs(ids_t ids, int from, int to)
     }
 }
 
+// A map tile that is adjacent to the main region and other different region.
 typedef struct {
     int x, y;
-    int region;
+    int region; // the other region
     bool valid;
 } connector_t;
 
@@ -181,11 +189,14 @@ void GenerateMap(game_t * game)
 {
     map_t * map = &game->map;
 
-    // Fill with walls.
-    memset(&map->tiles[0][0], 1, sizeof(tiles_t));
-
+    //
     // Init ids and tiles.
+    //
+    // IDs are unique identifers for each 'region'. Regions are
+    // any unconnected spaces. Unset tiles start with a negative ID indicating
+    // it's still a floor, or a floor on the edge of the map.
     ids_t ids;
+
     for ( int y = 0; y < MAP_HEIGHT; y++ ) {
         for ( int x = 0; x < MAP_WIDTH; x++ ) {
             if ( x == 0 || x == MAP_WIDTH - 1 || y == 0 || y == MAP_HEIGHT - 1 ) {
@@ -194,16 +205,23 @@ void GenerateMap(game_t * game)
                 ids[y][x] = MAP_WALL_ID;
             }
 
+            memset(&map->tiles[y][x], 0, sizeof(map->tiles[y][x]));
+            map->tiles[y][x].type = TILE_WALL;
+            //map->tiles[y][x].flags = 0;
             map->tiles[y][x].variety = Random(0, 255);
-            map->tiles[y][x].visible = false;
-            map->tiles[y][x].revealed = false;
-            map->tiles[y][x].light = 0;
-            map->tiles[y][x].light_target = 0;
+            //map->tiles[y][x].visible = false;
+            //map->tiles[y][x].revealed = false;
+            //map->tiles[y][x].light = 0;
+            //map->tiles[y][x].light_target = 0;
         }
     }
 
     map->num_rooms = 0;
     int current_id = 0; // Regions
+
+    //
+    // Spawn rooms
+    //
 
     for ( int tries = 1; tries <= 50; tries++ ) {
         int size = Random(1, 3) * 2 + 1; // 3 - 7
@@ -221,13 +239,16 @@ void GenerateMap(game_t * game)
         rect.x = Random(1, (MAP_WIDTH - rect.w) / 2) * 2 - 1;
         rect.y = Random(1, (MAP_HEIGHT - rect.h) / 2) * 2 - 1;
 
+        // Check that this potential room does not overlap with any
+        // existing rooms.
         for ( int room = 0; room < map->num_rooms; room++ ) {
-            //if ( RectsOverlap(rect, rooms[room]) ) {
             if ( SDL_HasIntersection(&rect, &map->rooms[room]) ) {
                 goto next_try;
             }
         }
 
+        // Spot is clear. Open up the room and set its floor tiles to the
+        // current region ID.
         map->rooms[map->num_rooms++] = rect;
         for ( int y = rect.y; y < rect.y + rect.h; y++ ) {
             for ( int x = rect.x; x < rect.x + rect.w; x++ ) {
@@ -238,16 +259,19 @@ void GenerateMap(game_t * game)
         printf("placed a room with id %d\n", current_id);
         current_id++;
 
-#if 0 // debug
-        SDL_PumpEvents();
-        DebugRenderMap(map->tiles);
-        SDL_Delay(200);
-#endif
+        if ( show_map_gen ) {
+            CheckForShowMapGenCancel();
+            DebugRenderTiles(game->map.tiles);
+            SDL_Delay(200);
+        }
+
     next_try:
         ;
     }
 
+    //
     // Generate hallways.
+    //
 
     int num_potentials;
     do {
@@ -265,6 +289,8 @@ void GenerateMap(game_t * game)
         }
 
         if ( num_potentials > 0 ) {
+            // There are still spots at which to start a hallway. Select
+            // a random one and begin carving it out.
             int i = Random(0, num_potentials - 1);
             GenerateHallway_r(map->tiles,
                               ids,
@@ -277,10 +303,14 @@ void GenerateMap(game_t * game)
 
     const int num_regions = current_id;
 
+    //
     // Open up doors between rooms and hallways.
+    //
 
     // Pick a random region to start.
     int main_region = Random(0, num_regions - 1);
+
+    // While there are still connectors adjacent to the main region,
     int num_connectors = 0;
     connector_t connectors[MAP_WIDTH * MAP_HEIGHT];
     while ( (num_connectors = GetConnectors(ids, main_region, connectors)) ) {
@@ -288,29 +318,36 @@ void GenerateMap(game_t * game)
         // the main.
         connector_t connector = connectors[Random(0, num_connectors - 1)];
         map->tiles[connector.y][connector.x].type = TILE_FLOOR;
+        map->tiles[connector.y][connector.x].flags |= TILE_FLAG_DOOR;
         ChangeAllIDs(ids, connector.region, main_region);
 
-#if 0
-        DebugRenderMap(map->tiles);
-        SDL_Delay(25);
-#endif
+        if ( show_map_gen ) {
+            CheckForShowMapGenCancel();
+            DebugRenderTiles(game->map.tiles);
+            SDL_Delay(25);
+        }
     }
 
-    // Eliminate deadends.
+    //
+    // Eliminate deadends. (Nobody likes backtracking)
+    //
 
     int num_deadends = 0;
     SDL_Point deadends[MAP_WIDTH * MAP_HEIGHT];
     while ( (num_deadends = GetDeadEnds(map->tiles, deadends)) ) {
         for ( int i = 0; i < num_deadends; i++ ) {
             map->tiles[deadends[i].y][deadends[i].x].type = TILE_WALL;
-#if 0
-            DebugRenderMap(map->tiles);
-            SDL_Delay(25);
-#endif
+            if ( show_map_gen ) {
+                CheckForShowMapGenCancel();
+                DebugRenderTiles(game->map.tiles);
+                SDL_Delay(25);
+            }
         }
     }
 
+    //
     // Spawn actors.
+    //
 
     game->num_actors = 0;
 
@@ -337,5 +374,9 @@ void GenerateMap(game_t * game)
         int x = map->rooms[i].x + map->rooms[i].w / 2;
         int y = map->rooms[i].y + map->rooms[i].h / 2;
         SpawnActor(game, ACTOR_BLOB, x, y);
+
+        if ( show_map_gen ) {
+            DebugWaitForKeyPress();
+        }
     }
 }

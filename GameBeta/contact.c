@@ -9,17 +9,15 @@
 
 void C_Player(actor_t * player, actor_t * hit)
 {
-    switch ( hit->type ) {
-        case ACTOR_TORCH:
-            hit->remove = true;
-            break;
-        case ACTOR_BLOB:
-            hit->hit_timer = 1.0f;
-            if ( --hit->health == 0 ) {
-                hit->remove = true;
-            }
-            break;
-        default:
-            break;
+    if ( hit->flags & ACTOR_TAKES_DAMAGE ) {
+        DamageActor(hit);
+    }
+}
+
+void C_Monster(actor_t * monster, actor_t * hit)
+{
+    // Monsters can damage other monsters, but not of the same type
+    if ( (hit->flags & ACTOR_TAKES_DAMAGE) && monster->type != hit->type ) {
+        DamageActor(hit);
     }
 }

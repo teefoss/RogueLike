@@ -5,12 +5,17 @@
 //  Created by Thomas Foster on 11/2/22.
 //
 
+/*
+ https://www.pinterest.com/pin/725290714965873125/
+ */
+
 #include "main.h"
 #include "debug.h"
 
 #include "mathlib.h"
 #include "sound.h"
 #include "video.h"
+#include "texture.h"
 
 #include <stdio.h>
 
@@ -87,7 +92,7 @@ void MovePlayer(game_t * game, int dx, int dy)
     SetUpAnimationGameState(game);
 
     // Update all actors when player is out of turns.
-    if ( game->player_turns == 0 ) {
+    if ( game->player_turns < 0 ) {
         game->player_turns = INITIAL_TURNS;
 
         // Do all actor turns.
@@ -217,7 +222,7 @@ void DoFrame(game_t * game, float dt)
                 w = 0.2f; // Light it up quickly.
             } else if ( tile->revealed ) {
                 // Not visible, but seen it before. It's dim.
-                target = 40;
+                target = 0; // previous: 40
                 w = 0.05f; // fade it out slowly.
             } else {
                 // Completely unrevealed.
@@ -240,10 +245,37 @@ void DoFrame(game_t * game, float dt)
     V_DrawHLine(0, GAME_WIDTH, GAME_HEIGHT / 2);
 #endif
 
+    SDL_Texture * icons = GetTexture("assets/icons.png");
     int hud_x = V_CharWidth();
     int hud_y = GAME_HEIGHT - V_CharHeight() * 2;
     V_SetGray(255);
-    V_PrintString(hud_x, hud_y, "TURNS: %d", game->player_turns);
+
+    // Turns
+
+    SDL_Rect src = { 10, 0, 5, 5 };
+    SDL_Rect dst = { 0, hud_y, 5 * DRAW_SCALE, 5 * DRAW_SCALE };
+    dst.x = V_PrintString(hud_x, hud_y, " Turns ");
+
+    for ( int i = 0; i < game->player_turns; i++ ) {
+        V_DrawTexture(icons, &src, &dst);
+        dst.x += 6 * DRAW_SCALE;
+    }
+
+    // Health
+
+    hud_y -= V_CharHeight();
+    dst.y = hud_y;
+    dst.x = V_PrintString(hud_x, hud_y, "Health ");
+
+    for ( int i = 1; i <= game->actors[0].max_health; i++ ) {
+        if ( i > game->actors[0].health ) {
+            src.x = 5;
+        } else {
+            src.x = 0;
+        }
+        V_DrawTexture(icons, &src, &dst);
+        dst.x += 6 * DRAW_SCALE;
+    }
 
     DEBUG_PRINT("TILE %d, %d:", mouse_tile_x, mouse_tile_y);
     DEBUG_PRINT("  type: %d", game->map.tiles[mouse_tile_y][mouse_tile_x]);
@@ -264,7 +296,7 @@ int main(void)
     };
     V_InitVideo(&info);
     SDL_RenderSetLogicalSize(renderer, GAME_WIDTH, GAME_HEIGHT);
-    V_SetFont(FONT_CP437_8X8);
+    V_SetFont(FONT_4X6);
     V_SetTextScale(DRAW_SCALE, DRAW_SCALE);
 
     S_InitSound();

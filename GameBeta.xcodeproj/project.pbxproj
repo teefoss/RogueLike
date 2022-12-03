@@ -81,6 +81,7 @@
 		608E80BD2937A05F0060A04D /* player.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = player.c; sourceTree = "<group>"; };
 		60C382E9291AB3DD00F9AE9B /* sound.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sound.h; sourceTree = "<group>"; };
 		60C382EA291AB3DD00F9AE9B /* sound.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = sound.c; sourceTree = "<group>"; };
+		60D5D079293AA1D30093FDAF /* font_4x6.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = font_4x6.h; sourceTree = "<group>"; };
 		60DF52C92915E35300ED43BF /* main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
 		60F9293E2919464400CDCEC8 /* debug.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = debug.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -171,6 +172,7 @@
 				60637F4F29136DAC00352516 /* cp437_8x8.h */,
 				60637F5029136DAC00352516 /* nes_16x16.h */,
 				60637F5129136DAD00352516 /* cp437_8x16.h */,
+				60D5D079293AA1D30093FDAF /* font_4x6.h */,
 			);
 			path = fonts;
 			sourceTree = "<group>";

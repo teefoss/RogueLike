@@ -7,6 +7,7 @@
 #include "fonts/cp437_8x16.h"
 #include "fonts/atari_4x8.h"
 #include "fonts/nes_16x16.h"
+#include "fonts/font_4x6.h"
 
 #include <stdarg.h>
 
@@ -181,6 +182,9 @@ static const font_info_t info[] = {
     [FONT_CP437_8X8]    = {  8,  8, cp437_8x8   },
     [FONT_CP437_8X16]   = {  8, 16, cp437_8x16  },
     [FONT_NES_16X16]    = { 16, 16, nes_16x16   },
+
+// https://hackaday.io/project/6309-vga-graphics-over-spi-and-serial-vgatonic/log/20759-a-tiny-4x6-pixel-font-that-will-fit-on-almost-any-microcontroller-license-mit
+    [FONT_4X6]          = {  4,  6, font_4x6    },
 };
 
 // settings for text rendering
@@ -233,7 +237,14 @@ void V_PrintChar(int x, int y, unsigned char character)
 
     const int w = info[font].width;
     const int h = info[font].height;
-    const int bytesPerChar = (w * h) / 8;
+
+    int bytesPerChar = 0;
+    if ( w < 8 ) {
+        bytesPerChar = h;
+    } else {
+        bytesPerChar = (w * h) / 8;
+    }
+
     const u8 * data = &info[font].data[character * bytesPerChar];
     int bit = 7;
 
@@ -244,7 +255,7 @@ void V_PrintChar(int x, int y, unsigned char character)
                 SDL_RenderDrawPoint(renderer, unscaledX + col, unscaledY + row);
             }
 
-            if ( --bit < 0 ) {
+            if ( --bit < 8 - w ) {
                 ++data;
                 bit = 7;
             }
@@ -255,7 +266,7 @@ void V_PrintChar(int x, int y, unsigned char character)
     SDL_RenderSetScale(renderer, oldScaleX, oldScaleY);
 }
 
-void V_PrintString(int x, int y, const char * format, ...)
+int V_PrintString(int x, int y, const char * format, ...)
 {
     va_list args[2];
     va_start(args[0], format);
@@ -293,4 +304,5 @@ void V_PrintString(int x, int y, const char * format, ...)
     }
 
     free(buffer);
+    return x1;
 }

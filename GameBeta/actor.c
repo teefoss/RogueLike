@@ -12,14 +12,15 @@
 #include "video.h"
 
 void C_Player(actor_t * player, actor_t * hit);
+void C_Monster(actor_t * monster, actor_t * hit);
 void A_Blob(actor_t * blob, game_t * game);
 
 static actor_t templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
-        .flags = ACTOR_FLAG_DIRECTIONAL,
+        .flags = ACTOR_FLAG_DIRECTIONAL | ACTOR_TAKES_DAMAGE,
         .num_frames = 2,
         .frame_msec = 200,
-        .health = 3,
+        .max_health = 3,
         .light = 255,
         .light_radius = 3,
         .contact = C_Player,
@@ -31,10 +32,12 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .light_radius = 1,
     },
     [ACTOR_BLOB] = {
+        .flags = ACTOR_TAKES_DAMAGE,
         .num_frames = 2,
         .frame_msec = 300,
-        .health = 2,
+        .max_health = 2,
         .action = A_Blob,
+        .contact = C_Monster,
     },
 };
 
@@ -44,11 +47,20 @@ void SpawnActor(game_t * game, actor_type_t type, int x, int y)
     actor.type = type;
     actor.x = x;
     actor.y = y;
+    actor.health = actor.max_health;
 
     if ( game->num_actors + 1 <= MAX_ACTORS ) {
         game->actors[game->num_actors++] = actor;
     } else {
         printf("ran out of room in actor array!\n");
+    }
+}
+
+void DamageActor(actor_t * actor)
+{
+    actor->hit_timer = 1.0f;
+    if ( --actor->health == 0 ) {
+        actor->remove = true;
     }
 }
 
