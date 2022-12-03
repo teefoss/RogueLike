@@ -207,12 +207,7 @@ void GenerateMap(game_t * game)
 
             memset(&map->tiles[y][x], 0, sizeof(map->tiles[y][x]));
             map->tiles[y][x].type = TILE_WALL;
-            //map->tiles[y][x].flags = 0;
             map->tiles[y][x].variety = Random(0, 255);
-            //map->tiles[y][x].visible = false;
-            //map->tiles[y][x].revealed = false;
-            //map->tiles[y][x].light = 0;
-            //map->tiles[y][x].light_target = 0;
         }
     }
 
