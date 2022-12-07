@@ -125,7 +125,7 @@ void DebugRenderTiles(tiles_t tiles)
     V_Refresh();
 }
 
-bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal)
+bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
 {
     int dx = abs(x2 - x1);
     int dy = -abs(y2 - y1);
@@ -135,7 +135,7 @@ bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal)
     int e2;
 
     while ( true ) {
-        tile_t * tile = &tiles[y1][x1];
+        tile_t * tile = &game->map.tiles[y1][x1];
 //        MapNode * node = MapNodeAt(pt0);
 
         if ( reveal ) {
@@ -145,7 +145,7 @@ bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal)
             // For floor tiles, also reveal any surrounding wall tiles.
             if ( tile->type == TILE_FLOOR ) {
                 for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
-                    tile_t * adjacent = GetAdjacentTile(tiles, x1, y1, d);
+                    tile_t * adjacent = GetAdjacentTile(game->map.tiles, x1, y1, d);
                     if ( adjacent->type == TILE_WALL ) {
                         adjacent->visible = true;
                         adjacent->revealed = true;
@@ -160,6 +160,15 @@ bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal)
 
         if ( tile->type == TILE_WALL ) {
             return false;
+        }
+
+        actor_t * actor = game->actors;
+        for ( int i = 0; i < game->num_actors; i++, actor++ ) {
+            if ( actor->flags & ACTOR_FLAG_BLOCKS_SIGHT
+                && (actor->x == x1 && actor->y == y1) )
+            {
+                return false;
+            }
         }
 
         e2 = 2 * err;

@@ -13,13 +13,7 @@ void A_Blob(actor_t * blob, game_t * game)
 {
     actor_t * player = &game->actors[0];
 
-    if ( LineOfSight(game->map.tiles,
-                     blob->x,
-                     blob->y,
-                     player->x,
-                     player->y,
-                     false) )
-    {
+    if ( LineOfSight(game, blob->x, blob->y, player->x, player->y, false) ) {
         // Find the tile with the smallest distance to player.
         int direction = NO_DIRECTION;
         int min_distance = INT_MAX;

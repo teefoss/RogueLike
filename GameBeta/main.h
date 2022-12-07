@@ -80,15 +80,17 @@ typedef enum {
     ACTOR_PLAYER,
     ACTOR_TORCH,
     ACTOR_BLOB,
+    ACTOR_DOOR,
 
     NUM_ACTOR_TYPES
 } actor_type_t;
 
 typedef enum {
     // Actor can face left or right (sprite gets flipped per facing_left)
-    ACTOR_FLAG_DIRECTIONAL  = 0x01,
+    ACTOR_FLAG_DIRECTIONAL      = 0x01,
     
-    ACTOR_TAKES_DAMAGE      = 0x02,
+    ACTOR_FLAG_TAKES_DAMAGE     = 0x02,
+    ACTOR_FLAG_BLOCKS_SIGHT     = 0x04,
 } actor_flags_t;
 
 typedef struct game game_t;
@@ -101,6 +103,7 @@ struct actor {
     int x;
     int y;
     vec2_t offset;
+    int y_draw_offset;
     bool facing_left;
 
     int frame;
@@ -153,6 +156,7 @@ struct game {
     int num_actors;
     actor_t actors[MAX_ACTORS];
     int player_turns;
+    bool player_should_cast_sight;
 
     bool (* do_input)(game_t *, const SDL_Event *);
     void (* update)(game_t *, float dt);
@@ -163,12 +167,12 @@ struct game {
 
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
-void CastLight(const actor_t * actor, tiles_t tiles);
+void CastLight(game_t * game, const actor_t * actor, tiles_t tiles);
 void SpawnActor(game_t * game, actor_type_t type, int x, int y);
 void RenderActor(const actor_t * actor, int offset_x, int offset_y);
 bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy);
 void DamageActor(actor_t * actor);
-
+actor_t * GetActorAtXY(actor_t * actors, int num_actors, int x, int y);
 
 #pragma mark - animation.c
 
@@ -199,13 +203,12 @@ void DebugRenderTiles(tiles_t tiles);
 tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction);
 box_t GetVisibleRegion(const actor_t * player);
 bool IsInBounds(int x, int y);
-bool LineOfSight(tiles_t tiles, int x1, int y1, int x2, int y2, bool reveal);
+bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal);
 void RenderMap(const game_t * game);
 void UpdateDistanceMap(tiles_t tiles, int x, int y);
 
-
 #pragma mark - player.c
 
-void PlayerCastSightLines(map_t * map, const actor_t * player);
+void PlayerCastSightLines(game_t * game, const actor_t * player);
 
 #endif /* main_h */

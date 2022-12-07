@@ -17,13 +17,14 @@ void A_Blob(actor_t * blob, game_t * game);
 
 static actor_t templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
-        .flags = ACTOR_FLAG_DIRECTIONAL | ACTOR_TAKES_DAMAGE,
+        .flags = ACTOR_FLAG_DIRECTIONAL | ACTOR_FLAG_TAKES_DAMAGE,
         .num_frames = 2,
         .frame_msec = 200,
         .max_health = 3,
         .light = 255,
         .light_radius = 3,
         .contact = C_Player,
+        .y_draw_offset = 2,
     },
     [ACTOR_TORCH] = {
         .num_frames = 2,
@@ -32,12 +33,16 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .light_radius = 1,
     },
     [ACTOR_BLOB] = {
-        .flags = ACTOR_TAKES_DAMAGE,
+        .flags = ACTOR_FLAG_TAKES_DAMAGE,
         .num_frames = 2,
         .frame_msec = 300,
         .max_health = 2,
         .action = A_Blob,
         .contact = C_Monster,
+        .y_draw_offset = 2,
+    },
+    [ACTOR_DOOR] = {
+        .flags = ACTOR_FLAG_BLOCKS_SIGHT,
     },
 };
 
@@ -64,6 +69,17 @@ void DamageActor(actor_t * actor)
     }
 }
 
+actor_t * GetActorAtXY(actor_t * actors, int num_actors, int x, int y)
+{
+    for ( int i = 0; i < num_actors; i++ ) {
+        if ( actors[i].x == x && actors[i].y == y ) {
+            return &actors[i];
+        }
+    }
+
+    return NULL;
+}
+
 void RenderActor(const actor_t * actor, int offset_x, int offset_y)
 {
     SDL_Texture * actor_sheet = GetTexture("assets/actors.png");
@@ -72,30 +88,44 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
     src.w = TILE_SIZE;
     src.h = TILE_SIZE;
 
+    if ( actor->type == ACTOR_DOOR ) {
+
+    }
+
     SDL_Rect dst;
     dst.x = (actor->x * RENDER_TILE_SIZE + actor->offset.x) - offset_x;
-    dst.y = (actor->y * RENDER_TILE_SIZE + actor->offset.y) - offset_y - 2;
-    dst.y -= 2 * DRAW_SCALE; // Place 2 pixels up on tiles.
+    dst.y = (actor->y * RENDER_TILE_SIZE + actor->offset.y) - offset_y;
+    dst.y -= actor->y_draw_offset * DRAW_SCALE; // Place 2 pixels up on tiles.
     dst.w = RENDER_TILE_SIZE;
     dst.h = RENDER_TILE_SIZE;
 
     switch ( actor->type ) {
         case ACTOR_PLAYER:
+            src.x = 0;
             src.y = 0;
             break;
         case ACTOR_TORCH:
+            src.x = 0;
             src.y = 8;
             break;
         case ACTOR_BLOB:
+            src.x = 0;
             src.y = 16;
+            break;
+        case ACTOR_DOOR:
+            src.x = 16;
+            src.y = 24;
             break;
         case NUM_ACTOR_TYPES: // just shut the compiler up
             break;
+            
         // Don't provide a default here so the compiler will warn if
         // we're missing an actor type.
     }
 
-    src.x = TILE_SIZE * actor->frame;
+    if ( actor->num_frames > 1 ) {
+        src.x += TILE_SIZE * actor->frame;
+    }
 
     if ( actor->hit_timer > 0.0f ) {
         src.x += TILE_SIZE * actor->num_frames;
@@ -108,7 +138,7 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
     }
 }
 
-void CastLight(const actor_t * actor, tiles_t tiles)
+void CastLight(game_t * game, const actor_t * actor, tiles_t tiles)
 {
     int r = actor->light_radius;
 
@@ -120,7 +150,7 @@ void CastLight(const actor_t * actor, tiles_t tiles)
         for ( int x = actor->x - r; x <= actor->x + r; x++ ) {
             tile_t * t = &tiles[y][x];
 
-            if ( LineOfSight(tiles, actor->x, actor->y, x, y, false) ) {
+            if ( LineOfSight(game, actor->x, actor->y, x, y, false) ) {
                 int distance = DISTANCE(actor->x, actor->y, x, y);
 
                 if ( distance <= r) {

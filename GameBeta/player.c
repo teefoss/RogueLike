@@ -7,7 +7,7 @@
 
 #include "main.h"
 
-void PlayerCastSightLines(map_t * map, const actor_t * player)
+void PlayerCastSightLines(game_t * game, const actor_t * player)
 {
     int num_lines = 0;
 
@@ -15,10 +15,10 @@ void PlayerCastSightLines(map_t * map, const actor_t * player)
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            map->tiles[y][x].visible = false; // Reset it.
+            game->map.tiles[y][x].visible = false; // Reset it.
 
             // Update tile visibility along the way.
-            LineOfSight(map->tiles, player->x, player->y, x, y, true);
+            LineOfSight(game, player->x, player->y, x, y, true);
             num_lines++;
         }
     }

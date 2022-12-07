@@ -352,6 +352,33 @@ void GenerateMap(game_t * game)
     int y = Random(room.y, room.y + room.h - 1);
     SpawnActor(game, ACTOR_PLAYER, x, y);
 
+    // Place doors.
+#if 1
+    for ( int y = 0; y < MAP_HEIGHT; y++ ) {
+        for ( int x = 0; x < MAP_WIDTH; x++ ) {
+            if ( game->map.tiles[y][x].flags & TILE_FLAG_DOOR ) {
+                tile_t * adjacents[4];
+                for ( int d = 0; d < 4; d++ ) {
+                    adjacents[d] = GetAdjacentTile(game->map.tiles, x, y, d);
+                }
+
+                // Deadend-clearing may have rendered some door spots invalid.
+                // Check if still valid.
+                if ((adjacents[NORTH]->type == TILE_FLOOR
+                    && adjacents[SOUTH]->type == TILE_FLOOR)
+                    || (adjacents[WEST]->type == TILE_FLOOR &&
+                        adjacents[EAST]->type == TILE_FLOOR))
+                {
+                    SpawnActor(game, ACTOR_DOOR, x, y);
+                } else {
+                    // This spot is no longer a valid door.
+                    game->map.tiles[y][x].flags &= ~TILE_FLAG_DOOR;
+                }
+            }
+        }
+    }
+#endif
+
     for ( int i = 0; i < map->num_rooms; i++ ) {
 
 #if 0

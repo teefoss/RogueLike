@@ -28,7 +28,9 @@ void GameUpdateIdle(game_t * game, float dt)
     for ( int i = 0; i < game->num_actors; i++ ) {
         actor_t * actor = &game->actors[i];
 
-        if ( game->ticks % MS2TICKS(actor->frame_msec, FPS) == 0 ) {
+        if (actor->num_frames > 1 &&
+            game->ticks % MS2TICKS(actor->frame_msec, FPS) == 0 )
+        {
             actor->frame = (actor->frame + 1) % actor->num_frames;
         }
     }
@@ -80,10 +82,10 @@ void MovePlayer(game_t * game, int dx, int dy)
             return; // do nothing with other actors
         case TILE_FLOOR:
             if ( TryMoveActor(player, game, dx, dy) ) {
-                PlayerCastSightLines(&game->map, player);
                 UpdateDistanceMap(game->map.tiles, player->x, player->y);
                 game->player_turns--;
             }
+            game->player_should_cast_sight = true;
             break;
         default:
             break;
@@ -178,7 +180,7 @@ void DoFrame(game_t * game, float dt)
         }
     }
 
-    // Reset tile light.
+    // Reset tile light and blocks.
     box_t visible_region = GetVisibleRegion(&game->actors[0]);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
@@ -198,12 +200,19 @@ void DoFrame(game_t * game, float dt)
         if ( actor->remove ) {
             game->actors[i] = game->actors[--game->num_actors];
         } else {
-            CastLight(actor, game->map.tiles);
+            CastLight(game, actor, game->map.tiles);
 
             if ( actor->hit_timer > 0.0f ) {
                 actor->hit_timer -= 5.0f * dt;
             }
         }
+    }
+
+    // Cast sight after everything has updated, opened doors
+    // have been removed, etc.
+    if ( game->player_should_cast_sight ) {
+        PlayerCastSightLines(game, &game->actors[0]);
+        game->player_should_cast_sight = false;
     }
 
     // Update tile light.
@@ -218,7 +227,7 @@ void DoFrame(game_t * game, float dt)
             int target;
             if ( tile->visible ) {
                 // Tile is visible, light it to at least 80, maybe more.
-                target = MAX(80, tile->light_target);
+                target = MAX(40, tile->light_target); // was 80
                 w = 0.2f; // Light it up quickly.
             } else if ( tile->revealed ) {
                 // Not visible, but seen it before. It's dim.
@@ -312,24 +321,26 @@ int main(void)
     game->is_running = true;
     game->ticks = 0;
     game->player_turns = INITIAL_TURNS;
-    PlayerCastSightLines(&game->map, &game->actors[0]);
+    PlayerCastSightLines(game, &game->actors[0]);
 
     u64 old_time = SDL_GetPerformanceCounter();
+    const float target_dt = 1.0f / FPS;
 
     while ( game->is_running ) {
         float new_time = SDL_GetPerformanceCounter();
         float dt = (float)(new_time - old_time) / (float)SDL_GetPerformanceFrequency();
+        old_time = new_time;
 
-        if ( dt < 1.0f / FPS ) {
+        if ( dt < target_dt ) {
             SDL_Delay(1);
             continue;
         }
 
-        dt = 1.0f / FPS;
+        dt = target_dt;
 
+        PROFILE_START(frame_time);
         DoFrame(game, dt);
-
-        old_time = new_time;
+        PROFILE_END(frame_time);
     }
 
     free(game);
