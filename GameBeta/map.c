@@ -72,8 +72,6 @@ void RenderTile(const tile_t * tile, int x, int y, int scale, bool do_light)
 
 void RenderMap(const game_t * game)
 {
-    const map_t * map = &game->map;
-
     // Calculate the draw offset.
     int offset_x = 0;
     int offset_y = 0;
@@ -87,13 +85,15 @@ void RenderMap(const game_t * game)
         }
     }
 
+    //
     // Draw all tiles.
+    //
 
     box_t visible_region = GetVisibleRegion(&game->actors[0]);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            const tile_t * tile = &map->tiles[y][x];
+            const tile_t * tile = &game->map.tiles[y][x];
 
             int pixel_x = (x * RENDER_TILE_SIZE) - offset_x;
             int pixel_y = (y * RENDER_TILE_SIZE) - offset_y;
@@ -101,14 +101,38 @@ void RenderMap(const game_t * game)
         }
     }
 
+    //
     // Draw all actors.
+    //
+
+    // Make a list of visible actors.
+    const actor_t * visible_actors[MAX_ACTORS];
+    int num_visible_actors = 0;
 
     for ( int i = 0; i < game->num_actors; i++ ) {
         const actor_t * actor = &game->actors[i];
 
-        if ( map->tiles[actor->y][actor->x].visible ) {
-            RenderActor(actor, offset_x, offset_y);
+        if ( game->map.tiles[actor->y][actor->x].visible
+            && actor->x >= visible_region.min.x
+            && actor->x <= visible_region.max.x
+            && actor->y >= visible_region.min.y
+            && actor->y <= visible_region.max.y )
+        {
+            visible_actors[num_visible_actors++] = actor;
         }
+    }
+
+    // Sort the list by y position.
+    for ( int i = 0; i < num_visible_actors; i++ ) {
+        for ( int j = i + 1; j < num_visible_actors; j++ ) {
+            if ( visible_actors[j]->y < visible_actors[i]->y ) {
+                SWAP(visible_actors[j], visible_actors[i]);
+            }
+        }
+    }
+
+    for ( int i = 0; i < num_visible_actors; i++ ) {
+        RenderActor(visible_actors[i], offset_x, offset_y);
     }
 }
 

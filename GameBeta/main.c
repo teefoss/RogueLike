@@ -338,9 +338,9 @@ int main(void)
 
         dt = target_dt;
 
-        PROFILE_START(frame_time);
+//        PROFILE_START(frame_time);
         DoFrame(game, dt);
-        PROFILE_END(frame_time);
+//        PROFILE_END(frame_time);
     }
 
     free(game);
