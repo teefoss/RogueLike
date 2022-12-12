@@ -31,12 +31,12 @@ static void GenerateHallway_r(tiles_t map,
     struct {
         SDL_Point coord;
         int direction;
-    } directions[4];
+    } directions[NUM_CARDINAL_DIRECTIONS];
 
     int num_open_directions = 0;
 
     // Make a list of the coordinates of possible directions.
-    for ( int i = 0; i < 4; i++ ) {
+    for ( int i = 0; i < NUM_CARDINAL_DIRECTIONS; i++ ) {
         int next_x = x + x_dirs[i] * 2;
         int next_y = y + y_dirs[i] * 2;
 
@@ -114,7 +114,7 @@ int GetConnectors(ids_t ids, int main_region, connector_t * out)
             bool touches_main = false;
             int other_region = -1;
 
-            for ( int d = 0; d < 4; d++ ) {
+            for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
                 int x1 = x + x_dirs[d];
                 int y1 = y + y_dirs[d];
 
@@ -153,7 +153,7 @@ int GetDeadEnds(tiles_t map, SDL_Point * out)
 
             // Count the number of connections to this tile.
             int connection_count = 0;
-            for ( int d = 0; d < 4; d++ ) {
+            for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
                 if ( map[y + y_dirs[d]][x + x_dirs[d]].type == TILE_FLOOR ) {
                     connection_count++;
                 }
@@ -357,8 +357,8 @@ void GenerateMap(game_t * game)
     for ( int y = 0; y < MAP_HEIGHT; y++ ) {
         for ( int x = 0; x < MAP_WIDTH; x++ ) {
             if ( game->map.tiles[y][x].flags & TILE_FLAG_DOOR ) {
-                tile_t * adjacents[4];
-                for ( int d = 0; d < 4; d++ ) {
+                tile_t * adjacents[NUM_CARDINAL_DIRECTIONS];
+                for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
                     adjacents[d] = GetAdjacentTile(game->map.tiles, x, y, d);
                 }
 
@@ -386,7 +386,7 @@ void GenerateMap(game_t * game)
             // Spawn some torches. TODO: for testing purposes only
             SDL_Point corners[4];
             GetRoomCorners(map->rooms[i], corners);
-            for ( int j = 0; j < 4; j++ ) {
+            for ( int j = 0; j < NUM_CARDINAL_DIRECTIONS; j++ ) {
                 SpawnActor(game, ACTOR_TORCH, corners[j].x, corners[j].y);
             }
         }

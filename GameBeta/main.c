@@ -329,7 +329,6 @@ int main(void)
     while ( game->is_running ) {
         float new_time = SDL_GetPerformanceCounter();
         float dt = (float)(new_time - old_time) / (float)SDL_GetPerformanceFrequency();
-        old_time = new_time;
 
         if ( dt < target_dt ) {
             SDL_Delay(1);
@@ -341,6 +340,7 @@ int main(void)
 //        PROFILE_START(frame_time);
         DoFrame(game, dt);
 //        PROFILE_END(frame_time);
+        old_time = new_time;
     }
 
     free(game);

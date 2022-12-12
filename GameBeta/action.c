@@ -17,7 +17,7 @@ void A_Blob(actor_t * blob, game_t * game)
         // Find the tile with the smallest distance to player.
         int direction = NO_DIRECTION;
         int min_distance = INT_MAX;
-        for ( int d = 0; d < 4; d++ ) {
+        for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
             tile_t * adjacent = GetAdjacentTile(game->map.tiles,
                                                 blob->x,
                                                 blob->y,

@@ -135,6 +135,8 @@ typedef struct {
     SDL_Rect rooms[MAX_ROOMS];
 } map_t;
 
+#define NUM_CARDINAL_DIRECTIONS 4
+
 typedef enum {
     NO_DIRECTION = -1,
     NORTH,
