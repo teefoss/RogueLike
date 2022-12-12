@@ -149,6 +149,10 @@ void DebugRenderTiles(tiles_t tiles)
     V_Refresh();
 }
 
+#define IS_IN_RANGE(a, min, max) (a >= min && a <= max)
+#define IS_INSIDE_RECT(x, y, min_x, min_y, max_x, max_y) \
+    (IS_IN_RANGE(x, min_x, max_x) && IS_IN_RANGE(y, min_y, max_y))
+
 bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
 {
     int dx = abs(x2 - x1);
@@ -158,15 +162,42 @@ bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
     int err = dx + dy;
     int e2;
 
+    int min_x = MIN(x1, x2);
+    int min_y = MIN(y1, y2);
+    int max_x = MAX(x1, x2);
+    int max_y = MAX(y1, y2);
+
+    // Make a list of actors the line of sight might cross.
+    int num_actors = 0;
+    actor_t * actors[MAX_ACTORS];
+
+    for ( int i = 0; i < game->num_actors; i++ ) {
+        actor_t * actor = &game->actors[i];
+
+        if ( IS_INSIDE_RECT(actor->x, actor->y, min_x, min_y, max_x, max_y)) {
+            actors[num_actors++] = actor;
+        }
+    }
+
     while ( true ) {
         tile_t * tile = &game->map.tiles[y1][x1];
+
+        bool actor_is_blocking = false;
+
+        for ( int i = 0; i < num_actors; i++ ) {
+            if ( actors[i]->flags & ACTOR_FLAG_BLOCKS_SIGHT
+                && (actors[i]->x == x1 && actors[i]->y == y1) )
+            {
+                actor_is_blocking = true;
+            }
+        }
 
         if ( reveal ) {
             tile->visible = true;
             tile->revealed = true;
 
             // For floor tiles, also reveal any surrounding wall tiles.
-            if ( tile->type == TILE_FLOOR ) {
+            if ( tile->type == TILE_FLOOR && !actor_is_blocking ) {
                 for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
                     tile_t * adjacent = GetAdjacentTile(game->map.tiles, x1, y1, d);
                     if ( adjacent->type == TILE_WALL ) {
@@ -185,13 +216,8 @@ bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
             return false;
         }
 
-        actor_t * actor = game->actors;
-        for ( int i = 0; i < game->num_actors; i++, actor++ ) {
-            if ( actor->flags & ACTOR_FLAG_BLOCKS_SIGHT
-                && (actor->x == x1 && actor->y == y1) )
-            {
-                return false;
-            }
+        if ( actor_is_blocking ) {
+            return false;
         }
 
         e2 = 2 * err;
