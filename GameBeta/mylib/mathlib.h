@@ -72,6 +72,7 @@ bool LinesIntersect
 
 bool PointInRect(int x, int y, SDL_Rect r);
 bool RectsOverlap(SDL_Rect a, SDL_Rect b);
+int ManhattanDistance(int x1, int y1, int x2, int y2);
 
 void    WrapPosition(vec2_t * position, int w, int h);
 

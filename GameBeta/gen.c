@@ -10,6 +10,15 @@
 
 typedef char ids_t[MAP_HEIGHT][MAP_WIDTH];
 
+void RenderTiles(game_t * game)
+{
+    if ( show_map_gen ) {
+        CheckForShowMapGenCancel();
+        DebugRenderTiles(game->map.tiles);
+        SDL_Delay(25);
+    }
+}
+
 // TODO: this could be better: try another direction if blocked.
 /// Carve out a hallway recursively, setting each new floor tile with the
 /// current region ID.
@@ -19,7 +28,7 @@ static void GenerateHallway_r(tiles_t map,
                               int x,
                               int y)
 {
-    map[y][x].type = TILE_FLOOR; // Open up this spot
+    map[y][x] = CreateTile(TILE_FLOOR); // Open up this spot
     ids[y][x] = current_id;
 
     int delay = 25;
@@ -37,8 +46,8 @@ static void GenerateHallway_r(tiles_t map,
 
     // Make a list of the coordinates of possible directions.
     for ( int i = 0; i < NUM_CARDINAL_DIRECTIONS; i++ ) {
-        int next_x = x + x_dirs[i] * 2;
-        int next_y = y + y_dirs[i] * 2;
+        int next_x = x + x_deltas[i] * 2;
+        int next_y = y + y_deltas[i] * 2;
 
         if ( IsInBounds(next_x, next_y)
             && map[next_y][next_x].type == TILE_WALL )
@@ -60,9 +69,9 @@ static void GenerateHallway_r(tiles_t map,
     SDL_Point next = directions[i].coord;
 
     // Clear the spot in between this and the next.
-    int inbetween_x = next.x - x_dirs[dir];
-    int inbetween_y = next.y - y_dirs[dir];
-    map[inbetween_y][inbetween_x].type = TILE_FLOOR;
+    int inbetween_x = next.x - x_deltas[dir];
+    int inbetween_y = next.y - y_deltas[dir];
+    map[inbetween_y][inbetween_x] = CreateTile(TILE_FLOOR);
     ids[inbetween_y][inbetween_x] = current_id;
 
     if ( show_map_gen ) {
@@ -115,8 +124,8 @@ int GetConnectors(ids_t ids, int main_region, connector_t * out)
             int other_region = -1;
 
             for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-                int x1 = x + x_dirs[d];
-                int y1 = y + y_dirs[d];
+                int x1 = x + x_deltas[d];
+                int y1 = y + y_deltas[d];
 
                 if ( ids[y1][x1] == main_region ) {
                     touches_main = true;
@@ -147,24 +156,27 @@ int GetDeadEnds(tiles_t map, SDL_Point * out)
 
     for ( int y = 0; y < MAP_HEIGHT; y++ ) {
         for ( int x = 0; x < MAP_WIDTH; x++ ) {
-            if ( map[y][x].type != TILE_FLOOR ) {
-                continue;
-            }
 
-            // Count the number of connections to this tile.
-            int connection_count = 0;
-            for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-                if ( map[y + y_dirs[d]][x + x_dirs[d]].type == TILE_FLOOR ) {
-                    connection_count++;
+            if ( map[y][x].type == TILE_FLOOR ) {
+
+                // Count the number of non-wall connections to this tile.
+                int connection_count = 0;
+
+                for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+                    tile_t tile = map[y + y_deltas[d]][x + x_deltas[d]];
+                    if ( tile.type != TILE_WALL ) {
+                        connection_count++;
+                    }
+                }
+
+                if ( connection_count == 1 ) {
+                    // It's a dead end.
+                    out[count].x = x;
+                    out[count].y = y;
+                    count++;
                 }
             }
 
-            if ( connection_count == 1 ) {
-                // It's a dead end.
-                out[count].x = x;
-                out[count].y = y;
-                count++;
-            }
         }
     }
 
@@ -182,6 +194,24 @@ static void GetRoomCorners(SDL_Rect room, SDL_Point corners[4])
     corners[1] = (SDL_Point){ right, top };
     corners[2] = (SDL_Point){ left,  bottom };
     corners[3] = (SDL_Point){ right, bottom };
+}
+
+static SDL_Point GetRandomPointInRoom(map_t * map, int room_num)
+{
+    SDL_Rect room = map->rooms[room_num];
+    SDL_Point pt;
+    pt.x = Random(room.x, room.x + room.w - 1);
+    pt.y = Random(room.y, room.y + room.h - 1);
+
+    return pt;
+}
+
+static SDL_Point GetRandomRoomCorner(map_t * map, int room_num)
+{
+    SDL_Rect room = map->rooms[room_num];
+    SDL_Point corners[4];
+    GetRoomCorners(room, corners);
+    return corners[Random(0, 3)];
 }
 
 // https://www.tomstephensondeveloper.co.uk/post/creating-simple-procedural-dungeon-generation
@@ -206,8 +236,7 @@ void GenerateMap(game_t * game)
             }
 
             memset(&map->tiles[y][x], 0, sizeof(map->tiles[y][x]));
-            map->tiles[y][x].type = TILE_WALL;
-            map->tiles[y][x].variety = Random(0, 255);
+            map->tiles[y][x] = CreateTile(TILE_WALL);
         }
     }
 
@@ -247,7 +276,7 @@ void GenerateMap(game_t * game)
         map->rooms[map->num_rooms++] = rect;
         for ( int y = rect.y; y < rect.y + rect.h; y++ ) {
             for ( int x = rect.x; x < rect.x + rect.w; x++ ) {
-                map->tiles[y][x].type = TILE_FLOOR;
+                map->tiles[y][x] = CreateTile(TILE_FLOOR);
                 ids[y][x] = current_id;
             }
         }
@@ -302,6 +331,9 @@ void GenerateMap(game_t * game)
     // Open up doors between rooms and hallways.
     //
 
+    SDL_Point potential_door_locations[MAP_WIDTH * MAP_HEIGHT];
+    int num_potential_door_locations = 0;
+
     // Pick a random region to start.
     int main_region = Random(0, num_regions - 1);
 
@@ -312,8 +344,11 @@ void GenerateMap(game_t * game)
         // Pick a random connector, open it up, and merge the other region with
         // the main.
         connector_t connector = connectors[Random(0, num_connectors - 1)];
-        map->tiles[connector.y][connector.x].type = TILE_FLOOR;
-        map->tiles[connector.y][connector.x].flags |= TILE_FLAG_DOOR;
+        map->tiles[connector.y][connector.x] = CreateTile(TILE_FLOOR);
+        potential_door_locations[num_potential_door_locations++] = (SDL_Point){
+            connector.x,
+            connector.y
+        };
         ChangeAllIDs(ids, connector.region, main_region);
 
         if ( show_map_gen ) {
@@ -324,14 +359,30 @@ void GenerateMap(game_t * game)
     }
 
     //
-    // Eliminate deadends. (Nobody likes backtracking)
+    // Eliminate deadends.
     //
 
     int num_deadends = 0;
     SDL_Point deadends[MAP_WIDTH * MAP_HEIGHT];
     while ( (num_deadends = GetDeadEnds(map->tiles, deadends)) ) {
         for ( int i = 0; i < num_deadends; i++ ) {
-            map->tiles[deadends[i].y][deadends[i].x].type = TILE_WALL;
+            map->tiles[deadends[i].y][deadends[i].x] = CreateTile(TILE_WALL);
+            if ( show_map_gen ) {
+                CheckForShowMapGenCancel();
+                DebugRenderTiles(game->map.tiles);
+                SDL_Delay(25);
+            }
+        }
+    }
+
+    //
+    // Add doors
+    //
+
+    for ( int i = 0; i < num_potential_door_locations; i++ ) {
+        SDL_Point p = potential_door_locations[i];
+        if ( map->tiles[p.y][p.x].type == TILE_FLOOR ) {
+            map->tiles[p.y][p.x] = CreateTile(TILE_DOOR);
             if ( show_map_gen ) {
                 CheckForShowMapGenCancel();
                 DebugRenderTiles(game->map.tiles);
@@ -347,16 +398,36 @@ void GenerateMap(game_t * game)
     game->num_actors = 0;
 
     // Spawn player.
-    SDL_Rect room = map->rooms[0];
-    int x = Random(room.x, room.x + room.w - 1);
-    int y = Random(room.y, room.y + room.h - 1);
-    SpawnActor(game, ACTOR_PLAYER, x, y);
+    SDL_Point player_location = GetRandomPointInRoom(map, 0);
+    SpawnActor(game, ACTOR_PLAYER, player_location.x, player_location.y);
+    map->tiles[player_location.y][player_location.x] = CreateTile(TILE_START);
 
-    // Place doors.
+    // Spawn the exit
+    SDL_Point exit_location = GetRandomRoomCorner(map, map->num_rooms - 1);
+    game->map.tiles[exit_location.y][exit_location.x] = CreateTile(TILE_EXIT);
+
+    RenderTiles(game);
+
+    // Spawn torches
+#if 0
+    for ( int i = 0; i < map->num_rooms; i++ ) {
+        SDL_Rect room = map->rooms[i];
+        SpawnActor(game, ACTOR_TORCH, room.x, room.y);
+    }
+#endif
+
+    // DEBUG: put the player next to the exit
+#if 0
+    game->actors[0].x = exit_location.x - 1;
+    game->actors[0].y = exit_location.y;
+#endif
+
+    // Remove invalid doors.
 #if 1
     for ( int y = 0; y < MAP_HEIGHT; y++ ) {
         for ( int x = 0; x < MAP_WIDTH; x++ ) {
-            if ( game->map.tiles[y][x].flags & TILE_FLAG_DOOR ) {
+            if ( game->map.tiles[y][x].type == TILE_DOOR ) {
+
                 tile_t * adjacents[NUM_CARDINAL_DIRECTIONS];
                 for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
                     adjacents[d] = GetAdjacentTile(game->map.tiles, x, y, d);
@@ -364,15 +435,21 @@ void GenerateMap(game_t * game)
 
                 // Deadend-clearing may have rendered some door spots invalid.
                 // Check if still valid.
+                // TODO: Seems dumb. Think about how this should be implemented.
                 if ((adjacents[NORTH]->type == TILE_FLOOR
                     && adjacents[SOUTH]->type == TILE_FLOOR)
                     || (adjacents[WEST]->type == TILE_FLOOR &&
                         adjacents[EAST]->type == TILE_FLOOR))
                 {
-                    SpawnActor(game, ACTOR_DOOR, x, y);
+
                 } else {
                     // This spot is no longer a valid door.
-                    game->map.tiles[y][x].flags &= ~TILE_FLAG_DOOR;
+                    game->map.tiles[y][x].type = TILE_WALL;
+                    if ( show_map_gen ) {
+                        CheckForShowMapGenCancel();
+                        DebugRenderTiles(game->map.tiles);
+                        SDL_Delay(25);
+                    }
                 }
             }
         }
@@ -392,10 +469,26 @@ void GenerateMap(game_t * game)
         }
 #endif
 
+        // Turn any adjacent door to exit room into gold doors.
+        SDL_Rect room = map->rooms[map->num_rooms - 1];
+        room.x--;
+        room.y--;
+        room.w++;
+        room.h++;
+        for ( int y = room.y; y <= room.y + room.h; y++ ) {
+            for ( int x = room.x; x <= room.x + room.w; x++ ) {
+                if ( map->tiles[y][x].type == TILE_DOOR ) {
+                    map->tiles[y][x] = CreateTile(TILE_GOLD_DOOR);
+                }
+            }
+        }
+
         // TODO: Testing
         int x = map->rooms[i].x + map->rooms[i].w / 2;
         int y = map->rooms[i].y + map->rooms[i].h / 2;
         SpawnActor(game, ACTOR_BLOB, x, y);
+
+        RenderTiles(game);
 
         if ( show_map_gen ) {
             DebugWaitForKeyPress();

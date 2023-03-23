@@ -8,6 +8,9 @@
 #include "vector.h"
 #include "mathlib.h"
 
+const vec2_t vec2_zero = { 0.0f, 0.0f };
+const vec3_t vec3_zero = { 0.0f, 0.0f, 0.0f };
+
 extern inline vec2_t Vec2Add(vec2_t a, vec2_t b);
 extern inline vec2_t Vec2Scale(vec2_t v, float s);
 extern inline vec2_t Vec2Subtract(vec2_t a, vec2_t b);
@@ -15,48 +18,40 @@ extern inline float Vec2LengthSqr(vec2_t v);
 extern inline float Vec2Length(vec2_t);
 extern inline float Vec2Angle(vec2_t v);
 
-void Vec2Lerp(vec2_t * v, const vec2_t * target, float w)
+vec2_t Vec2Lerp(const vec2_t * v, const vec2_t * target, float w)
 {
-    v->x = Lerp(v->x, target->x, w);
-    v->y = Lerp(v->y, target->y, w);
+    vec2_t result;
+    result.x = Lerp(v->x, target->x, w);
+    result.y = Lerp(v->y, target->y, w);
+
+    return result;
 }
 
-void Vec3Lerp(vec3_t * v, const vec3_t * target, float w)
+vec2_t Vec2LerpEpsilon(vec2_t v, vec2_t target, float w, float epsilson)
 {
-    v->x = Lerp(v->x, target->x, w);
-    v->y = Lerp(v->y, target->y, w);
-    v->z = Lerp(v->z, target->z, w);
-}
+    vec2_t result;
+    result.x = Lerp(v.x, target.x, w);
+    result.y = Lerp(v.y, target.y, w);
 
-bool Vec2LerpEpsilon(vec2_t * v, vec2_t * target, float w, float epsilon)
-{
-    Vec2Lerp(v, target, w);
-
-    float dx = fabsf(target->x - v->x);
-    float dy = fabsf(target->y - v->y);
-
-    if ( dx < epsilon && dy < epsilon ) {
-        *v = *target;
-        return true;
+    if ( fabsf(result.x - target.x) < epsilson ) {
+        result.x = target.x;
     }
 
-    return false;
-}
-
-bool Vec3LerpEpsilon(vec3_t * v, vec3_t * target, float w, float epsilon)
-{
-    Vec3Lerp(v, target, w);
-
-    float dx = fabsf(target->x - v->x);
-    float dy = fabsf(target->y - v->y);
-    float dz = fabsf(target->z - v->z);
-
-    if ( dx < epsilon && dy < epsilon && dz < epsilon ) {
-        *v = *target;
-        return true;
+    if ( fabsf(result.y - target.y) < epsilson ) {
+        result.y = target.y;
     }
 
-    return false;
+    return result;
+}
+
+vec3_t Vec3Lerp(const vec3_t * v, const vec3_t * target, float w)
+{
+    vec3_t result;
+    result.x = Lerp(v->x, target->x, w);
+    result.y = Lerp(v->y, target->y, w);
+    result.z = Lerp(v->z, target->z, w);
+
+    return result;
 }
 
 vec2_t Vec2Normalize(vec2_t v)

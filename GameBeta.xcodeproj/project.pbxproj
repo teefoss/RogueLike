@@ -27,6 +27,7 @@
 		608E80BC29354A830060A04D /* animation.c in Sources */ = {isa = PBXBuildFile; fileRef = 608E80BB29354A830060A04D /* animation.c */; };
 		608E80BE2937A05F0060A04D /* player.c in Sources */ = {isa = PBXBuildFile; fileRef = 608E80BD2937A05F0060A04D /* player.c */; };
 		60C382EB291AB3DD00F9AE9B /* sound.c in Sources */ = {isa = PBXBuildFile; fileRef = 60C382EA291AB3DD00F9AE9B /* sound.c */; };
+		60FBE3E02947CC1D007C3862 /* tile.c in Sources */ = {isa = PBXBuildFile; fileRef = 60FBE3DF2947CC1D007C3862 /* tile.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -84,6 +85,7 @@
 		60D5D079293AA1D30093FDAF /* font_4x6.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = font_4x6.h; sourceTree = "<group>"; };
 		60DF52C92915E35300ED43BF /* main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
 		60F9293E2919464400CDCEC8 /* debug.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = debug.h; sourceTree = "<group>"; };
+		60FBE3DF2947CC1D007C3862 /* tile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = tile.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +132,7 @@
 				601121362915ED80004A0AF3 /* gen.c */,
 				6011213A2915EF8A004A0AF3 /* map.c */,
 				608E80BD2937A05F0060A04D /* player.c */,
+				60FBE3DF2947CC1D007C3862 /* tile.c */,
 			);
 			path = GameBeta;
 			sourceTree = "<group>";
@@ -250,6 +253,7 @@
 				60637F5829136DAD00352516 /* stack.c in Sources */,
 				60637F5529136DAD00352516 /* list.c in Sources */,
 				60637F5629136DAD00352516 /* array.c in Sources */,
+				60FBE3E02947CC1D007C3862 /* tile.c in Sources */,
 				60637F5A29136DAD00352516 /* texture.c in Sources */,
 				6011213B2915EF8A004A0AF3 /* map.c in Sources */,
 				608E80BE2937A05F0060A04D /* player.c in Sources */,

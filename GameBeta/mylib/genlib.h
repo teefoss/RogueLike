@@ -61,7 +61,7 @@ extern "C" {
 // Sort of experimental.
 //
 
-#define STORAGE(T, name, size) struct name { T data[size]; int count; }
+#define STORAGE(T, size)  struct { T data[size]; int count; }
 
 // N.B. These macros only work with non-pointer STORAGE's
 

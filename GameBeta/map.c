@@ -11,10 +11,76 @@
 #include "video.h"
 #include "texture.h"
 
-const int x_dirs[NUM_DIRECTIONS] = {  0, 0, -1, 1, -1,  1, -1, 1 };
-const int y_dirs[NUM_DIRECTIONS] = { -1, 1,  0, 0, -1, -1,  1, 1 };
+const int x_deltas[NUM_DIRECTIONS] = { 0, -1, 1, 0, -1, 1, -1, 1 };
+const int y_deltas[NUM_DIRECTIONS] = { -1, 0, 0, 1, -1, -1, 1, 1 };
 
 #define NUM_TILE_SPRITES 15
+
+int tile_signatures[NUM_TILE_SPRITES] = {
+    [ 0] = 255,
+    [ 1] = 2,
+    [ 2] = 0,
+    [ 3] = 206,
+    [ 4] = 87,
+    [ 5] = 171,
+    [ 6] = 223,
+    [ 7] = 239,
+    [ 8] = 138,
+    [ 9] = 70,
+    [10] = 127,
+    [11] = 191,
+    [12] = 2,
+    [13] = 70,
+    [14] = 138,
+};
+
+int tile_masks[NUM_TILE_SPRITES] = {
+    [ 0] = 255,
+    [ 1] = 14,
+    [ 2] = 2,
+    [ 3] = 207,
+    [ 4] = 95,
+    [ 5] = 175,
+    [ 6] = 255,
+    [ 7] = 255,
+    [ 8] = 234,
+    [ 9] = 214,
+    [10] = 255,
+    [11] = 255,
+    [12] = 194,
+    [13] = 79,
+    [14] = 143,
+};
+
+int CalculateWallSignature(const tiles_t tiles, int x, int y, bool ignore_reveal)
+{
+    int signature = 0;
+
+    for ( direction_t i = 0; i < NUM_DIRECTIONS; i++ ) {
+        int x2 = x + x_deltas[i];
+        int y2 = y + y_deltas[i];
+
+        if ( IsInBounds(x2, y2) ) {
+            tile_t t = tiles[y2][x2];
+
+            bool is_floor = true;
+
+            if ( t.flags & FLAG(TILE_BLOCKING) ) {
+                is_floor = false;
+            }
+
+            if ( !ignore_reveal && !t.revealed ) {
+                is_floor = false;
+            }
+
+            if ( is_floor ) {
+                signature |= 1 << i; // Flag if there's a floor there.
+            }
+        }
+    }
+
+    return signature;
+}
 
 bool IsInBounds(int x, int y)
 {
@@ -23,37 +89,76 @@ bool IsInBounds(int x, int y)
 
 tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction)
 {
-    return &tiles[y + y_dirs[direction]][x + x_dirs[direction]];
+    return &tiles[y + y_deltas[direction]][x + x_deltas[direction]];
 }
 
-void RenderTile(const tile_t * tile, int x, int y, int scale, bool do_light)
+/// - parameter debug: Ignore lighting and tile's revealed property.
+void RenderTile(const tile_t * tile,
+                int signature,
+                int pixel_x,
+                int pixel_y,
+                int scale, // TODO: scale is the wrong term
+                bool debug)
 {
-    SDL_Texture * tiles = GetTexture("assets/tiles.png");
+    SDL_Texture * tiles = GetTexture("assets/tiles2.png");
 
     SDL_Rect src, dst;
     src.w = src.h = TILE_SIZE;
     dst.w = dst.h = scale;
-    dst.x = x;
-    dst.y = y;
+    dst.x = pixel_x;
+    dst.y = pixel_y;
 
-    if ( do_light ) {
-        SDL_SetTextureColorMod(tiles, tile->light, tile->light, tile->light);
-    } else {
+    if ( debug ) {
+        // In debug, always draw at full light.
         SDL_SetTextureColorMod(tiles, 255, 255, 255);
+    } else {
+        // Apply tile's light level.
+        SDL_SetTextureColorMod(tiles, tile->light, tile->light, tile->light);
     }
 
-    switch ( tile->type ) {
+    src.x = tile->sprite_cell.x * TILE_SIZE;
+    src.y = tile->sprite_cell.y * TILE_SIZE;
+
+    switch ( (tile_type_t)tile->type ) {
         case TILE_WALL:
-            src.x = (tile->variety % 4) * TILE_SIZE;
-            src.y = TILE_SIZE * 2;
-            break;
+            src.x = 0;
+            src.y = 0;
+            V_DrawTexture(tiles, &src, &dst); // Blank it to start.
+
+            direction_t draw_order[NUM_DIRECTIONS] = {
+                NORTH,
+                NORTH_WEST,
+                NORTH_EAST,
+                WEST,
+                SOUTH_WEST,
+                EAST,
+                SOUTH_EAST,
+                SOUTH
+            };
+
+            src.y = 32;
+            for ( int i = 0; i < NUM_DIRECTIONS; i++ ) {
+                direction_t direction = draw_order[i];
+
+                if ( signature & FLAG(direction) ) {
+                    src.x = direction * TILE_SIZE;
+                    V_DrawTexture(tiles, &src, &dst);
+                }
+            }
+#if 0
+            src.x = NUM_TILE_SPRITES * TILE_SIZE; // 'Missing tile' texture.
+            for ( int i = 0; i < NUM_TILE_SPRITES; i++ ) {
+                if ( (signature & tile_masks[i]) == tile_signatures[i] ) {
+                    src.x = (tile->sprite_cell.x + i) * TILE_SIZE;
+                    break;
+                }
+            }
+#endif
+            return;
         case TILE_FLOOR:
             if ( tile->variety < 112 ) {
-                src.x = TILE_SIZE * (tile->variety % 8);
-            } else {
-                src.x = 0;
+                src.x += (tile->variety % 8) * TILE_SIZE;
             }
-            src.y = TILE_SIZE * 1;
             break;
         default:
             break;
@@ -61,6 +166,7 @@ void RenderTile(const tile_t * tile, int x, int y, int scale, bool do_light)
 
     V_DrawTexture(tiles, &src, &dst);
 
+    // F1 - show tile distance to player
     if ( tile->type == TILE_FLOOR ) {
         const u8 * keys = SDL_GetKeyboardState(NULL);
         if ( keys[SDL_SCANCODE_F1] ) {
@@ -70,20 +176,22 @@ void RenderTile(const tile_t * tile, int x, int y, int scale, bool do_light)
     }
 }
 
+static const int half_w = (GAME_WIDTH - RENDER_TILE_SIZE) / 2;
+static const int half_h = (GAME_HEIGHT - RENDER_TILE_SIZE) / 2;
+
+vec2_t GetRenderOffset(const actor_t * player)
+{
+    vec2_t offset = {
+        .x = (player->x * RENDER_TILE_SIZE + player->offset_current.x) - half_w,
+        .y = (player->y * RENDER_TILE_SIZE + player->offset_current.y) - half_h,
+    };
+
+    return offset;
+}
+
 void RenderMap(const game_t * game)
 {
-    // Calculate the draw offset.
-    int offset_x = 0;
-    int offset_y = 0;
-    for ( int i = 0; i < game->num_actors; i++ ) {
-        const actor_t * a = &game->actors[i];
-        if ( a->type == ACTOR_PLAYER ) {
-            int half_w = (GAME_WIDTH - RENDER_TILE_SIZE) / 2;
-            int half_h = (GAME_HEIGHT - RENDER_TILE_SIZE) / 2;
-            offset_x = (a->x * RENDER_TILE_SIZE + a->offset.x) - half_w;
-            offset_y = (a->y * RENDER_TILE_SIZE + a->offset.y) - half_h;
-        }
-    }
+    vec2_t offset = game->camera;
 
     //
     // Draw all tiles.
@@ -95,9 +203,11 @@ void RenderMap(const game_t * game)
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
             const tile_t * tile = &game->map.tiles[y][x];
 
-            int pixel_x = (x * RENDER_TILE_SIZE) - offset_x;
-            int pixel_y = (y * RENDER_TILE_SIZE) - offset_y;
-            RenderTile(tile, pixel_x, pixel_y, RENDER_TILE_SIZE, true);
+//            int signature = CalcTileSignature(game->map.tiles, x, y, true);
+            int signature = CalculateWallSignature(game->map.tiles, x, y, false);
+            int pixel_x = (x * RENDER_TILE_SIZE) - offset.x;
+            int pixel_y = (y * RENDER_TILE_SIZE) - offset.y;
+            RenderTile(tile, signature, pixel_x, pixel_y, RENDER_TILE_SIZE, false);
         }
     }
 
@@ -132,7 +242,7 @@ void RenderMap(const game_t * game)
     }
 
     for ( int i = 0; i < num_visible_actors; i++ ) {
-        RenderActor(visible_actors[i], offset_x, offset_y);
+        RenderActor(visible_actors[i], offset.x, offset.y);
     }
 }
 
@@ -142,16 +252,21 @@ void DebugRenderTiles(tiles_t tiles)
 
     for ( int y = 0; y < MAP_HEIGHT; y++ ) {
         for ( int x = 0; x < MAP_WIDTH; x++ ) {
-            RenderTile(&tiles[y][x], x * 8, y * 8, 8, false);
+            int scale = 16;
+
+            bool save = tiles[y][x].revealed;
+            tiles[y][x].revealed = true;
+
+//            int signature = CalcTileSignature(tiles, x, y, false);
+            int signature = CalculateWallSignature(tiles, x, y, true);
+            RenderTile(&tiles[y][x], signature, x * scale, y * scale, scale, true);
+
+            tiles[y][x].revealed = save;
         }
     }
 
     V_Refresh();
 }
-
-#define IS_IN_RANGE(a, min, max) (a >= min && a <= max)
-#define IS_INSIDE_RECT(x, y, min_x, min_y, max_x, max_y) \
-    (IS_IN_RANGE(x, min_x, max_x) && IS_IN_RANGE(y, min_y, max_y))
 
 bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
 {
@@ -162,48 +277,20 @@ bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
     int err = dx + dy;
     int e2;
 
-    int min_x = MIN(x1, x2);
-    int min_y = MIN(y1, y2);
-    int max_x = MAX(x1, x2);
-    int max_y = MAX(y1, y2);
-
-    // Make a list of actors the line of sight might cross.
-    int num_actors = 0;
-    actor_t * actors[MAX_ACTORS];
-
-    for ( int i = 0; i < game->num_actors; i++ ) {
-        actor_t * actor = &game->actors[i];
-
-        if ( IS_INSIDE_RECT(actor->x, actor->y, min_x, min_y, max_x, max_y)) {
-            actors[num_actors++] = actor;
-        }
-    }
-
     while ( true ) {
         tile_t * tile = &game->map.tiles[y1][x1];
-
-        bool actor_is_blocking = false;
-
-        for ( int i = 0; i < num_actors; i++ ) {
-            if ( actors[i]->flags & ACTOR_FLAG_BLOCKS_SIGHT
-                && (actors[i]->x == x1 && actors[i]->y == y1) )
-            {
-                actor_is_blocking = true;
-            }
-        }
 
         if ( reveal ) {
             tile->visible = true;
             tile->revealed = true;
 
             // For floor tiles, also reveal any surrounding wall tiles.
-            if ( tile->type == TILE_FLOOR && !actor_is_blocking ) {
-                for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
-                    tile_t * adjacent = GetAdjacentTile(game->map.tiles, x1, y1, d);
-                    if ( adjacent->type == TILE_WALL ) {
-                        adjacent->visible = true;
-                        adjacent->revealed = true;
-                    }
+            if ( !(tile->flags & FLAG(TILE_BLOCKING)) ) {
+                for ( direction_t d = 0; d < NUM_DIRECTIONS; d++ ) {
+                    int x3 = x_deltas[d] + x1;
+                    int y3 = y_deltas[d] + y1;
+                    game->map.tiles[y3][x3].visible = true;
+                    game->map.tiles[y3][x3].revealed = true;
                 }
             }
         }
@@ -212,11 +299,7 @@ bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
             return true;
         }
 
-        if ( tile->type == TILE_WALL ) {
-            return false;
-        }
-
-        if ( actor_is_blocking ) {
+        if ( tile->flags & FLAG(TILE_BLOCKING) ) {
             return false;
         }
 
@@ -232,6 +315,60 @@ bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
             y1 += sy;
         }
     }
+}
+
+static bool HLineIsClear(map_t map, int y, int x0, int x1)
+{
+    int x = x0;
+
+    // Walk along the x axis.
+    while ( x != x1 ) {
+        if ( map.tiles[y][x].flags & FLAG(TILE_BLOCKING) ) {
+            return false;
+        }
+
+        if ( x < x1 ) {
+            x++;
+        } else if ( x > x1 ) {
+            x--;
+        }
+    }
+
+    return true;
+}
+
+static bool VLineIsClear(map_t map, int x, int y0, int y1)
+{
+    int y = y0;
+
+    while ( y != y1 ) {
+        if ( map.tiles[y][x].flags & FLAG(TILE_BLOCKING) ) {
+            return false;
+        }
+
+        if ( y < y1 ) {
+            y++;
+        } else if ( y > y1 ) {
+            y--;
+        }
+    }
+
+    return true;
+}
+
+/*
+ . . . . . . .
+ . * * * * 1 .
+ . * . . . * .
+ . 0 * * * * .
+ . . . . . . .
+ */
+bool ManhattenPathsAreClear(map_t map, int x0, int y0, int x1, int y1)
+{
+    return
+    ( HLineIsClear(map, y0, x0, x1) || VLineIsClear(map, x1, y0, y1) )
+    &&
+    ( HLineIsClear(map, y1, x0, x1) || VLineIsClear(map, x0, y0, y1) );
 }
 
 box_t GetVisibleRegion(const actor_t * player)
@@ -310,8 +447,8 @@ void UpdateDistanceMap(tiles_t tiles, int x, int y)
         int distance = qtile.tile->distance;
 
         for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
-            int x1 = qtile.x + x_dirs[d];
-            int y1 = qtile.y + y_dirs[d];
+            int x1 = qtile.x + x_deltas[d];
+            int y1 = qtile.y + y_deltas[d];
 
             if ( IsInBounds(x1, y1) ) {
                 tile_t * edge = &tiles[y1][x1];

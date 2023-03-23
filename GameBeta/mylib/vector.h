@@ -24,20 +24,14 @@ typedef struct {
 
 vec2_t Vec2Normalize(vec2_t v);
 vec2_t Vec2Rotate(vec2_t v, float radians);
-void Vec2Lerp(vec2_t * v, const vec2_t * target, float w);
-void Vec3Lerp(vec3_t * v, const vec3_t * target, float w);
-bool Vec2LerpEpsilon(vec2_t * v, vec2_t * target, float w, float epsilon);
-bool Vec3LerpEpsilon(vec3_t * v, vec3_t * target, float w, float epsilon);
+vec2_t Vec2Lerp(const vec2_t * v, const vec2_t * target, float w);
+vec3_t Vec3Lerp(const vec3_t * v, const vec3_t * target, float w);
+vec2_t Vec2LerpEpsilon(vec2_t v, vec2_t target, float w, float epsilson);
 
-#define VectorLerp(v, t, w) _Generic((v), \
-    vec2_t *: Vec2Lerp, \
-    vec3_t *: Vec3Lerp \
+#define VecLerp(v, t, w) _Generic((v), \
+    const vec2_t *: Vec2Lerp, \
+    const vec3_t *: Vec3Lerp \
 )(v, t, w)
-
-#define VectorLerpEpsilon(v, t, w, e) _Generic((v), \
-    vec2_t *: Vec2LerpEpsilon, \
-    vec3_t *: Vec3LerpEpsilon \
-)(v, t, w, e)
 
 inline vec2_t Vec2Add(vec2_t a, vec2_t b)
 {
@@ -68,5 +62,8 @@ inline float Vec2Angle(vec2_t v)
 {
     return atan2f(-v.y, v.x);
 }
+
+extern const vec2_t vec2_zero;
+extern const vec3_t vec3_zero;
 
 #endif /* vector_h */

@@ -25,3 +25,17 @@ void PlayerCastSightLines(game_t * game, const actor_t * player)
 
     printf("cast %d sight lines\n", num_lines);
 }
+
+void CollectItem(actor_t * player, actor_t * item_actor, item_type_t item)
+{
+    inventory_t * inventory = &player->game->inventory;
+
+    if ( inventory->item_counts[item] < 8 ) {
+        if ( InventoryIsEmtpy(inventory) ) {
+            inventory->selected_item = item;
+        }
+
+        inventory->item_counts[item]++;
+        item_actor->remove = true;
+    }
+}

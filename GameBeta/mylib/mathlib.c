@@ -235,6 +235,14 @@ bool RectsOverlap(SDL_Rect a, SDL_Rect b)
     return false;
 }
 
+int ManhattanDistance(int x1, int y1, int x2, int y2)
+{
+    int dx = abs(x1 - x2);
+    int dy = abs(y1 - y2);
+    return dx + dy;
+}
+
+
 #pragma mark - RANDOM
 
 static u32 next = 1;
