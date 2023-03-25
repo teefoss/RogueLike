@@ -11,6 +11,7 @@
 static tile_t tile_templates[] = {
     [TILE_FLOOR] = {
         .sprite_cell = { 0, 1 },
+        .num_variants = 8,
     },
     [TILE_WALL] = {
         .flags = FLAG(TILE_BLOCKING),

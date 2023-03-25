@@ -11,11 +11,11 @@ void PlayerCastSightLines(game_t * game, const actor_t * player)
 {
     int num_lines = 0;
 
-    box_t visible_region = GetVisibleRegion(player);
+    box_t visible_region = GetVisibleRegion(&game->map, player);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            game->map.tiles[y][x].visible = false; // Reset it.
+            GetTile(&game->map, x, y)->visible = false; // Reset it.
 
             // Update tile visibility along the way.
             LineOfSight(game, player->x, player->y, x, y, true);
@@ -26,7 +26,11 @@ void PlayerCastSightLines(game_t * game, const actor_t * player)
     printf("cast %d sight lines\n", num_lines);
 }
 
-void CollectItem(actor_t * player, actor_t * item_actor, item_type_t item)
+
+
+
+
+void CollectItem(actor_t * player, actor_t * item_actor, item_t item)
 {
     inventory_t * inventory = &player->game->inventory;
 

@@ -52,7 +52,7 @@ int tile_masks[NUM_TILE_SPRITES] = {
     [14] = 143,
 };
 
-int CalculateWallSignature(const tiles_t tiles, int x, int y, bool ignore_reveal)
+int CalculateWallSignature(const map_t * map, int x, int y, bool ignore_reveal)
 {
     int signature = 0;
 
@@ -60,16 +60,16 @@ int CalculateWallSignature(const tiles_t tiles, int x, int y, bool ignore_reveal
         int x2 = x + x_deltas[i];
         int y2 = y + y_deltas[i];
 
-        if ( IsInBounds(x2, y2) ) {
-            tile_t t = tiles[y2][x2];
+        if ( IsInBounds(map, x2, y2) ) {
+            const tile_t * tile = GetTile((map_t *)map, x2, y2);
 
             bool is_floor = true;
 
-            if ( t.flags & FLAG(TILE_BLOCKING) ) {
+            if ( tile->flags & FLAG(TILE_BLOCKING) ) {
                 is_floor = false;
             }
 
-            if ( !ignore_reveal && !t.revealed ) {
+            if ( !ignore_reveal && !tile->revealed ) {
                 is_floor = false;
             }
 
@@ -82,14 +82,32 @@ int CalculateWallSignature(const tiles_t tiles, int x, int y, bool ignore_reveal
     return signature;
 }
 
-bool IsInBounds(int x, int y)
+bool IsInBounds(const map_t * map, int x, int y)
 {
-    return x >= 0 && y >= 0 && x < MAP_WIDTH && y < MAP_HEIGHT;
+    return x >= 0 && y >= 0 && x < map->width && y < map->height;
 }
 
-tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction)
+tile_t * GetAdjacentTile(map_t * map, int x, int y, direction_t direction)
 {
-    return &tiles[y + y_deltas[direction]][x + x_deltas[direction]];
+    tile_t * tile = GetTile(map,
+                            x + x_deltas[direction],
+                            y + y_deltas[direction]);
+    return tile;
+}
+
+tile_t * GetTile(map_t * map, int x, int y)
+{
+    if ( !IsInBounds(map, x, y) ) {
+        return NULL;
+    }
+
+    return &map->tiles[y * map->width + x];
+}
+
+SDL_Point GetCoordinate(const map_t * map, int index)
+{
+    SDL_Point coord = { index % map->width, index / map->width };
+    return coord;
 }
 
 /// - parameter debug: Ignore lighting and tile's revealed property.
@@ -167,7 +185,7 @@ void RenderTile(const tile_t * tile,
     V_DrawTexture(tiles, &src, &dst);
 
     // F1 - show tile distance to player
-    if ( tile->type == TILE_FLOOR ) {
+    if ( !(tile->flags & FLAG(TILE_BLOCKING)) ) {
         const u8 * keys = SDL_GetKeyboardState(NULL);
         if ( keys[SDL_SCANCODE_F1] ) {
             V_SetGray(255);
@@ -197,14 +215,12 @@ void RenderMap(const game_t * game)
     // Draw all tiles.
     //
 
-    box_t visible_region = GetVisibleRegion(&game->actors[0]);
+    box_t visible_region = GetVisibleRegion(&game->map, &game->actors[0]);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            const tile_t * tile = &game->map.tiles[y][x];
-
-//            int signature = CalcTileSignature(game->map.tiles, x, y, true);
-            int signature = CalculateWallSignature(game->map.tiles, x, y, false);
+            const tile_t * tile = GetTile((map_t *)&game->map, x, y);
+            int signature = CalculateWallSignature(&game->map, x, y, false);
             int pixel_x = (x * RENDER_TILE_SIZE) - offset.x;
             int pixel_y = (y * RENDER_TILE_SIZE) - offset.y;
             RenderTile(tile, signature, pixel_x, pixel_y, RENDER_TILE_SIZE, false);
@@ -221,8 +237,9 @@ void RenderMap(const game_t * game)
 
     for ( int i = 0; i < game->num_actors; i++ ) {
         const actor_t * actor = &game->actors[i];
+        const tile_t * tile = GetTile((map_t *)&game->map, actor->x, actor->y);
 
-        if ( game->map.tiles[actor->y][actor->x].visible
+        if ( tile->visible
             && actor->x >= visible_region.min.x
             && actor->x <= visible_region.max.x
             && actor->y >= visible_region.min.y
@@ -246,27 +263,6 @@ void RenderMap(const game_t * game)
     }
 }
 
-void DebugRenderTiles(tiles_t tiles)
-{
-    V_ClearRGB(0, 0, 0);
-
-    for ( int y = 0; y < MAP_HEIGHT; y++ ) {
-        for ( int x = 0; x < MAP_WIDTH; x++ ) {
-            int scale = 16;
-
-            bool save = tiles[y][x].revealed;
-            tiles[y][x].revealed = true;
-
-//            int signature = CalcTileSignature(tiles, x, y, false);
-            int signature = CalculateWallSignature(tiles, x, y, true);
-            RenderTile(&tiles[y][x], signature, x * scale, y * scale, scale, true);
-
-            tiles[y][x].revealed = save;
-        }
-    }
-
-    V_Refresh();
-}
 
 bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
 {
@@ -278,7 +274,7 @@ bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
     int e2;
 
     while ( true ) {
-        tile_t * tile = &game->map.tiles[y1][x1];
+        tile_t * tile = GetTile(&game->map, x1, y1);
 
         if ( reveal ) {
             tile->visible = true;
@@ -289,8 +285,9 @@ bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
                 for ( direction_t d = 0; d < NUM_DIRECTIONS; d++ ) {
                     int x3 = x_deltas[d] + x1;
                     int y3 = y_deltas[d] + y1;
-                    game->map.tiles[y3][x3].visible = true;
-                    game->map.tiles[y3][x3].revealed = true;
+                    tile_t * adjacent = GetTile(&game->map, x3, y3);
+                    adjacent->visible = true;
+                    adjacent->revealed = true;
                 }
             }
         }
@@ -317,13 +314,19 @@ bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal)
     }
 }
 
-static bool HLineIsClear(map_t map, int y, int x0, int x1)
+static bool HLineIsClear(map_t * map, int y, int x0, int x1)
 {
     int x = x0;
 
     // Walk along the x axis.
     while ( x != x1 ) {
-        if ( map.tiles[y][x].flags & FLAG(TILE_BLOCKING) ) {
+        tile_t * tile = GetTile(map, x, y);
+        
+        if ( tile == NULL ) {
+            return false;
+        }
+
+        if ( tile->flags & FLAG(TILE_BLOCKING) ) {
             return false;
         }
 
@@ -337,12 +340,13 @@ static bool HLineIsClear(map_t map, int y, int x0, int x1)
     return true;
 }
 
-static bool VLineIsClear(map_t map, int x, int y0, int y1)
+static bool VLineIsClear(map_t * map, int x, int y0, int y1)
 {
     int y = y0;
 
     while ( y != y1 ) {
-        if ( map.tiles[y][x].flags & FLAG(TILE_BLOCKING) ) {
+        tile_t * tile = GetTile(map, x, y);
+        if ( tile->flags & FLAG(TILE_BLOCKING) ) {
             return false;
         }
 
@@ -356,6 +360,8 @@ static bool VLineIsClear(map_t map, int x, int y0, int y1)
     return true;
 }
 
+
+
 /*
  . . . . . . .
  . * * * * 1 .
@@ -363,7 +369,7 @@ static bool VLineIsClear(map_t map, int x, int y0, int y1)
  . 0 * * * * .
  . . . . . . .
  */
-bool ManhattenPathsAreClear(map_t map, int x0, int y0, int x1, int y1)
+bool ManhattenPathsAreClear(map_t * map, int x0, int y0, int x1, int y1)
 {
     return
     ( HLineIsClear(map, y0, x0, x1) || VLineIsClear(map, x1, y0, y1) )
@@ -371,7 +377,12 @@ bool ManhattenPathsAreClear(map_t map, int x0, int y0, int x1, int y1)
     ( HLineIsClear(map, y1, x0, x1) || VLineIsClear(map, x0, y0, y1) );
 }
 
-box_t GetVisibleRegion(const actor_t * player)
+
+///
+/// Get the rectangular region around the player that is currently visible
+/// on screen.
+///
+box_t GetVisibleRegion(const map_t * map, const actor_t * player)
 {
     int w = GAME_WIDTH / RENDER_TILE_SIZE;
     int h = GAME_HEIGHT / RENDER_TILE_SIZE;
@@ -381,15 +392,43 @@ box_t GetVisibleRegion(const actor_t * player)
     box_t region;
     region.min.x = MAX(0, (player->x - w / 2) - 1);
     region.min.y = MAX(0, (player->y - h / 2) - 1);
-    region.max.x = MIN((player->x + w / 2) + 1, MAP_WIDTH - 1);
-    region.max.y = MIN((player->y + h / 2) + 1, MAP_HEIGHT - 1);
+    region.max.x = MIN((player->x + w / 2) + 1, map->width - 1);
+    region.max.y = MIN((player->y + h / 2) + 1, map->height - 1);
 
     return region;
 }
 
-//
-// UpdateDistanceMap and friends
-//
+
+///
+/// See if tile is adjacent to a another tile of given type.
+/// - parameter x: The tile's x.
+/// - parameter y: The tile's y.
+/// - parameter type: The tile type to check for.
+/// - parameter num_direction: The directions to check. Either
+///   `NUM_CARDINAL_DIRECTIONS` (4) or `NUM_DIRECTIONS` (8).
+///
+bool TileIsAdjacentTo(const map_t * map,
+                      int x,
+                      int y,
+                      tile_type_t type,
+                      int num_directions)
+{
+    const tile_t * tile = GetTile((map_t *)map, x, y);
+
+    for ( direction_t d = 0; d < num_directions; d++ ) {
+        const tile_t * check = GetAdjacentTile((map_t *)map, x, y, d);
+        if ( check->type == type ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+
+
+#pragma mark - DISTANCE MAP
 
 typedef struct {
     tile_t * tile;
@@ -397,7 +436,7 @@ typedef struct {
     int y;
 } qtile_t;
 
-static qtile_t queue[MAP_WIDTH * MAP_HEIGHT];
+static qtile_t * queue;
 static int queue_size;
 static int head, tail;
 
@@ -421,25 +460,45 @@ static qtile_t Get(void)
     return qtile;
 }
 
+void FreeDistanceMapQueue(void)
+{
+    if ( queue ) {
+        free(queue);
+    }
+}
+
 /// For all walkable tiles, update tile `distance` property
 /// with distance to x, y.
-void UpdateDistanceMap(tiles_t tiles, int x, int y)
+void UpdateDistanceMap(map_t * map, int x, int y, bool ignore_doors)
 {
     queue_size = 0;
-    for ( int y = 0; y < MAP_HEIGHT; y++ ) {
-        for ( int x = 0; x < MAP_WIDTH; x++ ) {
-            if ( tiles[y][x].type == TILE_FLOOR ) {
+
+    for ( int y = 0; y < map->height; y++ ) {
+        for ( int x = 0; x < map->width; x++ ) {
+            tile_t * tile = GetTile(map, x, y);
+
+            bool valid;
+            if ( tile->type == TILE_DOOR && ignore_doors ) {
+                valid = true;
+            } else {
+                valid = !(tile->flags & FLAG(TILE_BLOCKING)); // Walkable
+            }
+
+            if ( valid ) {
                 queue_size++;
-                tiles[y][x].distance = -1;
+                tile->distance = -1;
             }
         }
     }
 
+    FreeDistanceMapQueue();
+    queue = calloc(queue_size, sizeof(*queue));
     head = 0;
     tail = 0;
 
-    tiles[y][x].distance = 0;
-    qtile_t start = { &tiles[y][x], x, y };
+    tile_t * tile = GetTile(map, x, y);
+    tile->distance = 0;
+    qtile_t start = { tile, x, y };
     Put(start);
 
     while ( head != tail ) {
@@ -450,11 +509,20 @@ void UpdateDistanceMap(tiles_t tiles, int x, int y)
             int x1 = qtile.x + x_deltas[d];
             int y1 = qtile.y + y_deltas[d];
 
-            if ( IsInBounds(x1, y1) ) {
-                tile_t * edge = &tiles[y1][x1];
+            if ( IsInBounds(map, x1, y1) ) {
+                tile_t * edge = GetTile(map, x1, y1);
 
-                if ( edge->distance == -1 && edge->type == TILE_FLOOR ) {
-                    // valid tile, not yet visited
+                bool valid_tile;
+                bool not_visited = edge->distance == -1;
+
+                if ( edge->type == TILE_DOOR && ignore_doors ) {
+                    valid_tile = not_visited;
+                } else {
+                    valid_tile = not_visited && !(edge->flags & FLAG(TILE_BLOCKING));
+                }
+
+                if ( valid_tile ) {
+                    // open and not yet visited
                     edge->distance = distance + 1;
                     qtile_t qtile = { edge, x1, y1 };
                     Put(qtile);

@@ -22,17 +22,22 @@ void C_Player(actor_t * player, actor_t * hit)
         case ACTOR_ITEM_HEALTH:
             CollectItem(player, hit, ITEM_HEALTH);
             strncpy(player->game->log,
-                    "Picked up a Health Potion.",
+                    "Picked up a Health Potion!",
                     sizeof(player->game->log));
             S_Play("l32 o2 e b g+ > d+");
             break;
         case ACTOR_ITEM_TURN:
             CollectItem(player, hit, ITEM_TURN);
             strncpy(player->game->log,
-                    "Picked up a Turn Potion.",
+                    "Picked up a Turn Potion!",
                     sizeof(player->game->log));
             S_Play("l32 o2 a b > f+");
             break;
+        case ACTOR_GOLD_KEY:
+            strncpy(player->game->log, "Got the golden key!", sizeof(player->game->log));
+            player->game->has_gold_key = true;
+            hit->remove = true;
+            S_Play("l32 t100 o1 a > a > a");
         default:
             break;
     }
@@ -43,5 +48,6 @@ void C_Monster(actor_t * monster, actor_t * hit)
     // Monsters can damage other monsters, but not of the same type
     if ( (hit->flags & FLAG(ACTOR_TAKES_DAMAGE)) && monster->type != hit->type ) {
         DamageActor(hit);
+        S_Play("o3 l32 b c < c+");
     }
 }

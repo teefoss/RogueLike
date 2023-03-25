@@ -23,67 +23,86 @@ bool LevelIdleProcessInput(game_t * game, const SDL_Event * event);
 void LevelIdleUpdate(game_t * game, float dt);
 void LevelTurnUpdate(game_t * game, float dt);
 void LevelTurnOnEnter(game_t * game);
-void LevelRender(const game_t * game);
+
+void GamePlayRender(const game_t * game);
 
 void IntermissionRender(const game_t * game);
 void IntermissionOnExit(game_t * game);
 
+const game_state_t null = { 0 };
+
 const game_state_t level_idle = {
-    .process_input  = LevelIdleProcessInput,
-    .update         = LevelIdleUpdate,
-    .render         = LevelRender,
-    .on_enter       = NULL,
-    .on_exit        = NULL,
-    .duration_ticks = -1,
-    .next_state     = NULL,
+        .process_input  = LevelIdleProcessInput,
+        .update         = LevelIdleUpdate,
+        .render         = GamePlayRender,
+        .on_enter       = NULL,
+        .on_exit        = NULL,
+        .duration_ticks = -1,
+        .next_state     = NULL,
 };
 
 const game_state_t level_turn = {
-    .process_input  = NULL,
-    .update         = LevelTurnUpdate,
-    .render         = LevelRender,
-    .on_enter       = LevelTurnOnEnter,
-    .on_exit        = NULL,
-    .duration_ticks = -1,
-    .next_state     = &level_idle,
+        .process_input  = NULL,
+        .update         = LevelTurnUpdate,
+        .render         = GamePlayRender,
+        .on_enter       = LevelTurnOnEnter,
+        .on_exit        = NULL,
+        .duration_ticks = -1,
+        .next_state     = &level_idle,
 };
 
 const game_state_t intermission = {
-    .process_input  = NULL,
-    .update         = NULL,
-    .render         = IntermissionRender,
-    .on_enter       = NULL,
-    .on_exit        = IntermissionOnExit,
-    .duration_ticks = MS2TICKS(3000, FPS),
-    .next_state     = &level_idle,
+        .process_input  = NULL,
+        .update         = NULL,
+        .render         = IntermissionRender,
+        .on_enter       = NULL,
+        .on_exit        = IntermissionOnExit,
+        .duration_ticks = MS2TICKS(3000, FPS),
+        .next_state     = &level_idle,
 };
+
+
+void LoadLevel(game_t * game, int level_num)
+{
+    GenerateDungeon(game, MAP_WIDTH, MAP_HEIGHT);
+    PlayerCastSightLines(game, &game->actors[0]);
+
+    game->player_turns = INITIAL_TURNS;
+    game->has_gold_key = false;
+    game->level = level_num;
+}
+
 
 #pragma mark - Game State
 
 void ChangeState(game_t * game, const game_state_t * new_state)
 {
-    if ( game->state.on_exit ) {
-        game->state.on_exit(game);
+    if ( game->state->on_exit ) {
+        game->state->on_exit(game);
     }
 
-    game->state = *new_state;
+    game->state = new_state;
 
-    if ( game->state.on_enter ) {
-        game->state.on_enter(game);
+    if ( game->state->on_enter ) {
+        game->state->on_enter(game);
+    }
+
+    if ( game->state->duration_ticks != -1 ) {
+        game->state_timer = game->state->duration_ticks;
     }
 }
 
 void UpdateState(game_t * game, float dt)
 {
-    if ( game->state.duration_ticks != -1 ) {
+    if ( game->state->duration_ticks != -1 ) {
         // Run timer for finite length states
-        if ( --game->state.duration_ticks <= 0 ) {
-            ChangeState(game, game->state.next_state);
+        if ( --game->state_timer <= 0 ) {
+            ChangeState(game, game->state->next_state);
         }
     }
 
-    if ( game->state.update ) {
-        game->state.update(game, dt);
+    if ( game->state->update ) {
+        game->state->update(game, dt);
     }
 }
 
@@ -104,7 +123,7 @@ bool DoIntermissionInput(game_t * game, const SDL_Event * event)
 
 void IntermissionOnExit(game_t * game)
 {
-    GenerateMap(game);
+    GenerateDungeon(game, MAP_WIDTH, MAP_HEIGHT);
     game->player_turns = INITIAL_TURNS;
     PlayerCastSightLines(game, &game->actors[0]);
 }
@@ -114,11 +133,12 @@ void IntermissionOnExit(game_t * game)
 void MovePlayer(game_t * game, int dx, int dy)
 {
     actor_t * player = &game->actors[0]; // TODO: GetPlayer() instead
+    player->was_attacked = false;
 
     game->log[0] = '\0'; // Clear the log.
 
     // The tile we are moving to.
-    tile_t * tile = &game->map.tiles[player->y + dy][player->x + dx];
+    tile_t * tile = GetTile(&game->map, player->x + dx, player->y + dy);
 
     switch ( (tile_type_t)tile->type ) {
 
@@ -150,14 +170,13 @@ void MovePlayer(game_t * game, int dx, int dy)
         case TILE_START: // Really just a floor.
         case TILE_FLOOR:
             if ( TryMoveActor(player, game, dx, dy) ) {
-                UpdateDistanceMap(game->map.tiles, player->x, player->y);
-                game->player_turns--;
+                UpdateDistanceMap(&game->map, player->x, player->y, true);
             }
+            game->player_turns--;
             break;
 
         case TILE_EXIT:
             MoveActor(player, dx, dy);
-            //S_Play("l32o3ca-eg>e-<b");
             S_Play("l32o3bb-a-fd-<a-d<g");
             break;
 
@@ -165,20 +184,26 @@ void MovePlayer(game_t * game, int dx, int dy)
             break;
     }
 
+    if ( dx ) {
+        player->facing_left = dx < 0;
+    }
+
     PlayerCastSightLines(game, &game->actors[0]);
     ChangeState(game, &level_turn);
 
     // Update all actors when player is out of turns.
-    if ( !game->exiting_level && game->player_turns < 0 ) {
+    if ( game->player_turns < 0 ) {
         game->player_turns = INITIAL_TURNS;
 
         // Do all actor turns.
         for ( int i = 1; i < game->num_actors; i++ ) {
             actor_t * actor = &game->actors[i];
 
-            if ( actor->action ) {
+            if ( actor->action && !actor->was_attacked) {
                 actor->action(actor, game);
             }
+
+            actor->was_attacked = false; // reset
         }
     }
 }
@@ -291,12 +316,12 @@ bool LevelIdleProcessInput(game_t * game, const SDL_Event * event)
 void LevelIdleUpdate(game_t * game, float dt)
 {
     actor_t * player = &game->actors[0];
-    if ( game->map.tiles[player->y][player->x].type == TILE_EXIT ) {
-        game->level++;
+    if ( GetTile(&game->map, player->x, player->y)->type == TILE_EXIT ) {
         ChangeState(game, &intermission);
+        LoadLevel(game, game->level + 1);
     }
 
-    // Update actor standing animations.
+    // Update actor standing animations, etc.
     for ( int i = 0; i < game->num_actors; i++ ) {
         actor_t * actor = &game->actors[i];
 
@@ -356,13 +381,33 @@ void RenderHUD(const game_t * game)
     // Level
 
     V_PrintString(margin, margin, "Level %d", game->level);
+    if ( game->has_gold_key ) {
+        SDL_Rect src = { 5 * 5, 0, 5, 5 };
+        SDL_Rect dst = {
+            margin,
+            margin * 2 + DRAW_SCALE,
+            5 * DRAW_SCALE,
+            5 * DRAW_SCALE };
+        V_DrawTexture(icons, &src, &dst);
+    }
 
     // Log
 
-    // FIXME: last character not appearing
+    // FIXME: last character not appearing)
     int log_len = (int)strlen(game->log);
-    int log_x = GAME_WIDTH - (log_len * char_w + margin);
-    V_PrintString(log_x, margin, game->log);
+    if ( log_len ) {
+        int log_x = GAME_WIDTH - (log_len * char_w + margin);
+
+        if ( game->state == &level_turn ) {
+            float x = log_x;
+            float y = Lerp(-margin, margin, game->move_timer);
+            V_PrintString(x, y, game->log);
+        } else {
+            V_PrintString(log_x, margin, game->log);
+        }
+    }
+
+
 
     //
     // Lower HUD
@@ -379,6 +424,18 @@ void RenderHUD(const game_t * game)
     dst.x = V_PrintString(hud_x, hud_y, " Turns ");
 
     for ( int i = 0; i < game->player_turns; i++ ) {
+        V_DrawTexture(icons, &src, &dst);
+        dst.x += 6 * DRAW_SCALE;
+    }
+
+    // Attack
+
+    hud_y -= char_h;
+    dst.y = hud_y;
+    dst.x = V_PrintString(hud_x, hud_y, "Attack ");
+    src.x = 4 * 5;
+
+    for ( int i = 1; i <= game->actors[0].damage; i++  ) {
         V_DrawTexture(icons, &src, &dst);
         dst.x += 6 * DRAW_SCALE;
     }
@@ -423,7 +480,10 @@ void RenderHUD(const game_t * game)
     }
 }
 
-void LevelRender(const game_t * game)
+
+
+
+void GamePlayRender(const game_t * game)
 {
     RenderMap(game);
 
@@ -435,68 +495,33 @@ void LevelRender(const game_t * game)
     }
 }
 
+
+
+
 void IntermissionRender(const game_t * game)
 {
     const char * level_string = "Level %d";
+
     V_SetRGBA(0, 0, 0, 0);
     int width = V_PrintString(0, 0, level_string, game->level);
 
     V_SetRGB(255, 255, 255);
-    V_PrintString((GAME_WIDTH - width) / 2,
-                  (GAME_HEIGHT - V_CharHeight()) / 2,
-                  level_string,
-                  game->level);
+    int x = (GAME_WIDTH - width) / 2;
+    int y = (GAME_HEIGHT - V_CharHeight()) / 2;
+    V_PrintString(x, y, level_string, game->level);
 }
 
-void DoFrame(game_t * game, float dt)
+
+
+
+void UpdateGame(game_t * game, float dt)
 {
-    debug_row = 0;
-
-    int mouse_tile_x, mouse_tile_y;
-    SDL_GetMouseState(&mouse_tile_x, &mouse_tile_y);
-    mouse_tile_x /= TILE_SIZE * DRAW_SCALE;
-    mouse_tile_y /= TILE_SIZE * DRAW_SCALE;
-
-    SDL_Event event;
-    while ( SDL_PollEvent(&event) ) {
-
-        if (   game->state.process_input
-            && game->state.process_input(game, &event) )
-        {
-            continue;
-        }
-
-        // Game didn't process this event. Handle some universal events:
-        switch ( event.type ) {
-            case SDL_QUIT:
-                game->is_running = false;
-                return;
-            case SDL_KEYDOWN:
-                switch ( event.key.keysym.sym ) {
-                    case SDLK_g:
-                        GenerateMap(game);
-                        break;
-                    case SDLK_BACKQUOTE:
-                        show_debug_info = !show_debug_info;
-                        break;
-                    case SDLK_BACKSLASH:
-                        V_ToggleFullscreen(DESKTOP);
-                        break;
-                    default:
-                        break;
-                }
-                break;
-            default:
-                break;
-        }
-    }
+    box_t visible_region = GetVisibleRegion(&game->map, &game->actors[0]);
 
     // Reset tile light and blocks.
-    box_t visible_region = GetVisibleRegion(&game->actors[0]);
-
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            game->map.tiles[y][x].light_target = 0;
+            GetTile(&game->map, x, y)->light_target = 0;
         }
     }
 
@@ -516,7 +541,7 @@ void DoFrame(game_t * game, float dt)
     // Update Actors: cast light, run timers.
     for ( int i = 0; i < game->num_actors; i++ ) {
         actor_t * actor = &game->actors[i];
-        CastLight(game, actor, game->map.tiles);
+        CastLight(game, actor);
 
         if ( actor->hit_timer > 0.0f ) {
             actor->hit_timer -= 5.0f * dt;
@@ -525,11 +550,11 @@ void DoFrame(game_t * game, float dt)
 
     // Update map light.
     // Get the visible region again, in case the player has moved.
-    visible_region = GetVisibleRegion(&game->actors[0]);
+    visible_region = GetVisibleRegion(&game->map, &game->actors[0]);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            tile_t * tile = &game->map.tiles[y][x];
+            tile_t * tile = GetTile(&game->map, x, y);
 
             // Decide what light level to fade this tile to, and at what rate.
             float w; // lerp factor
@@ -557,15 +582,69 @@ void DoFrame(game_t * game, float dt)
     vec2_t offset = GetRenderOffset(player);
     game->camera = Vec2LerpEpsilon(game->camera, offset, 0.2f, 1.0f);
 
+}
+
+
+
+
+void DoFrame(game_t * game, float dt)
+{
+    debug_row = 0;
+
+    int mouse_tile_x, mouse_tile_y;
+    SDL_GetMouseState(&mouse_tile_x, &mouse_tile_y);
+    mouse_tile_x /= TILE_SIZE * DRAW_SCALE;
+    mouse_tile_y /= TILE_SIZE * DRAW_SCALE;
+
+    SDL_Event event;
+    while ( SDL_PollEvent(&event) ) {
+
+        if (   game->state->process_input
+            && game->state->process_input(game, &event) )
+        {
+            continue;
+        }
+
+        // Game didn't process this event. Handle some universal events:
+        switch ( event.type ) {
+            case SDL_QUIT:
+                game->is_running = false;
+                return;
+            case SDL_KEYDOWN:
+                switch ( event.key.keysym.sym ) {
+                    case SDLK_g:
+                        GenerateDungeon(game, MAP_WIDTH, MAP_HEIGHT);
+                        break;
+                    case SDLK_BACKQUOTE:
+                        show_debug_info = !show_debug_info;
+                        break;
+                    case SDLK_BACKSLASH:
+                        V_ToggleFullscreen(DESKTOP);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    UpdateGame(game, dt);
+
     // Render:
 
     V_ClearRGB(0, 0, 0);
-    game->state.render(game);
+    game->state->render(game);
 
     V_Refresh();
 
     game->ticks++;
 }
+
+
+
+
 
 #pragma mark -
 
@@ -573,11 +652,12 @@ int main(void)
 {
     Randomize();
 
-    float window_scale = 1;
+    float window_scale = 1.5;
     video_info_t info = {
         .window_width = GAME_WIDTH * window_scale,
         .window_height = GAME_HEIGHT * window_scale,
 //        .render_flags = SDL_RENDERER_PRESENTVSYNC,
+        .window_flags = SDL_WINDOW_ALLOW_HIGHDPI,
         .render_flags = 0,
     };
     V_InitVideo(&info);
@@ -592,15 +672,11 @@ int main(void)
         Error("Could not allocate game");
     }
 
-    // TODO: Factor out into state change function
-    GenerateMap(game);
-    ChangeState(game, &level_idle);
+    game->state = &null;
     game->is_running = true;
     game->ticks = 0;
-    game->player_turns = INITIAL_TURNS;
-    game->level = 1;
-    game->has_gold_key = true;
-    PlayerCastSightLines(game, &game->actors[0]);
+    LoadLevel(game, 1);
+    ChangeState(game, &level_idle);
 
     int old_time = SDL_GetTicks();
     const float target_dt = 1.0f / FPS;
@@ -620,29 +696,9 @@ int main(void)
         old_time = new_time;
     }
 
-    // old:
-#if 0
-    u64 old_time = SDL_GetPerformanceCounter();
-    const float target_dt = 1.0f / FPS;
-
-    while ( game->is_running ) {
-        float new_time = SDL_GetPerformanceCounter();
-        float dt = (float)(new_time - old_time) / (float)SDL_GetPerformanceFrequency();
-
-        if ( dt < target_dt ) {
-            SDL_Delay(1);
-            continue;
-        }
-
-        dt = target_dt;
-
-//        PROFILE_START(frame_time);
-        DoFrame(game, dt);
-//        PROFILE_END(frame_time);
-        old_time = new_time;
-    }
-#endif
-
+    FreeDistanceMapQueue();
+    free(game->map.tiles);
+    free(game->map.tile_ids);
     free(game);
 
     return 0;

@@ -36,11 +36,17 @@
 
 #define DIR_BIT(direction) (1 << direction)
 #define FLAG(i) (1 << i)
+#define HAS_FLAG(flags, flag) (flags & FLAG(flag) != 0)
+
+
 
 typedef struct {
     SDL_Point min; // upper left
     SDL_Point max; // lower right
 } box_t;
+
+
+
 
 #pragma mark - TILE
 
@@ -53,10 +59,15 @@ typedef enum {
     TILE_START,
 } tile_type_t;
 
+
 typedef enum {
     TILE_BLOCKING,
     TILE_PLAYER_ONLY, // Only the player can walk here
+    TILE_ROOM, // Tile is inside a room.
 } tile_flags_t;
+
+
+typedef s8 tile_id_t;
 
 typedef struct {
     u8 type; // a tile_type_t
@@ -82,9 +93,14 @@ typedef struct {
 
 } tile_t;
 
-typedef tile_t tiles_t[MAP_WIDTH][MAP_HEIGHT];
+
+
 
 #pragma mark - ITEMS
+
+// Leveled items:
+// basic: found in vases
+// better: chests
 
 typedef enum {
     ITEM_HEALTH,    // +1 health
@@ -97,9 +113,15 @@ typedef enum {
     // - obsidian 50% chance to break
     // Stone of returning: drop and activate to return to stone.
     // Gem that allows you to go back a level (starting pad turns purple)
+    // Charge: move continuously until hit something
+    // hover and examine monster's health and attack rating
 
     NUM_ITEMS,
-} item_type_t;
+} item_t;
+
+
+
+
 
 #pragma mark - ACTOR
 
@@ -117,9 +139,11 @@ typedef enum {
     ACTOR_BLOB,
     ACTOR_ITEM_HEALTH,
     ACTOR_ITEM_TURN,
+    ACTOR_GOLD_KEY,
 
     NUM_ACTOR_TYPES
 } actor_type_t;
+
 
 typedef enum {
     // Actor can face left or right (sprite gets flipped per facing_left)
@@ -128,7 +152,9 @@ typedef enum {
     ACTOR_BLOCKS_SIGHT,
     ACTOR_NO_BUMP, // Other actors can walk through.
     ACTOR_COLLECTIBLE, // Play can pick it up.
+    ACTOR_FLOAT, // Hovers
 } actor_flags_t;
+
 
 typedef struct game game_t;
 typedef struct actor actor_t;
@@ -142,7 +168,6 @@ struct actor {
     int y;
     vec2_t offset_start;
     vec2_t offset_current;
-    int y_draw_offset;
     bool facing_left;
 
     int frame;
@@ -159,6 +184,8 @@ struct actor {
 
     int max_health;
     int health;
+    int damage;
+    bool was_attacked;
 
     // An actor's light propogates to surrounding tiles.
     int light;
@@ -173,14 +200,22 @@ struct actor {
     void (* action)(actor_t *, game_t *);
 };
 
+
+
+
 #pragma mark - GAME
 
 typedef struct {
-    tiles_t tiles;
+    int width;
+    int height;
+
+    tile_t * tiles;
+    tile_id_t * tile_ids;
 
     int num_rooms;
     SDL_Rect rooms[MAX_ROOMS];
 } map_t;
+
 
 #define NUM_CARDINAL_DIRECTIONS 4
 
@@ -197,6 +232,7 @@ typedef enum {
     NUM_DIRECTIONS,
 } direction_t;
 
+
 typedef struct game_state {
     bool (* process_input)(game_t *, const SDL_Event *);
     void (* update)(game_t *, float dt);
@@ -211,10 +247,12 @@ typedef struct game_state {
     const struct game_state * next_state;
 } game_state_t;
 
+
 typedef struct {
     int item_counts[NUM_ITEMS];
     int selected_item;
 } inventory_t;
+
 
 struct game {
     bool is_running;
@@ -232,19 +270,23 @@ struct game {
     char log[100];
 
     int player_turns;
-    bool exiting_level;
     int level;
 
-    game_state_t state;
+    int state_timer;
+    const game_state_t * state; // TODO: stack
 };
 
 bool InventoryIsEmtpy(const inventory_t * inventory);
+
+
+
+
 
 #pragma mark - actor.c
 
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
-void CastLight(game_t * game, const actor_t * actor, tiles_t tiles);
+void CastLight(game_t * game, const actor_t * actor);
 void SpawnActor(game_t * game, actor_type_t type, int x, int y);
 void RenderActor(const actor_t * actor, int offset_x, int offset_y);
 void MoveActor(actor_t * actor, int dx, int dy);
@@ -272,7 +314,7 @@ void CheckForShowMapGenCancel(void);
 
 #pragma mark - gen.c
 
-void GenerateMap(game_t * game);
+void GenerateDungeon(game_t * game, int width, int height);
 
 
 #pragma mark - map.c
@@ -280,20 +322,28 @@ void GenerateMap(game_t * game);
 extern const int x_deltas[NUM_DIRECTIONS];
 extern const int y_deltas[NUM_DIRECTIONS];
 
-void DebugRenderTiles(tiles_t tiles);
-tile_t * GetAdjacentTile(tiles_t tiles, int x, int y, direction_t direction);
-box_t GetVisibleRegion(const actor_t * player);
-bool IsInBounds(int x, int y);
+void DebugRenderTiles(map_t * map);
+tile_t * GetAdjacentTile(map_t * map, int x, int y, direction_t direction);
+tile_t * GetTile(map_t * map, int x, int y);
+SDL_Point GetCoordinate(const map_t * map, int index);
+box_t GetVisibleRegion(const map_t * map, const actor_t * player);
+bool IsInBounds(const map_t * map, int x, int y);
 bool LineOfSight(game_t * game, int x1, int y1, int x2, int y2, bool reveal);
 void RenderMap(const game_t * game);
-void UpdateDistanceMap(tiles_t tiles, int x, int y);
-bool ManhattenPathsAreClear(map_t map, int x0, int y0, int x1, int y1);
+void UpdateDistanceMap(map_t * map, int x, int y, bool ignore_doors);
+bool ManhattenPathsAreClear(map_t * map, int x0, int y0, int x1, int y1);
 vec2_t GetRenderOffset(const actor_t * player);
+void FreeDistanceMapQueue(void);
+bool TileIsAdjacentTo(const map_t * map,
+                      int x,
+                      int y,
+                      tile_type_t type,
+                      int num_directions);
 
 #pragma mark - player.c
 
 void PlayerCastSightLines(game_t * game, const actor_t * player);
-void CollectItem(actor_t * player, actor_t * item_actor, item_type_t item);
+void CollectItem(actor_t * player, actor_t * item_actor, item_t item);
 
 #pragma mark - tile.c
 

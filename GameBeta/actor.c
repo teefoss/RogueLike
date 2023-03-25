@@ -10,6 +10,7 @@
 #include "mathlib.h"
 #include "texture.h"
 #include "video.h"
+#include "sound.h"
 
 void C_Player(actor_t * player, actor_t * hit);
 void C_Monster(actor_t * monster, actor_t * hit);
@@ -24,15 +25,14 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .light = 255,
         .light_radius = 3,
         .contact = C_Player,
-        .y_draw_offset = 2,
         .sprite_cell = { 0, 0 },
+        .damage = 1,
     },
     [ACTOR_TORCH] = {
         .num_frames = 2,
         .frame_msec = 300,
         .light = 255,
         .light_radius = 2,
-        .y_draw_offset = 2,
         .sprite_cell = { 2, 3 },
     },
     [ACTOR_BLOB] = {
@@ -42,10 +42,10 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .max_health = 2,
         .action = A_Blob,
         .contact = C_Monster,
-        .y_draw_offset = 2,
         .light_radius = 1,
         .light = 160,
         .sprite_cell = { 0, 2 },
+        .damage = 1,
     },
     [ACTOR_ITEM_HEALTH] = {
         .flags = FLAG(ACTOR_COLLECTIBLE) | FLAG(ACTOR_NO_BUMP),
@@ -55,6 +55,10 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .flags = FLAG(ACTOR_COLLECTIBLE) | FLAG(ACTOR_NO_BUMP),
         .sprite_cell = { 1, 1 },
     },
+    [ACTOR_GOLD_KEY] = {
+        .flags = FLAG(ACTOR_COLLECTIBLE) | FLAG(ACTOR_NO_BUMP),
+        .sprite_cell = { 2, 1 },
+    }
 };
 
 void SpawnActor(game_t * game, actor_type_t type, int x, int y)
@@ -76,10 +80,16 @@ void SpawnActor(game_t * game, actor_type_t type, int x, int y)
 int DamageActor(actor_t * actor)
 {
     actor->hit_timer = 1.0f;
+    actor->was_attacked = true;
+
     if ( --actor->health == 0 ) {
-        actor->remove = true;
+        if ( actor->type != ACTOR_PLAYER ) {
+            actor->remove = true;
+        }
 
         switch ( actor->type ) {
+            case ACTOR_PLAYER:
+                break;
             case ACTOR_BLOB:
                 if ( Chance(0.5) ) {
                     SpawnActor(actor->game, ACTOR_ITEM_HEALTH, actor->x, actor->y);
@@ -139,7 +149,6 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
     SDL_Rect dst;
     dst.x = (actor->x * RENDER_TILE_SIZE + actor->offset_current.x) - offset_x;
     dst.y = (actor->y * RENDER_TILE_SIZE + actor->offset_current.y) - offset_y;
-    dst.y -= actor->y_draw_offset * DRAW_SCALE;
     dst.w = RENDER_TILE_SIZE;
     dst.h = RENDER_TILE_SIZE;
 
@@ -156,6 +165,24 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
         src.x += TILE_SIZE * actor->num_frames;
     }
 
+#if 1
+    // Draw actor's shadow
+    SDL_Rect shadow_sprite_location = {
+        .x = 4 * TILE_SIZE,
+        .y = 0 * TILE_SIZE,
+        .w = TILE_SIZE,
+        .h = TILE_SIZE
+    };
+    V_DrawTexture(actor_sheet, &shadow_sprite_location, &dst);
+
+    // Tweak its y position
+    if ( actor->flags & FLAG(ACTOR_FLOAT) ) {
+        dst.y += (sinf(actor->game->ticks / 7) * 5.0f) - 5;
+    } else {
+        dst.y -= 1 * TILE_SIZE;
+    }
+#endif
+
     if ( (actor->flags & FLAG(ACTOR_DIRECTIONAL)) && actor->facing_left ) {
         V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
     } else {
@@ -163,7 +190,7 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
     }
 }
 
-void CastLight(game_t * game, const actor_t * actor, tiles_t tiles)
+void CastLight(game_t * game, const actor_t * actor)
 {
     int r = actor->light_radius;
 
@@ -173,31 +200,20 @@ void CastLight(game_t * game, const actor_t * actor, tiles_t tiles)
 
     for ( int y = actor->y - r; y <= actor->y + r; y++ ) {
         for ( int x = actor->x - r; x <= actor->x + r; x++ ) {
-            tile_t * t = &tiles[y][x];
+            tile_t * t = GetTile(&game->map, x, y);
 
-            if ( ManhattenPathsAreClear(game->map,
-                                        actor->x,
-                                        actor->y,
-                                        x,
-                                        y) )
+            if ( t && ManhattenPathsAreClear(&game->map,
+                                             actor->x,
+                                             actor->y,
+                                             x,
+                                             y) )
             {
                 int distance = DISTANCE(actor->x, actor->y, x, y);
-//                int distance = ManhattanDistance(actor->x, actor->y, x, y);
 
                 if ( distance <= r ) {
                     t->light_target = actor->light;
                 }
             }
-
-#if 0 // old
-            if ( LineOfSight(game, actor->x, actor->y, x, y, false) ) {
-                int distance = DISTANCE(actor->x, actor->y, x, y);
-
-                if ( distance <= r ) {
-                    t->light_target = actor->light;
-                }
-            }
-#endif
         }
     }
 }
@@ -207,10 +223,6 @@ void MoveActor(actor_t * actor, int dx, int dy)
     actor->x += dx;
     actor->y += dy;
 
-    if ( dx ) {
-        actor->facing_left = dx < 0;
-    }
-
     SetUpMoveAnimation(actor, dx, dy);
 }
 
@@ -218,10 +230,14 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
 {
     int try_x = actor->x + dx;
     int try_y = actor->y + dy;
-    tile_t * tile = &game->map.tiles[try_y][try_x];
+    tile_t * tile = GetTile(&game->map, try_x, try_y);
 
     if ( actor->type != ACTOR_PLAYER && (tile->flags & FLAG(TILE_PLAYER_ONLY)) ) {
         return false;
+    }
+
+    if ( dx ) {
+        actor->facing_left = dx < 0;
     }
 
     // Check if there's an actor at try_x, try_y

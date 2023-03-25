@@ -18,12 +18,14 @@ void A_Blob(actor_t * blob, game_t * game)
         direction_t best = NO_DIRECTION;
         int min_distance = INT_MAX;
         for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-            tile_t * adjacent = GetAdjacentTile(game->map.tiles,
+            tile_t * adjacent = GetAdjacentTile(&game->map,
                                                 blob->x,
                                                 blob->y,
                                                 d);
 
-            if ( adjacent->distance < min_distance ) {
+            if ( !(adjacent->flags & FLAG(TILE_BLOCKING) )
+                && adjacent->distance < min_distance )
+            {
                 min_distance = adjacent->distance;
                 best = d;
             }
