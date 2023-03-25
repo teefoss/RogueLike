@@ -102,7 +102,7 @@
 		60637F2029136A4200352516 = {
 			isa = PBXGroup;
 			children = (
-				60637F2B29136A4200352516 /* GameBeta */,
+				60637F2B29136A4200352516 /* RogueLike */,
 				60637F2A29136A4200352516 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -115,7 +115,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		60637F2B29136A4200352516 /* GameBeta */ = {
+		60637F2B29136A4200352516 /* RogueLike */ = {
 			isa = PBXGroup;
 			children = (
 				6011213E2915FDD3004A0AF3 /* assets */,
@@ -134,7 +134,7 @@
 				608E80BD2937A05F0060A04D /* player.c */,
 				60FBE3DF2947CC1D007C3862 /* tile.c */,
 			);
-			path = GameBeta;
+			path = RogueLike;
 			sourceTree = "<group>";
 		};
 		60637F3829136DAC00352516 /* mylib */ = {
