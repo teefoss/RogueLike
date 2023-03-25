@@ -52,7 +52,6 @@
 		60558AAB291B08F400814C16 /* action.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = action.c; sourceTree = "<group>"; };
 		60637F2929136A4200352516 /* GameBeta */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = GameBeta; sourceTree = BUILT_PRODUCTS_DIR; };
 		60637F2C29136A4200352516 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		60637F3329136A6E00352516 /* GameBeta.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GameBeta.entitlements; sourceTree = "<group>"; };
 		60637F3929136DAC00352516 /* sprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sprite.c; sourceTree = "<group>"; };
 		60637F3A29136DAC00352516 /* genlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = genlib.c; sourceTree = "<group>"; };
 		60637F3B29136DAC00352516 /* input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input.h; sourceTree = "<group>"; };
@@ -102,7 +101,7 @@
 		60637F2029136A4200352516 = {
 			isa = PBXGroup;
 			children = (
-				60637F2B29136A4200352516 /* RogueLike */,
+				60637F2B29136A4200352516 /* GameBeta */,
 				60637F2A29136A4200352516 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -115,12 +114,11 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		60637F2B29136A4200352516 /* RogueLike */ = {
+		60637F2B29136A4200352516 /* GameBeta */ = {
 			isa = PBXGroup;
 			children = (
 				6011213E2915FDD3004A0AF3 /* assets */,
 				60637F3829136DAC00352516 /* mylib */,
-				60637F3329136A6E00352516 /* GameBeta.entitlements */,
 				60DF52C92915E35300ED43BF /* main.h */,
 				60637F2C29136A4200352516 /* main.c */,
 				60558AAB291B08F400814C16 /* action.c */,
@@ -134,7 +132,7 @@
 				608E80BD2937A05F0060A04D /* player.c */,
 				60FBE3DF2947CC1D007C3862 /* tile.c */,
 			);
-			path = RogueLike;
+			path = GameBeta;
 			sourceTree = "<group>";
 		};
 		60637F3829136DAC00352516 /* mylib */ = {
@@ -377,6 +375,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = GameBeta/GameBeta.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = D54ZHB8K4R;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -387,6 +387,7 @@
 					"-lSDL2_image",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
 		};
@@ -394,6 +395,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = GameBeta/GameBeta.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = D54ZHB8K4R;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -404,6 +407,7 @@
 					"-lSDL2_image",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};
