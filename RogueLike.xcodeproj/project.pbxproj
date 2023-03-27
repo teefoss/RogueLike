@@ -27,6 +27,9 @@
 		608E80BC29354A830060A04D /* animation.c in Sources */ = {isa = PBXBuildFile; fileRef = 608E80BB29354A830060A04D /* animation.c */; };
 		608E80BE2937A05F0060A04D /* player.c in Sources */ = {isa = PBXBuildFile; fileRef = 608E80BD2937A05F0060A04D /* player.c */; };
 		60C382EB291AB3DD00F9AE9B /* sound.c in Sources */ = {isa = PBXBuildFile; fileRef = 60C382EA291AB3DD00F9AE9B /* sound.c */; };
+		60F0A70A29D0E2380022A995 /* room.c in Sources */ = {isa = PBXBuildFile; fileRef = 60F0A70929D0E2380022A995 /* room.c */; };
+		60F0A70D29D20CAF0022A995 /* coord.c in Sources */ = {isa = PBXBuildFile; fileRef = 60F0A70C29D20CAF0022A995 /* coord.c */; };
+		60F0A71029D2325A0022A995 /* direction.c in Sources */ = {isa = PBXBuildFile; fileRef = 60F0A70F29D2325A0022A995 /* direction.c */; };
 		60FBE3E02947CC1D007C3862 /* tile.c in Sources */ = {isa = PBXBuildFile; fileRef = 60FBE3DF2947CC1D007C3862 /* tile.c */; };
 /* End PBXBuildFile section */
 
@@ -83,6 +86,11 @@
 		60C382EA291AB3DD00F9AE9B /* sound.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = sound.c; sourceTree = "<group>"; };
 		60C6213C29CF41770006C54C /* font_4x6.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = font_4x6.h; sourceTree = "<group>"; };
 		60DF52C92915E35300ED43BF /* main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
+		60F0A70929D0E2380022A995 /* room.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = room.c; sourceTree = "<group>"; };
+		60F0A70B29D20CAF0022A995 /* coord.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = coord.h; sourceTree = "<group>"; };
+		60F0A70C29D20CAF0022A995 /* coord.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = coord.c; sourceTree = "<group>"; };
+		60F0A70E29D2325A0022A995 /* direction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = direction.h; sourceTree = "<group>"; };
+		60F0A70F29D2325A0022A995 /* direction.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = direction.c; sourceTree = "<group>"; };
 		60F9293E2919464400CDCEC8 /* debug.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = debug.h; sourceTree = "<group>"; };
 		60FBE3DF2947CC1D007C3862 /* tile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = tile.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -125,12 +133,17 @@
 				6011213F29189F4B004A0AF3 /* actor.c */,
 				608E80BB29354A830060A04D /* animation.c */,
 				60558AA9291AF9CC00814C16 /* contact.c */,
+				60F0A70B29D20CAF0022A995 /* coord.h */,
+				60F0A70C29D20CAF0022A995 /* coord.c */,
 				60F9293E2919464400CDCEC8 /* debug.h */,
 				6011213C2915F06B004A0AF3 /* debug.c */,
+				60F0A70E29D2325A0022A995 /* direction.h */,
+				60F0A70F29D2325A0022A995 /* direction.c */,
 				601121362915ED80004A0AF3 /* gen.c */,
 				6011213A2915EF8A004A0AF3 /* map.c */,
 				608E80BD2937A05F0060A04D /* player.c */,
 				60FBE3DF2947CC1D007C3862 /* tile.c */,
+				60F0A70929D0E2380022A995 /* room.c */,
 			);
 			path = GameBeta;
 			sourceTree = "<group>";
@@ -235,6 +248,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				60F0A70A29D0E2380022A995 /* room.c in Sources */,
 				601121372915ED80004A0AF3 /* gen.c in Sources */,
 				608E80BC29354A830060A04D /* animation.c in Sources */,
 				60C382EB291AB3DD00F9AE9B /* sound.c in Sources */,
@@ -255,7 +269,9 @@
 				60637F5A29136DAD00352516 /* texture.c in Sources */,
 				6011213B2915EF8A004A0AF3 /* map.c in Sources */,
 				608E80BE2937A05F0060A04D /* player.c in Sources */,
+				60F0A71029D2325A0022A995 /* direction.c in Sources */,
 				60637F5C29136DAD00352516 /* mathlib.c in Sources */,
+				60F0A70D29D20CAF0022A995 /* coord.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

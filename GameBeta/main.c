@@ -65,7 +65,7 @@ const game_state_t intermission = {
 void LoadLevel(game_t * game, int level_num)
 {
     GenerateDungeon(game, MAP_WIDTH, MAP_HEIGHT);
-    PlayerCastSightLines(game, &game->actors[0]);
+    PlayerCastSightLines(&game->map);
 
     game->player_turns = INITIAL_TURNS;
     game->has_gold_key = false;
@@ -121,29 +121,32 @@ bool DoIntermissionInput(game_t * game, const SDL_Event * event)
     return false;
 }
 
+
 void IntermissionOnExit(game_t * game)
 {
     GenerateDungeon(game, MAP_WIDTH, MAP_HEIGHT);
     game->player_turns = INITIAL_TURNS;
-    PlayerCastSightLines(game, &game->actors[0]);
+    PlayerCastSightLines(&game->map);
 }
+
+
 
 #pragma mark - LEVEL IDLE STATE
 
-void MovePlayer(game_t * game, int dx, int dy)
+void MovePlayer(game_t * game, direction_t direction)
 {
-    actor_t * player = &game->actors[0]; // TODO: GetPlayer() instead
+    actor_t * player = GetPlayer(&game->map.actors);
     player->was_attacked = false;
 
     game->log[0] = '\0'; // Clear the log.
 
     // The tile we are moving to.
-    tile_t * tile = GetTile(&game->map, player->x + dx, player->y + dy);
+    tile_t * tile = GetAdjacentTile(&game->map, player->tile, direction);
 
     switch ( (tile_type_t)tile->type ) {
 
         case TILE_WALL:
-            SetUpBumpAnimation(player, dx, dy);
+            SetUpBumpAnimation(player, direction);
             S_Play("l32o0de-");
 
             // TODO: Game design: Hitting a wall still causes monsters to update?
@@ -151,13 +154,13 @@ void MovePlayer(game_t * game, int dx, int dy)
             break;
 
         case TILE_DOOR:
-            SetUpBumpAnimation(player, dx, dy);
+            SetUpBumpAnimation(player, direction);
             S_Play("l32o2c+f+b");
             *tile = CreateTile(TILE_FLOOR); // Open (remove) the door.
             break;
 
         case TILE_GOLD_DOOR:
-            SetUpBumpAnimation(player, dx, dy);
+            SetUpBumpAnimation(player, direction);
             if ( game->has_gold_key ) {
                 S_Play("l32o2 c+g+dae-b-");
                 *tile = CreateTile(TILE_FLOOR);
@@ -169,14 +172,14 @@ void MovePlayer(game_t * game, int dx, int dy)
 
         case TILE_START: // Really just a floor.
         case TILE_FLOOR:
-            if ( TryMoveActor(player, game, dx, dy) ) {
-                UpdateDistanceMap(&game->map, player->x, player->y, true);
+            if ( TryMoveActor(player, direction) ) {
+                UpdateDistanceMap(&game->map, player->tile, false);
             }
             game->player_turns--;
             break;
 
         case TILE_EXIT:
-            MoveActor(player, dx, dy);
+            MoveActor(player, direction);
             S_Play("l32o3bb-a-fd-<a-d<g");
             break;
 
@@ -184,11 +187,8 @@ void MovePlayer(game_t * game, int dx, int dy)
             break;
     }
 
-    if ( dx ) {
-        player->facing_left = dx < 0;
-    }
-
-    PlayerCastSightLines(game, &game->actors[0]);
+    UpdateActorFacing(player, XDelta(direction));
+    PlayerCastSightLines(&game->map);
     ChangeState(game, &level_turn);
 
     // Update all actors when player is out of turns.
@@ -196,11 +196,12 @@ void MovePlayer(game_t * game, int dx, int dy)
         game->player_turns = INITIAL_TURNS;
 
         // Do all actor turns.
-        for ( int i = 1; i < game->num_actors; i++ ) {
-            actor_t * actor = &game->actors[i];
+        actors_t * actors = &game->map.actors;
+        for ( int i = 1; i < actors->count; i++ ) {
+            actor_t * actor = &actors->list[i];
 
             if ( actor->action && !actor->was_attacked) {
-                actor->action(actor, game);
+                actor->action(actor);
             }
 
             actor->was_attacked = false; // reset
@@ -242,7 +243,7 @@ void ChangeInventorySelection(inventory_t * inventory, int direction)
 void UseItem(game_t * game)
 {
     inventory_t * in = &game->inventory;
-    actor_t * player = &game->actors[0];
+    actor_t * player = GetPlayer(&game->map.actors);
 
     // If the inventory is empty, just leave.
     if ( in->item_counts[in->selected_item] == 0 ) {
@@ -284,19 +285,19 @@ bool LevelIdleProcessInput(game_t * game, const SDL_Event * event)
 
             switch ( event->key.keysym.sym ) {
                 case SDLK_w:
-                    MovePlayer(game, 0, -1);
+                    MovePlayer(game, NORTH);
                     return true;
                 case SDLK_s:
-                    MovePlayer(game, 0, 1);
+                    MovePlayer(game, SOUTH);
                     return true;
                 case SDLK_a:
-                    MovePlayer(game, -1, 0);
+                    MovePlayer(game, WEST);
                     return true;
                 case SDLK_d:
-                    MovePlayer(game, 1, 0);
+                    MovePlayer(game, EAST);
                     return true;
                 case SDLK_RIGHT:
-                    ChangeInventorySelection(&game->inventory, 1);
+                    ChangeInventorySelection(&game->inventory, +1);
                     return true;
                 case SDLK_LEFT:
                     ChangeInventorySelection(&game->inventory, -1);
@@ -315,15 +316,16 @@ bool LevelIdleProcessInput(game_t * game, const SDL_Event * event)
 
 void LevelIdleUpdate(game_t * game, float dt)
 {
-    actor_t * player = &game->actors[0];
-    if ( GetTile(&game->map, player->x, player->y)->type == TILE_EXIT ) {
+    actor_t * player = GetPlayer(&game->map.actors);
+    if ( GetTile(&game->map, player->tile)->type == TILE_EXIT ) {
         ChangeState(game, &intermission);
         LoadLevel(game, game->level + 1);
     }
 
     // Update actor standing animations, etc.
-    for ( int i = 0; i < game->num_actors; i++ ) {
-        actor_t * actor = &game->actors[i];
+    actors_t * actors = &game->map.actors;
+    for ( int i = 0; i < actors->count; i++ ) {
+        actor_t * actor = &actors->list[i];
 
         if (actor->num_frames > 1 &&
             game->ticks % MS2TICKS(actor->frame_msec, FPS) == 0 )
@@ -332,6 +334,8 @@ void LevelIdleUpdate(game_t * game, float dt)
         }
     }
 }
+
+
 
 #pragma mark - LEVEL TURN STATE
 
@@ -351,8 +355,8 @@ void LevelTurnUpdate(game_t * game, float dt)
         ChangeState(game, &level_idle);
     }
 
-    for ( int i = 0; i < game->num_actors; i++ ) {
-        actor_t * actor = &game->actors[i];
+    for ( int i = 0; i < game->map.actors.count; i++ ) {
+        actor_t * actor = &game->map.actors.list[i];
 
         if ( actor->animation ) {
             actor->animation(actor, game->move_timer);
@@ -365,7 +369,7 @@ void LevelTurnUpdate(game_t * game, float dt)
 
 #pragma mark - RENDER
 
-void RenderHUD(const game_t * game)
+void RenderHUD(const game_t * game, const actor_t * player)
 {
     SDL_Texture * icons = GetTexture("assets/icons.png");
 
@@ -435,7 +439,7 @@ void RenderHUD(const game_t * game)
     dst.x = V_PrintString(hud_x, hud_y, "Attack ");
     src.x = 4 * 5;
 
-    for ( int i = 1; i <= game->actors[0].damage; i++  ) {
+    for ( int i = 1; i <= player->damage; i++  ) {
         V_DrawTexture(icons, &src, &dst);
         dst.x += 6 * DRAW_SCALE;
     }
@@ -446,8 +450,8 @@ void RenderHUD(const game_t * game)
     dst.y = hud_y;
     dst.x = V_PrintString(hud_x, hud_y, "Health ");
 
-    for ( int i = 1; i <= game->actors[0].max_health; i++ ) {
-        if ( i > game->actors[0].health ) {
+    for ( int i = 1; i <= player->max_health; i++ ) {
+        if ( i > player->health ) {
             src.x = 5;
         } else {
             src.x = 0;
@@ -491,7 +495,7 @@ void GamePlayRender(const game_t * game)
 //        DEBUG_PRINT("TILE %d, %d:", mouse_tile_x, mouse_tile_y);
 //        DEBUG_PRINT("  type: %d", game->map.tiles[mouse_tile_y][mouse_tile_x]);
     } else {
-        RenderHUD(game);
+        RenderHUD(game, GetPlayer((actors_t *)&game->map.actors));
     }
 }
 
@@ -516,31 +520,32 @@ void IntermissionRender(const game_t * game)
 
 void UpdateGame(game_t * game, float dt)
 {
-    box_t visible_region = GetVisibleRegion(&game->map, &game->actors[0]);
+    actor_t * player = GetPlayer(&game->map.actors);
+    actors_t * actors = &game->map.actors;
+
+    box_t visible_region = GetVisibleRegion(&game->map, player);
 
     // Reset tile light and blocks.
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            GetTile(&game->map, x, y)->light_target = 0;
+            GetTile(&game->map, (tile_coord_t){ x, y })->light_target = 0;
         }
     }
 
     UpdateState(game, dt);
 
-    // TODO: refine the order and location of this update code:
-
     // Remove actors flagged to be removed.
-    for ( int i = game->num_actors - 1; i >= 0; i-- ) {
-        actor_t * actor = &game->actors[i];
+    for ( int i = actors->count - 1; i >= 0; i-- ) {
+        actor_t * actor = &actors->list[i];
 
         if ( actor->remove ) {
-            game->actors[i] = game->actors[--game->num_actors];
+            actors->list[i] = actors->list[--actors->count];
         }
     }
 
     // Update Actors: cast light, run timers.
-    for ( int i = 0; i < game->num_actors; i++ ) {
-        actor_t * actor = &game->actors[i];
+    for ( int i = 0; i < actors->count; i++ ) {
+        actor_t * actor = &actors->list[i];
         CastLight(game, actor);
 
         if ( actor->hit_timer > 0.0f ) {
@@ -550,11 +555,11 @@ void UpdateGame(game_t * game, float dt)
 
     // Update map light.
     // Get the visible region again, in case the player has moved.
-    visible_region = GetVisibleRegion(&game->map, &game->actors[0]);
+    visible_region = GetVisibleRegion(&game->map, player);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
-            tile_t * tile = GetTile(&game->map, x, y);
+            tile_t * tile = GetTile(&game->map, (tile_coord_t){ x, y });
 
             // Decide what light level to fade this tile to, and at what rate.
             float w; // lerp factor
@@ -578,10 +583,9 @@ void UpdateGame(game_t * game, float dt)
     }
 
     // Update camera.
-    actor_t * player = GetPlayer(game->actors, game->num_actors);
+
     vec2_t offset = GetRenderOffset(player);
     game->camera = Vec2LerpEpsilon(game->camera, offset, 0.2f, 1.0f);
-
 }
 
 

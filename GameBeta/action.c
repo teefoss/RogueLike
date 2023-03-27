@@ -9,28 +9,28 @@
 #include <limits.h>
 
 /// Blobs take one step toward the player, if visible. NSEW only.
-void A_Blob(actor_t * blob, game_t * game)
+void A_Blob(actor_t * blob)
 {
-    actor_t * player = &game->actors[0];
+    map_t * map = &blob->game->map;
+    actor_t * player = GetPlayer(&map->actors);
 
-    if ( LineOfSight(game, blob->x, blob->y, player->x, player->y, false) ) {
+    if ( LineOfSight(map, blob->tile, player->tile, false) ) {
+
         // Find the tile with the smallest distance to player.
-        direction_t best = NO_DIRECTION;
+        direction_t best_direction = NO_DIRECTION;
         int min_distance = INT_MAX;
-        for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-            tile_t * adjacent = GetAdjacentTile(&game->map,
-                                                blob->x,
-                                                blob->y,
-                                                d);
+
+        for ( direction_t d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+            tile_t * adjacent = GetAdjacentTile(map, blob->tile, d);
 
             if ( !(adjacent->flags & FLAG(TILE_BLOCKING) )
                 && adjacent->distance < min_distance )
             {
                 min_distance = adjacent->distance;
-                best = d;
+                best_direction = d;
             }
         }
 
-        TryMoveActor(blob, game, x_deltas[best], y_deltas[best]);
+        TryMoveActor(blob, best_direction);
     }
 }

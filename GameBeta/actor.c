@@ -14,7 +14,7 @@
 
 void C_Player(actor_t * player, actor_t * hit);
 void C_Monster(actor_t * monster, actor_t * hit);
-void A_Blob(actor_t * blob, game_t * game);
+void A_Blob(actor_t * blob);
 
 static actor_t templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
@@ -48,7 +48,7 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .damage = 1,
     },
     [ACTOR_ITEM_HEALTH] = {
-        .flags = FLAG(ACTOR_COLLECTIBLE) | FLAG(ACTOR_NO_BUMP),
+        .flags = FLAG(ACTOR_COLLECTIBLE) | FLAG(ACTOR_NO_BUMP) | FLAG(ACTOR_FLOAT),
         .sprite_cell = { 0, 1 },
     },
     [ACTOR_ITEM_TURN] = {
@@ -61,21 +61,31 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
     }
 };
 
-void SpawnActor(game_t * game, actor_type_t type, int x, int y)
+
+void SpawnActor(game_t * game,
+                actors_t * actors,
+                actor_type_t type,
+                tile_coord_t coord)
 {
     actor_t actor = templates[type];
     actor.game = game;
     actor.type = type;
-    actor.x = x;
-    actor.y = y;
+    actor.tile = coord;
     actor.health = actor.max_health;
 
-    if ( game->num_actors + 1 <= MAX_ACTORS ) {
-        game->actors[game->num_actors++] = actor;
+    if ( actors->count + 1 <= MAX_ACTORS ) {
+        actors->list[actors->count++] = actor;
     } else {
         printf("ran out of room in actor array!\n");
     }
 }
+
+
+void SpawnActorAtActor(actor_t * actor, actor_type_t type)
+{
+    SpawnActor(actor->game, &actor->game->map.actors, type, actor->tile);
+}
+
 
 int DamageActor(actor_t * actor)
 {
@@ -90,13 +100,14 @@ int DamageActor(actor_t * actor)
         switch ( actor->type ) {
             case ACTOR_PLAYER:
                 break;
-            case ACTOR_BLOB:
+            case ACTOR_BLOB: {
                 if ( Chance(0.5) ) {
-                    SpawnActor(actor->game, ACTOR_ITEM_HEALTH, actor->x, actor->y);
+                    SpawnActorAtActor(actor, ACTOR_ITEM_HEALTH);
                 } else {
-                    SpawnActor(actor->game, ACTOR_ITEM_TURN, actor->x, actor->y);
+                    SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
                 }
                 break;
+            }
             default:
                 break;
         }
@@ -105,10 +116,11 @@ int DamageActor(actor_t * actor)
     return actor->health;
 }
 
-actor_t * GetActorAtXY(actor_t * actors, int num_actors, int x, int y)
+actor_t * GetActorAtTile(actor_t * actors, int num_actors, tile_coord_t coord)
 {
     for ( int i = 0; i < num_actors; i++ ) {
-        if ( actors[i].x == x && actors[i].y == y ) {
+        if (   actors[i].tile.x == coord.x
+            && actors[i].tile.y == coord.y ) {
             return &actors[i];
         }
     }
@@ -116,11 +128,11 @@ actor_t * GetActorAtXY(actor_t * actors, int num_actors, int x, int y)
     return NULL;
 }
 
-actor_t * GetPlayer(actor_t * actors, int num_actors)
+actor_t * GetPlayer(actors_t * actors)
 {
-    for ( int i = 0; i < num_actors; i++ ) {
-        if ( actors[i].type == ACTOR_PLAYER ) {
-            return &actors[i];
+    for ( int i = 0; i < actors->count; i++ ) {
+        if ( actors->list[i].type == ACTOR_PLAYER ) {
+            return &actors->list[i];
         }
     }
 
@@ -147,8 +159,8 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
     src.h = TILE_SIZE;
 
     SDL_Rect dst;
-    dst.x = (actor->x * RENDER_TILE_SIZE + actor->offset_current.x) - offset_x;
-    dst.y = (actor->y * RENDER_TILE_SIZE + actor->offset_current.y) - offset_y;
+    dst.x = (actor->tile.x * RENDER_TILE_SIZE + actor->offset_current.x) - offset_x;
+    dst.y = (actor->tile.y * RENDER_TILE_SIZE + actor->offset_current.y) - offset_y;
     dst.w = RENDER_TILE_SIZE;
     dst.h = RENDER_TILE_SIZE;
 
@@ -198,17 +210,17 @@ void CastLight(game_t * game, const actor_t * actor)
         return;
     }
 
-    for ( int y = actor->y - r; y <= actor->y + r; y++ ) {
-        for ( int x = actor->x - r; x <= actor->x + r; x++ ) {
-            tile_t * t = GetTile(&game->map, x, y);
+    for ( int y = actor->tile.y - r; y <= actor->tile.y + r; y++ ) {
+        for ( int x = actor->tile.x - r; x <= actor->tile.x + r; x++ ) {
+            tile_t * t = GetTile(&game->map, (tile_coord_t){ x, y });
 
             if ( t && ManhattenPathsAreClear(&game->map,
-                                             actor->x,
-                                             actor->y,
+                                             actor->tile.x,
+                                             actor->tile.y,
                                              x,
                                              y) )
             {
-                int distance = DISTANCE(actor->x, actor->y, x, y);
+                int distance = DISTANCE(actor->tile.x, actor->tile.y, x, y);
 
                 if ( distance <= r ) {
                     t->light_target = actor->light;
@@ -218,33 +230,36 @@ void CastLight(game_t * game, const actor_t * actor)
     }
 }
 
-void MoveActor(actor_t * actor, int dx, int dy)
+void MoveActor(actor_t * actor, direction_t direction)
 {
-    actor->x += dx;
-    actor->y += dy;
+    actor->tile.x += XDelta(direction);
+    actor->tile.y += YDelta(direction);
 
-    SetUpMoveAnimation(actor, dx, dy);
+    SetUpMoveAnimation(actor, direction);
 }
 
-bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
+bool TryMoveActor(actor_t * actor, direction_t direction)
 {
-    int try_x = actor->x + dx;
-    int try_y = actor->y + dy;
-    tile_t * tile = GetTile(&game->map, try_x, try_y);
+    tile_t * tile = GetAdjacentTile(&actor->game->map, actor->tile, direction);
+    tile_coord_t try_coord = AdjacentTileCoord(actor->tile, direction);
 
+    // Tile is player-only.
     if ( actor->type != ACTOR_PLAYER && (tile->flags & FLAG(TILE_PLAYER_ONLY)) ) {
         return false;
     }
 
-    if ( dx ) {
-        actor->facing_left = dx < 0;
-    }
+    UpdateActorFacing(actor, XDelta(direction));
+
+    actors_t * actors = &actor->game->map.actors;
 
     // Check if there's an actor at try_x, try_y
-    for ( int i = 0; i < game->num_actors; i++ ) {
-        actor_t * hit = &game->actors[i];
+    for ( int i = 0; i < actors->count; i++ ) {
+        actor_t * hit = &actors->list[i];
 
-        if ( hit != actor && hit->x == try_x && hit->y == try_y ) {
+        if ( hit != actor
+            && hit->tile.x == try_coord.x
+            && hit->tile.y == try_coord.y )
+        {
             // There's an actor on this spot:
 
             if ( actor->contact ) {
@@ -253,7 +268,7 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
 
             // Bump into it?
             if ( !(hit->flags & FLAG(ACTOR_NO_BUMP)) ) {
-                SetUpBumpAnimation(actor, dx, dy);
+                SetUpBumpAnimation(actor, direction);
                 return false;
             }
 
@@ -261,6 +276,13 @@ bool TryMoveActor(actor_t * actor, game_t * game, int dx, int dy)
         }
     }
 
-    MoveActor(actor, dx, dy);
+    MoveActor(actor, direction);
     return true;
+}
+
+void UpdateActorFacing(actor_t * actor, int dx)
+{
+    if ( dx ) {
+        actor->facing_left = dx < 0;
+    }
 }
