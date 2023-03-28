@@ -12,6 +12,7 @@
 #include "inttypes.h"
 #include "coord.h"
 #include "direction.h"
+#include "tile.h"
 
 #include <SDL_rect.h>
 #include <SDL_events.h>
@@ -41,54 +42,10 @@
 #define HAS_FLAG(flags, flag) (flags & FLAG(flag) != 0)
 
 
-
 typedef struct {
     SDL_Point min; // upper left
     SDL_Point max; // lower right
 } box_t;
-
-
-
-
-#pragma mark - TILE
-
-typedef enum {
-    TILE_FLOOR,
-    TILE_WALL,
-    TILE_DOOR,
-    TILE_EXIT,
-    TILE_GOLD_DOOR,
-    TILE_START,
-} tile_type_t;
-
-
-typedef s8 tile_id_t;
-
-typedef struct {
-    u8 type; // a tile_type_t
-    u8 variety; // A value that can be used for visual randomization.
-    u8 num_variants; // Visual
-    s8 room_num; // or -1 if not in a room.
-
-    struct __attribute__((packed)) {
-        unsigned blocking       : 1;
-        unsigned player_only    : 1;
-        unsigned visible        : 1;
-        unsigned revealed       : 1;
-    } flags;
-
-    u8 light; // Current light level.
-    u8 light_target; // Used to lerp (light -> light_target).
-
-    s16 distance; // For pathfinding. Updated via UpdateDistanceMap()
-
-    // Sprite sheet location.
-    // Tiles with multiple visible varieties are layed out horizontally
-    // and its location is the leftmost cell.
-    struct { u8 x, y; } sprite_cell;
-} tile_t;
-
-
 
 
 #pragma mark - ITEMS
@@ -331,9 +288,5 @@ int GetReachableTiles(map_t * map, tile_coord_t coord, int ignore_flags, tile_co
 
 void PlayerCastSightLines(map_t * map);
 void CollectItem(actor_t * player, actor_t * item_actor, item_t item);
-
-#pragma mark - tile.c
-
-tile_t CreateTile(tile_type_t type);
 
 #endif /* main_h */
