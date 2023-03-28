@@ -111,16 +111,16 @@ struct actor {
     game_t * game;
     u8 type;
 
-    struct __attribute__((packed)) {
-        unsigned directional    : 1; // Look at 'facing_left' for sprite flip.
-        unsigned takes_damage   : 1; // Can be hurt by other actors.
-        unsigned blocks_sight   : 1;
-        unsigned no_collision   : 1;
-        unsigned collectible    : 1; // Actors can walk through (no bump anim).
-        unsigned floats         : 1; // Hovers in the air.
-        unsigned facing_left    : 1;
-        unsigned was_attacked   : 1;
-        unsigned remove         : 1; // Deleted
+    struct {
+        u8 directional      : 1; // Look at 'facing_left' for sprite flip.
+        u8 takes_damage     : 1; // Can be hurt by other actors.
+        u8 blocks_sight     : 1;
+        u8 no_collision     : 1;
+        u8 collectible      : 1; // Actors can walk through (no bump anim).
+        u8 floats           : 1; // Hovers in the air.
+        u8 facing_left      : 1;
+        u8 was_attacked     : 1;
+        u8 remove           : 1; // Deleted
     } flags;
 
     tile_coord_t tile;

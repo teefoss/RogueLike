@@ -26,11 +26,11 @@ typedef struct {
     u8 num_variants; // Visual
     s8 room_num; // or -1 if not in a room.
 
-    struct __attribute__((packed)) {
-        unsigned blocking       : 1;
-        unsigned player_only    : 1;
-        unsigned visible        : 1;
-        unsigned revealed       : 1;
+    struct {
+        u8 blocking     : 1;
+        u8 player_only  : 1;
+        u8 visible      : 1;
+        u8 revealed     : 1;
     } flags;
 
     u8 light; // Current light level.
