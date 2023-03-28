@@ -173,7 +173,7 @@ void MovePlayer(game_t * game, direction_t direction)
         case TILE_START: // Really just a floor.
         case TILE_FLOOR:
             if ( TryMoveActor(player, direction) ) {
-                UpdateDistanceMap(&game->map, player->tile, false);
+                UpdateDistanceMap(&game->map, player->tile, 0);
             }
             game->player_turns--;
             break;
@@ -489,13 +489,20 @@ void RenderHUD(const game_t * game, const actor_t * player)
 
 void GamePlayRender(const game_t * game)
 {
-    RenderMap(game);
-
-    if ( show_debug_info ) {
-//        DEBUG_PRINT("TILE %d, %d:", mouse_tile_x, mouse_tile_y);
-//        DEBUG_PRINT("  type: %d", game->map.tiles[mouse_tile_y][mouse_tile_x]);
+    const u8 * keys = SDL_GetKeyboardState(NULL);
+    if ( keys[SDL_SCANCODE_F2] ) {
+        DebugRenderTiles(&game->map);
+        DebugRenderActors(&game->map.actors);
     } else {
-        RenderHUD(game, GetPlayer((actors_t *)&game->map.actors));
+        RenderMap(game);
+
+        if ( show_debug_info ) {
+            // TODO: put this back.
+    //        DEBUG_PRINT("TILE %d, %d:", mouse_tile_x, mouse_tile_y);
+    //        DEBUG_PRINT("  type: %d", game->map.tiles[mouse_tile_y][mouse_tile_x]);
+        } else {
+            RenderHUD(game, GetPlayer((actors_t *)&game->map.actors));
+        }
     }
 }
 
@@ -636,11 +643,8 @@ void DoFrame(game_t * game, float dt)
 
     UpdateGame(game, dt);
 
-    // Render:
-
     V_ClearRGB(0, 0, 0);
     game->state->render(game);
-
     V_Refresh();
 
     game->ticks++;

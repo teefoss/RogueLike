@@ -11,7 +11,7 @@
 #include "video.h"
 
 const int debug_tile_size = 16;
-tile_coord_t * tiles; // Array used during generation.
+//tile_coord_t * tiles; // TODO: Array used during generation.
 
 tile_id_t * TileID(map_t * map, tile_coord_t coord)
 {
@@ -31,16 +31,17 @@ void RenderTilesWithDelay(map_t * map)
 }
 
 
-void DebugRenderTiles(map_t * map)
+void DebugRenderTiles(const map_t * map)
 {
     SDL_Texture * tiles = GetTexture("assets/tiles2.png");
+    SDL_SetTextureColorMod(tiles, 255, 255, 255);
 
     SDL_Rect src = { .w = TILE_SIZE, .h = TILE_SIZE };
     SDL_Rect dst = { .w = debug_tile_size, .h = debug_tile_size };
 
     for ( int y = 0; y < map->height; y++ ) {
         for ( int x = 0; x < map->width; x++ ) {
-            tile_t * tile = GetTile(map, (tile_coord_t){ x, y });
+            tile_t * tile = GetTile((map_t *)map, (tile_coord_t){ x, y });
             if ( tile->type == TILE_WALL ) {
                 src.x = 0;
                 src.y = 0;
@@ -89,6 +90,7 @@ static void GenerateHallway_r(map_t * map, int current_id, tile_coord_t coord)
     tile_t * here = GetTile(map, coord);
     tile_id_t * id = TileID(map, coord);
     *here = CreateTile(TILE_FLOOR);
+    here->room_num = -1;
     *id = current_id;
 
     RenderTilesWithDelay(map);
@@ -355,12 +357,35 @@ void SpawnPlayerAndStartTile(game_t * game)
 
 void SpawnGoldKey(game_t * game, tile_coord_t * points)
 {
-    // Select one of the rooms other than the start and end rooms.
-    int room_num = Random(1, game->map.num_rooms - 2);
-    int num_valid_tiles = GetValidRoomTiles(&game->map, room_num, points);
+    actor_t * player = GetPlayer(&game->map.actors);
+    int num_valid = GetReachableTiles(&game->map, player->tile, FLAG(TILE_DOOR), points);
 
-    int i = Random(0, num_valid_tiles - 1);
-    SpawnActor(game, &game->map.actors, ACTOR_GOLD_KEY, points[i]);
+    // Remove any points that are not in a room (-1) or are in the start room (0)
+    for ( int i = num_valid - 1; i >= 0; i-- ) {
+        tile_t * tile = GetTile(&game->map, points[i]);
+        if ( tile->room_num <= 0 ) {
+            points[i] = points[--num_valid];
+        }
+    }
+
+    tile_coord_t gold_key_tile_coord;
+
+    if ( num_valid == 0 ) {
+        puts("Could not find spot for gold key!");
+        // The start room's only door is to the exit room.
+        // For now, just spawn the key in the start room (lame).
+        num_valid = GetValidRoomTiles(&game->map, 0, points);
+        gold_key_tile_coord = points[Random(0, num_valid - 1)];
+    } else {
+        // Select a random tile from the remaining potential tiles and spawn the key.
+        gold_key_tile_coord = points[Random(0, num_valid - 1)];
+    }
+
+    SpawnActor(game, &game->map.actors, ACTOR_GOLD_KEY, gold_key_tile_coord);
+
+    // Save the gold key's room number.
+    tile_t * gold_key_tile = GetTile(&game->map, gold_key_tile_coord);
+    game->gold_key_room_num = gold_key_tile->room_num;
 }
 
 
@@ -469,6 +494,7 @@ void GenerateDungeon(game_t * game, int width, int height)
             tile_id_t * id = TileID(map, coord);
 
             *t = CreateTile(TILE_WALL);
+            t->room_num = -1;
 
             if (   coord.x == 0
                 || coord.x == width - 1
@@ -515,19 +541,20 @@ void GenerateDungeon(game_t * game, int width, int height)
 
         // Spot is clear. Open up the room and set its floor tiles to the
         // current region ID.
-        map->rooms[map->num_rooms++] = rect;
+        map->rooms[map->num_rooms] = rect;
         for ( coord.y = rect.y; coord.y < rect.y + rect.h; coord.y++ ) {
             for ( coord.x = rect.x; coord.x < rect.x + rect.w; coord.x++ ) {
                 tile_t * tile = GetTile(map, coord);
                 *tile = CreateTile(TILE_FLOOR);
 //                tile->flags |= FLAG(TILE_ROOM);
-                tile->flags.room = true;
+                tile->room_num = map->num_rooms;
                 *TileID(map, coord) = current_id;
             }
         }
         printf("placed a room with id %d (%d, %d, %d, %d)\n",
                current_id,
                rect.x, rect.y, rect.w, rect.h);
+        map->num_rooms++;
         current_id++;
 
         RenderTilesWithDelay(map);
@@ -690,11 +717,6 @@ void GenerateDungeon(game_t * game, int width, int height)
 
     free(potential_door_locations);
     free(valid_points);
-
-    V_ClearRGB(0, 0, 0);
-    DebugRenderTiles(map);
-    DebugRenderActors(&map->actors);
-    V_Refresh();
 
     if ( show_map_gen ) {
         DebugWaitForKeyPress();

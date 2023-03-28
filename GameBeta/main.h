@@ -34,7 +34,7 @@
 #define MAX_ROOMS 200
 #define MAX_ACTORS 200
 
-#define INITIAL_TURNS 0
+#define INITIAL_TURNS 1
 
 #define DIR_BIT(direction) (1 << direction)
 #define FLAG(i) (1 << i)
@@ -68,11 +68,11 @@ typedef struct {
     u8 type; // a tile_type_t
     u8 variety; // A value that can be used for visual randomization.
     u8 num_variants; // Visual
+    s8 room_num; // or -1 if not in a room.
 
     struct __attribute__((packed)) {
         unsigned blocking       : 1;
         unsigned player_only    : 1;
-        unsigned room           : 1;
         unsigned visible        : 1;
         unsigned revealed       : 1;
     } flags;
@@ -253,6 +253,8 @@ struct game {
     int player_turns;
     int level;
 
+    int gold_key_room_num;
+
     char log[100];
 
     int state_timer;
@@ -268,10 +270,7 @@ bool InventoryIsEmtpy(const inventory_t * inventory);
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
 void CastLight(game_t * game, const actor_t * actor);
-void SpawnActor(game_t * game,
-                actors_t * actors,
-                actor_type_t type,
-                tile_coord_t coord);
+void SpawnActor(game_t * game, actors_t * actors, actor_type_t type, tile_coord_t coord);
 void RenderActor(const actor_t * actor, int offset_x, int offset_y);
 void MoveActor(actor_t * actor, direction_t direction);
 bool TryMoveActor(actor_t * actor, direction_t direction);
@@ -300,29 +299,32 @@ void CheckForShowMapGenCancel(void);
 #pragma mark - gen.c
 
 void GenerateDungeon(game_t * game, int width, int height);
+void DebugRenderTiles(const map_t * map); // TODO: move these
+void DebugRenderActors(const actors_t * actors);
 
 
 #pragma mark - map.c
 
-//extern const int x_deltas[NUM_DIRECTIONS];
-//extern const int y_deltas[NUM_DIRECTIONS];
-
-void DebugRenderTiles(map_t * map);
 tile_t * GetAdjacentTile(map_t * map, tile_coord_t coord, direction_t direction);
 tile_t * GetTile(map_t * map, tile_coord_t coord);
-SDL_Point GetCoordinate(const map_t * map, int index);
+tile_coord_t GetCoordinate(const map_t * map, int index);
 box_t GetVisibleRegion(const map_t * map, const actor_t * player);
 bool IsInBounds(const map_t * map, int x, int y);
 bool LineOfSight(map_t * map, tile_coord_t t1, tile_coord_t t2, bool reveal);
 void RenderMap(const game_t * game);
-void UpdateDistanceMap(map_t * map, tile_coord_t coord, bool ignore_doors);
+void UpdateDistanceMap(map_t * map, tile_coord_t coord, int ignore_flags);
 bool ManhattenPathsAreClear(map_t * map, int x0, int y0, int x1, int y1);
 vec2_t GetRenderOffset(const actor_t * player);
 void FreeDistanceMapQueue(void);
-bool TileIsAdjacentTo(const map_t * map,
-                      tile_coord_t coord,
-                      tile_type_t type,
-                      int num_directions);
+bool TileIsAdjacentTo(const map_t * map, tile_coord_t coord, tile_type_t type, int num_directions);
+
+///
+/// Populate `out_array` with all tiles reachable from `coord`, given a
+/// set of tile types to ignore (for example, doors).
+/// - parameter ignore_flags: A bit field of `tile_type_t` flag values.
+/// - returns: The number of tiles stored in `out_array`.
+///
+int GetReachableTiles(map_t * map, tile_coord_t coord, int ignore_flags, tile_coord_t * out_array);
 
 #pragma mark - player.c
 

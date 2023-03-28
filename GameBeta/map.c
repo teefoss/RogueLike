@@ -101,9 +101,9 @@ tile_t * GetTile(map_t * map, tile_coord_t coord)
     return &map->tiles[coord.y * map->width + coord.x];
 }
 
-SDL_Point GetCoordinate(const map_t * map, int index)
+tile_coord_t GetCoordinate(const map_t * map, int index)
 {
-    SDL_Point coord = { index % map->width, index / map->width };
+    tile_coord_t coord = { index % map->width, index / map->width };
     return coord;
 }
 
@@ -423,6 +423,20 @@ bool TileIsAdjacentTo(const map_t * map,
 }
 
 
+int GetReachableTiles(map_t * map, tile_coord_t coord, int ignore_flags, tile_coord_t * out_array)
+{
+    UpdateDistanceMap(map, coord, ignore_flags);
+
+    int num_tiles = 0;
+    for ( int i = 0; i < map->width * map->height; i++ ) {
+        if ( map->tiles[i].distance >= 0 ) {
+            out_array[num_tiles++] = GetCoordinate(map, i);
+        }
+    }
+
+    return num_tiles;
+}
+
 
 
 #pragma mark - DISTANCE MAP
@@ -465,22 +479,18 @@ void FreeDistanceMapQueue(void)
 
 /// For all walkable tiles, update tile `distance` property
 /// with distance to x, y.
-void UpdateDistanceMap(map_t * map, tile_coord_t coord, bool ignore_doors)
+/// - parameter coord: The tile from which distances are calculated.
+/// - parameter ignore: The tile types to be ignored, as bit flags.
+void UpdateDistanceMap(map_t * map, tile_coord_t coord, int ignore_flags)
 {
     queue_size = 0;
 
-    for ( int y = 0; y < map->height; y++ ) {
-        for ( int x = 0; x < map->width; x++ ) {
-            tile_t * tile = GetTile(map, (tile_coord_t){ x, y });
+    tile_coord_t c;
+    for ( c.y = 0; c.y < map->height; c.y++ ) {
+        for ( c.x = 0; c.x < map->width; c.x++ ) {
+            tile_t * tile = GetTile(map, c);
 
-            bool valid;
-            if ( tile->type == TILE_DOOR && ignore_doors ) {
-                valid = true;
-            } else {
-                valid = !tile->flags.blocking; // Walkable
-            }
-
-            if ( valid ) {
+            if ( (ignore_flags & FLAG(tile->type)) || !tile->flags.blocking ) {
                 queue_size++;
                 tile->distance = -1;
             }
@@ -505,22 +515,14 @@ void UpdateDistanceMap(map_t * map, tile_coord_t coord, bool ignore_doors)
             tile_t * edge = GetAdjacentTile(map, qtile.coord, d);
             tile_coord_t edge_coord = AdjacentTileCoord(qtile.coord, d);
 
-            if ( edge ) {
-                bool valid_tile;
-                bool not_visited = edge->distance == -1;
-
-                if ( edge->type == TILE_DOOR && ignore_doors ) {
-                    valid_tile = not_visited;
-                } else {
-                    valid_tile = not_visited && !edge->flags.blocking;
-                }
-
-                if ( valid_tile ) {
-                    // open and not yet visited
-                    edge->distance = distance + 1;
-                    qtile_t qtile = { edge, edge_coord };
-                    Put(qtile);
-                }
+            if ( edge // inbounds
+                && edge->distance == -1 // not yet visited
+                && ( (ignore_flags & FLAG(tile->type)) || !tile->flags.blocking ) )
+            {
+                // open and not yet visited
+                edge->distance = distance + 1;
+                qtile_t qtile = { edge, edge_coord };
+                Put(qtile);
             }
         }
     }

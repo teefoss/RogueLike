@@ -10,7 +10,7 @@
 
 int debug_row;
 bool show_debug_info;
-bool show_map_gen = true;
+bool show_map_gen = false;
 
 void DebugWaitForKeyPress(void)
 {
