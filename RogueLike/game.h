@@ -50,9 +50,6 @@ typedef struct {
 
 #pragma mark - ITEMS
 
-// Leveled items:
-// basic: found in vases
-// better: chests
 
 typedef enum {
     ITEM_HEALTH,    // +1 health
@@ -201,6 +198,7 @@ struct game {
     int ticks;
     map_t map;
     float move_timer;
+    tile_coord_t mouse_tile;
 
     vec2_t camera;
 

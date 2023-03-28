@@ -497,16 +497,13 @@ void GamePlayRender(const game_t * game)
         RenderMap(game);
 
         if ( show_debug_info ) {
-            // TODO: put this back.
-    //        DEBUG_PRINT("TILE %d, %d:", mouse_tile_x, mouse_tile_y);
-    //        DEBUG_PRINT("  type: %d", game->map.tiles[mouse_tile_y][mouse_tile_x]);
+            const actor_t * player = GetPlayer((actors_t *)&game->map.actors);
+            DEBUG_PRINT("Player tile: %d, %d", player->tile.x, player->tile.y);
         } else {
             RenderHUD(game, GetPlayer((actors_t *)&game->map.actors));
         }
     }
 }
-
-
 
 
 void IntermissionRender(const game_t * game)
@@ -613,17 +610,25 @@ void UpdateGame(game_t * game, float dt)
     game->camera = Vec2LerpEpsilon(game->camera, offset, 0.2f, 1.0f);
 }
 
-
-
-
+// TODO: profile function macro -> ms stored in debug.c global and displayed in debug screen
 void DoFrame(game_t * game, float dt)
 {
     debug_row = 0;
 
-    int mouse_tile_x, mouse_tile_y;
-    SDL_GetMouseState(&mouse_tile_x, &mouse_tile_y);
-    mouse_tile_x /= TILE_SIZE * DRAW_SCALE;
-    mouse_tile_y /= TILE_SIZE * DRAW_SCALE;
+    // Update mouse tile.
+    {
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+
+        vec2_t offset = GetRenderOffset(GetPlayer(&game->map.actors));
+        mx -= offset.x;
+        my -= offset.y;
+
+        mx /= RENDER_TILE_SIZE;
+        my /= RENDER_TILE_SIZE;
+        game->mouse_tile.x = mx;
+        game->mouse_tile.y = my;
+    }
 
     SDL_Event event;
     while ( SDL_PollEvent(&event) ) {

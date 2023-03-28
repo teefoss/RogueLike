@@ -13,7 +13,7 @@
 #define DEBUG_PRINT(...) \
 do { \
     if ( show_debug_info ) { \
-        V_SetGray(200); \
+        V_SetGray(248); \
         V_PrintString(0, debug_row++ * V_CharHeight(), __VA_ARGS__); \
     } \
 } while ( 0 );

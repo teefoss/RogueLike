@@ -10,6 +10,7 @@
 #include "mathlib.h"
 #include "video.h"
 #include "texture.h"
+#include "debug.h"
 
 #define NUM_TILE_SPRITES 15
 
@@ -226,6 +227,12 @@ void RenderMap(const game_t * game)
             int pixel_y = (coord.y * RENDER_TILE_SIZE) - offset.y;
 
             RenderTile(tile, signature, pixel_x, pixel_y, RENDER_TILE_SIZE, false);
+
+            if ( show_debug_info && TileCoordsEqual(coord, game->mouse_tile) ) {
+                SDL_Rect highlight = { pixel_x, pixel_y, RENDER_TILE_SIZE, RENDER_TILE_SIZE };
+                V_SetRGB(255, 80, 80);
+                V_DrawRect(&highlight);
+            }
         }
     }
 

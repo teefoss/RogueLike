@@ -11,9 +11,11 @@
 #define coord_h
 
 #include "inttypes.h"
+#include <stdbool.h>
 
 typedef struct { s16 x, y; } tile_coord_t;
 
 tile_coord_t AddTileCoords(tile_coord_t a, tile_coord_t b);
+bool TileCoordsEqual(tile_coord_t a, tile_coord_t b);
 
 #endif /* coord_h */

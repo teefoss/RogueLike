@@ -13,3 +13,8 @@ tile_coord_t AddTileCoords(tile_coord_t a, tile_coord_t b)
 
     return result;
 }
+
+bool TileCoordsEqual(tile_coord_t a, tile_coord_t b)
+{
+    return a.x == b.x && a.y == b.y;
+}

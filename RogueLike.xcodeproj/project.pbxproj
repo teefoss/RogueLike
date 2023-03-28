@@ -53,7 +53,7 @@
 		6011213F29189F4B004A0AF3 /* actor.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = actor.c; sourceTree = "<group>"; };
 		60558AA9291AF9CC00814C16 /* contact.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = contact.c; sourceTree = "<group>"; };
 		60558AAB291B08F400814C16 /* action.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = action.c; sourceTree = "<group>"; };
-		60637F2929136A4200352516 /* GameBeta */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = GameBeta; sourceTree = BUILT_PRODUCTS_DIR; };
+		60637F2929136A4200352516 /* RogueLike */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = RogueLike; sourceTree = BUILT_PRODUCTS_DIR; };
 		60637F2C29136A4200352516 /* game.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = game.c; sourceTree = "<group>"; };
 		60637F3929136DAC00352516 /* sprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sprite.c; sourceTree = "<group>"; };
 		60637F3A29136DAC00352516 /* genlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = genlib.c; sourceTree = "<group>"; };
@@ -92,6 +92,7 @@
 		60F0A70F29D2325A0022A995 /* direction.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = direction.c; sourceTree = "<group>"; };
 		60F0A71129D291330022A995 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		60F0A71329D296390022A995 /* tile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tile.h; sourceTree = "<group>"; };
+		60F0A71429D33B200022A995 /* notes.md */ = {isa = PBXFileReference; explicitFileType = net.daringfireball.markdown; path = notes.md; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.markdown; };
 		60F9293E2919464400CDCEC8 /* debug.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = debug.h; sourceTree = "<group>"; };
 		60FBE3DF2947CC1D007C3862 /* tile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = tile.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -110,7 +111,7 @@
 		60637F2029136A4200352516 = {
 			isa = PBXGroup;
 			children = (
-				60637F2B29136A4200352516 /* GameBeta */,
+				60637F2B29136A4200352516 /* RogueLike */,
 				60637F2A29136A4200352516 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -118,12 +119,12 @@
 		60637F2A29136A4200352516 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				60637F2929136A4200352516 /* GameBeta */,
+				60637F2929136A4200352516 /* RogueLike */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		60637F2B29136A4200352516 /* GameBeta */ = {
+		60637F2B29136A4200352516 /* RogueLike */ = {
 			isa = PBXGroup;
 			children = (
 				6011213E2915FDD3004A0AF3 /* assets */,
@@ -146,8 +147,9 @@
 				608E80BD2937A05F0060A04D /* player.c */,
 				60F0A71329D296390022A995 /* tile.h */,
 				60FBE3DF2947CC1D007C3862 /* tile.c */,
+				60F0A71429D33B200022A995 /* notes.md */,
 			);
-			path = GameBeta;
+			path = RogueLike;
 			sourceTree = "<group>";
 		};
 		60637F3829136DAC00352516 /* mylib */ = {
@@ -196,9 +198,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		60637F2829136A4200352516 /* GameBeta */ = {
+		60637F2829136A4200352516 /* RogueLike */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 60637F3029136A4200352516 /* Build configuration list for PBXNativeTarget "GameBeta" */;
+			buildConfigurationList = 60637F3029136A4200352516 /* Build configuration list for PBXNativeTarget "RogueLike" */;
 			buildPhases = (
 				60637F2529136A4200352516 /* Sources */,
 				60637F2629136A4200352516 /* Frameworks */,
@@ -208,9 +210,9 @@
 			);
 			dependencies = (
 			);
-			name = GameBeta;
+			name = RogueLike;
 			productName = GameBeta;
-			productReference = 60637F2929136A4200352516 /* GameBeta */;
+			productReference = 60637F2929136A4200352516 /* RogueLike */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -240,7 +242,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				60637F2829136A4200352516 /* GameBeta */,
+				60637F2829136A4200352516 /* RogueLike */,
 			);
 		};
 /* End PBXProject section */
@@ -394,7 +396,7 @@
 		60637F3129136A4200352516 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = GameBeta/GameBeta.entitlements;
+				CODE_SIGN_ENTITLEMENTS = RogueLike/GameBeta.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -416,7 +418,7 @@
 		60637F3229136A4200352516 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = GameBeta/GameBeta.entitlements;
+				CODE_SIGN_ENTITLEMENTS = RogueLike/GameBeta.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -447,7 +449,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		60637F3029136A4200352516 /* Build configuration list for PBXNativeTarget "GameBeta" */ = {
+		60637F3029136A4200352516 /* Build configuration list for PBXNativeTarget "RogueLike" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				60637F3129136A4200352516 /* Debug */,
