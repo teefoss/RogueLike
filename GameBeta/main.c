@@ -136,7 +136,7 @@ void IntermissionOnExit(game_t * game)
 void MovePlayer(game_t * game, direction_t direction)
 {
     actor_t * player = GetPlayer(&game->map.actors);
-    player->was_attacked = false;
+    player->flags.was_attacked = false;
 
     game->log[0] = '\0'; // Clear the log.
 
@@ -200,11 +200,11 @@ void MovePlayer(game_t * game, direction_t direction)
         for ( int i = 1; i < actors->count; i++ ) {
             actor_t * actor = &actors->list[i];
 
-            if ( actor->action && !actor->was_attacked) {
+            if ( actor->action && !actor->flags.was_attacked) {
                 actor->action(actor);
             }
 
-            actor->was_attacked = false; // reset
+            actor->flags.was_attacked = false; // reset
         }
     }
 }
@@ -538,7 +538,7 @@ void UpdateGame(game_t * game, float dt)
     for ( int i = actors->count - 1; i >= 0; i-- ) {
         actor_t * actor = &actors->list[i];
 
-        if ( actor->remove ) {
+        if ( actor->flags.remove ) {
             actors->list[i] = actors->list[--actors->count];
         }
     }

@@ -16,9 +16,11 @@ void C_Player(actor_t * player, actor_t * hit);
 void C_Monster(actor_t * monster, actor_t * hit);
 void A_Blob(actor_t * blob);
 
+#define ITEM_FLAGS { .collectible = true, .no_collision = true }
+
 static actor_t templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
-        .flags = FLAG(ACTOR_DIRECTIONAL) | FLAG(ACTOR_TAKES_DAMAGE),
+        .flags = { .directional = true, .takes_damage = true },
         .num_frames = 2,
         .frame_msec = 500,
         .max_health = 3,
@@ -36,7 +38,7 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .sprite_cell = { 2, 3 },
     },
     [ACTOR_BLOB] = {
-        .flags = FLAG(ACTOR_TAKES_DAMAGE),
+        .flags = { .takes_damage = true },
         .num_frames = 2,
         .frame_msec = 300,
         .max_health = 2,
@@ -48,15 +50,15 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .damage = 1,
     },
     [ACTOR_ITEM_HEALTH] = {
-        .flags = FLAG(ACTOR_COLLECTIBLE) | FLAG(ACTOR_NO_BUMP) | FLAG(ACTOR_FLOAT),
+        .flags = ITEM_FLAGS,
         .sprite_cell = { 0, 1 },
     },
     [ACTOR_ITEM_TURN] = {
-        .flags = FLAG(ACTOR_COLLECTIBLE) | FLAG(ACTOR_NO_BUMP),
+        .flags = ITEM_FLAGS,
         .sprite_cell = { 1, 1 },
     },
     [ACTOR_GOLD_KEY] = {
-        .flags = FLAG(ACTOR_COLLECTIBLE) | FLAG(ACTOR_NO_BUMP),
+        .flags = ITEM_FLAGS,
         .sprite_cell = { 2, 1 },
     }
 };
@@ -90,11 +92,11 @@ void SpawnActorAtActor(actor_t * actor, actor_type_t type)
 int DamageActor(actor_t * actor)
 {
     actor->hit_timer = 1.0f;
-    actor->was_attacked = true;
+    actor->flags.was_attacked = true;
 
     if ( --actor->health == 0 ) {
         if ( actor->type != ACTOR_PLAYER ) {
-            actor->remove = true;
+            actor->flags.remove = true;
         }
 
         switch ( actor->type ) {
@@ -188,14 +190,14 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
     V_DrawTexture(actor_sheet, &shadow_sprite_location, &dst);
 
     // Tweak its y position
-    if ( actor->flags & FLAG(ACTOR_FLOAT) ) {
+    if ( actor->flags.floats ) {
         dst.y += (sinf(actor->game->ticks / 7) * 5.0f) - 5;
     } else {
         dst.y -= 1 * TILE_SIZE;
     }
 #endif
 
-    if ( (actor->flags & FLAG(ACTOR_DIRECTIONAL)) && actor->facing_left ) {
+    if ( actor->flags.directional && actor->flags.facing_left ) {
         V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
     } else {
         V_DrawTexture(actor_sheet, &src, &dst);
@@ -267,7 +269,7 @@ bool TryMoveActor(actor_t * actor, direction_t direction)
             }
 
             // Bump into it?
-            if ( !(hit->flags & FLAG(ACTOR_NO_BUMP)) ) {
+            if ( !hit->flags.no_collision ) {
                 SetUpBumpAnimation(actor, direction);
                 return false;
             }
@@ -283,6 +285,6 @@ bool TryMoveActor(actor_t * actor, direction_t direction)
 void UpdateActorFacing(actor_t * actor, int dx)
 {
     if ( dx ) {
-        actor->facing_left = dx < 0;
+        actor->flags.facing_left = dx < 0;
     }
 }

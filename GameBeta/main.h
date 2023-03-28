@@ -155,39 +155,41 @@ typedef struct actor actor_t;
 
 struct actor {
     game_t * game;
-    actor_type_t type;
-    actor_flags_t flags;
+    u8 type;
 
-//    int x;
-//    int y;
+    struct __attribute__((packed)) {
+        unsigned directional    : 1; // Look at 'facing_left' for sprite flip.
+        unsigned takes_damage   : 1; // Can be hurt by other actors.
+        unsigned blocks_sight   : 1;
+        unsigned no_collision   : 1;
+        unsigned collectible    : 1; // Actors can walk through (no bump anim).
+        unsigned floats         : 1; // Hovers in the air.
+        unsigned facing_left    : 1;
+        unsigned was_attacked   : 1;
+        unsigned remove         : 1; // Deleted
+    } flags;
+
     tile_coord_t tile;
 
     vec2_t offset_start;
     vec2_t offset_current;
-    bool facing_left;
 
-    int frame;
-    int num_frames;
-    int frame_msec;
+    u8 frame;
+    u8 num_frames;
+    u16 frame_msec;
 
     // Sprite sheet location.
     // Animated sprite frames are layed out horizontally.
     // sprite_location is the first frame in an animation.
-    struct {
-        int x;
-        int y;
-    } sprite_cell;
+    struct { u8 x, y; } sprite_cell;
 
-    int max_health;
-    int health;
-    int damage;
-    bool was_attacked;
+    u8 max_health;
+    s8 health;
+    u8 damage;
 
     // An actor's light propogates to surrounding tiles.
-    int light;
-    int light_radius;
-
-    bool remove;
+    u8 light;
+    u8 light_radius;
 
     float hit_timer;
 

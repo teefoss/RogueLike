@@ -42,6 +42,6 @@ void CollectItem(actor_t * player, actor_t * item_actor, item_t item)
         }
 
         inventory->item_counts[item]++;
-        item_actor->remove = true;
+        item_actor->flags.remove = true;
     }
 }
