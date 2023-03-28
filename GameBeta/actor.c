@@ -244,7 +244,7 @@ bool TryMoveActor(actor_t * actor, direction_t direction)
     tile_coord_t try_coord = AdjacentTileCoord(actor->tile, direction);
 
     // Tile is player-only.
-    if ( actor->type != ACTOR_PLAYER && (tile->flags & FLAG(TILE_PLAYER_ONLY)) ) {
+    if ( actor->type != ACTOR_PLAYER && tile->flags.player_only ) {
         return false;
     }
 

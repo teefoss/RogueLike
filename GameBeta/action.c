@@ -21,12 +21,11 @@ void A_Blob(actor_t * blob)
         int min_distance = INT_MAX;
 
         for ( direction_t d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-            tile_t * adjacent = GetAdjacentTile(map, blob->tile, d);
+            tile_t * adj = GetAdjacentTile(map, blob->tile, d);
 
-            if ( !(adjacent->flags & FLAG(TILE_BLOCKING) )
-                && adjacent->distance < min_distance )
+            if ( !adj->flags.blocking && adj->distance < min_distance )
             {
-                min_distance = adjacent->distance;
+                min_distance = adj->distance;
                 best_direction = d;
             }
         }

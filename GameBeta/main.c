@@ -564,11 +564,11 @@ void UpdateGame(game_t * game, float dt)
             // Decide what light level to fade this tile to, and at what rate.
             float w; // lerp factor
             int target;
-            if ( tile->visible ) {
+            if ( tile->flags.visible ) {
                 // Tile is visible, light it to at least 80, maybe more.
                 target = MAX(80, tile->light_target); // was 80
                 w = 0.2f; // Light it up quickly.
-            } else if ( tile->revealed ) {
+            } else if ( tile->flags.revealed ) {
                 // Not visible, but seen it before. It's dim.
                 target = 20; // previous: 40
                 w = 0.05f; // fade it out slowly.

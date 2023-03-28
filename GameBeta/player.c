@@ -17,7 +17,7 @@ void PlayerCastSightLines(map_t * map)
     tile_coord_t tile;
     for ( tile.y = visible_region.min.y; tile.y <= visible_region.max.y; tile.y++ ) {
         for ( tile.x = visible_region.min.x; tile.x <= visible_region.max.x; tile.x++ ) {
-            GetTile(map, tile)->visible = false; // Reset it.
+            GetTile(map, tile)->flags.visible = false; // Reset it.
 
             // Update tile visibility along the way.
             LineOfSight(map, player->tile, tile, true);

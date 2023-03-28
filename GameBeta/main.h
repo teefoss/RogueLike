@@ -62,37 +62,30 @@ typedef enum {
 } tile_type_t;
 
 
-typedef enum {
-    TILE_BLOCKING,
-    TILE_PLAYER_ONLY, // Only the player can walk here
-    TILE_ROOM, // Tile is inside a room.
-} tile_flags_t;
-
-
 typedef s8 tile_id_t;
 
 typedef struct {
     u8 type; // a tile_type_t
     u8 variety; // A value that can be used for visual randomization.
     u8 num_variants; // Visual
-    u8 flags;
 
-    bool visible; // Player can currently see it.
-    bool revealed; // Player has seen it before.
+    struct __attribute__((packed)) {
+        unsigned blocking       : 1;
+        unsigned player_only    : 1;
+        unsigned room           : 1;
+        unsigned visible        : 1;
+        unsigned revealed       : 1;
+    } flags;
 
-    int light; // Current light level.
-    int light_target; // Used to lerp (light -> light_target).
+    u8 light; // Current light level.
+    u8 light_target; // Used to lerp (light -> light_target).
 
-    int distance; // For pathfinding. Updated via UpdateDistanceMap()
+    s16 distance; // For pathfinding. Updated via UpdateDistanceMap()
 
     // Sprite sheet location.
     // Tiles with multiple visible varieties are layed out horizontally
     // and its location is the leftmost cell.
-    struct {
-        int x;
-        int y;
-    } sprite_cell;
-
+    struct { u8 x, y; } sprite_cell;
 } tile_t;
 
 

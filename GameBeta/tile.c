@@ -14,19 +14,19 @@ static tile_t tile_templates[] = {
         .num_variants = 8,
     },
     [TILE_WALL] = {
-        .flags = FLAG(TILE_BLOCKING),
+        .flags = { .blocking = true },
         .sprite_cell = { 0, 0 },
     },
     [TILE_DOOR] = {
-        .flags = FLAG(TILE_BLOCKING),
+        .flags = { .blocking = true },
         .sprite_cell = { 3, 3 },
     },
     [TILE_EXIT] = {
-        .flags = FLAG(TILE_PLAYER_ONLY),
+        .flags = { .player_only = true },
         .sprite_cell = { 0, 3 },
     },
     [TILE_GOLD_DOOR] = {
-        .flags = FLAG(TILE_BLOCKING),
+        .flags = { .blocking = true },
         .sprite_cell = { 2, 3 },
     },
     [TILE_START] = {

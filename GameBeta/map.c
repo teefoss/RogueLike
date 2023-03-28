@@ -59,11 +59,11 @@ int CalculateWallSignature(const map_t * map, tile_coord_t coord, bool ignore_re
         if ( adjacent ) {
             bool is_floor = true;
 
-            if ( adjacent->flags & FLAG(TILE_BLOCKING) ) {
+            if ( adjacent->flags.blocking ) {
                 is_floor = false;
             }
 
-            if ( !ignore_reveal && !adjacent->revealed ) {
+            if ( !ignore_reveal && !adjacent->flags.revealed ) {
                 is_floor = false;
             }
 
@@ -182,7 +182,7 @@ void RenderTile(const tile_t * tile,
     V_DrawTexture(tiles, &src, &dst);
 
     // F1 - show tile distance to player
-    if ( !(tile->flags & FLAG(TILE_BLOCKING)) ) {
+    if ( !tile->flags.blocking ) {
         const u8 * keys = SDL_GetKeyboardState(NULL);
         if ( keys[SDL_SCANCODE_F1] ) {
             V_SetGray(255);
@@ -241,7 +241,7 @@ void RenderMap(const game_t * game)
         const actor_t * actor = &actors->list[i];
         const tile_t * tile = GetTile((map_t *)&game->map, actor->tile);
 
-        if ( tile->visible
+        if ( tile->flags.visible
             && actor->tile.x >= vis_rect.min.x
             && actor->tile.x <= vis_rect.max.x
             && actor->tile.y >= vis_rect.min.y
@@ -279,15 +279,15 @@ bool LineOfSight(map_t * map, tile_coord_t t1, tile_coord_t t2, bool reveal)
         tile_t * tile = GetTile(map, t1);
 
         if ( reveal ) {
-            tile->visible = true;
-            tile->revealed = true;
+            tile->flags.visible = true;
+            tile->flags.revealed = true;
 
             // For floor tiles, also reveal any surrounding wall tiles.
-            if ( !(tile->flags & FLAG(TILE_BLOCKING)) ) {
+            if ( !tile->flags.blocking ) {
                 for ( direction_t d = 0; d < NUM_DIRECTIONS; d++ ) {
                     tile_t * adjacent = GetAdjacentTile(map, t1, d);
-                    adjacent->visible = true;
-                    adjacent->revealed = true;
+                    adjacent->flags.visible = true;
+                    adjacent->flags.revealed = true;
                 }
             }
         }
@@ -296,7 +296,7 @@ bool LineOfSight(map_t * map, tile_coord_t t1, tile_coord_t t2, bool reveal)
             return true;
         }
 
-        if ( tile->flags & FLAG(TILE_BLOCKING) ) {
+        if ( tile->flags.blocking ) {
             return false;
         }
 
@@ -326,7 +326,7 @@ static bool HLineIsClear(map_t * map, int y, int x0, int x1)
             return false;
         }
 
-        if ( tile->flags & FLAG(TILE_BLOCKING) ) {
+        if ( tile->flags.blocking ) {
             return false;
         }
 
@@ -346,7 +346,7 @@ static bool VLineIsClear(map_t * map, int x, int y0, int y1)
 
     while ( y != y1 ) {
         tile_t * tile = GetTile(map, (tile_coord_t){ x, y });
-        if ( tile->flags & FLAG(TILE_BLOCKING) ) {
+        if ( tile->flags.blocking ) {
             return false;
         }
 
@@ -477,7 +477,7 @@ void UpdateDistanceMap(map_t * map, tile_coord_t coord, bool ignore_doors)
             if ( tile->type == TILE_DOOR && ignore_doors ) {
                 valid = true;
             } else {
-                valid = !(tile->flags & FLAG(TILE_BLOCKING)); // Walkable
+                valid = !tile->flags.blocking; // Walkable
             }
 
             if ( valid ) {
@@ -512,7 +512,7 @@ void UpdateDistanceMap(map_t * map, tile_coord_t coord, bool ignore_doors)
                 if ( edge->type == TILE_DOOR && ignore_doors ) {
                     valid_tile = not_visited;
                 } else {
-                    valid_tile = not_visited && !(edge->flags & FLAG(TILE_BLOCKING));
+                    valid_tile = not_visited && !edge->flags.blocking;
                 }
 
                 if ( valid_tile ) {

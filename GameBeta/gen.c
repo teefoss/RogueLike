@@ -520,7 +520,8 @@ void GenerateDungeon(game_t * game, int width, int height)
             for ( coord.x = rect.x; coord.x < rect.x + rect.w; coord.x++ ) {
                 tile_t * tile = GetTile(map, coord);
                 *tile = CreateTile(TILE_FLOOR);
-                tile->flags |= FLAG(TILE_ROOM);
+//                tile->flags |= FLAG(TILE_ROOM);
+                tile->flags.room = true;
                 *TileID(map, coord) = current_id;
             }
         }
