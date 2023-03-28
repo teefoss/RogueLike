@@ -1,6 +1,6 @@
 //
 //  debug.h
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/7/22.
 //

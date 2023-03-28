@@ -1,11 +1,11 @@
 //
 //  player.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/30/22.
 //
 
-#include "main.h"
+#include "game.h"
 
 void PlayerCastSightLines(map_t * map)
 {

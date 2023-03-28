@@ -1,6 +1,6 @@
 //
 //  room.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 3/26/23.
 //

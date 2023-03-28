@@ -1,11 +1,11 @@
 //
 //  actor.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/6/22.
 //
 
-#include "main.h"
+#include "game.h"
 
 #include "mathlib.h"
 #include "texture.h"

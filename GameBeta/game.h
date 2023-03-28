@@ -1,6 +1,6 @@
 //
-//  main.h
-//  GameBeta
+//  game.h
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/4/22.
 //
@@ -262,7 +262,8 @@ struct game {
 };
 
 bool InventoryIsEmtpy(const inventory_t * inventory);
-
+game_t * InitGame(void);
+void DoFrame(game_t * game, float dt);
 
 
 #pragma mark - actor.c

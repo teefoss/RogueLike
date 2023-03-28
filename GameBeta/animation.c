@@ -1,11 +1,11 @@
 //
 //  animation.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/28/22.
 //
 
-#include "main.h"
+#include "game.h"
 #include "mylib/mathlib.h"
 
 /// Move actor from offset start to end

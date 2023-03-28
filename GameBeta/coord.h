@@ -1,8 +1,10 @@
 //
 //  coord.h
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 3/27/23.
+//
+//  Coordinate types, arithmetic, and conversions.
 //
 
 #ifndef coord_h

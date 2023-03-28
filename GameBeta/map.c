@@ -1,11 +1,11 @@
 //
 //  map.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/4/22.
 //
 
-#include "main.h"
+#include "game.h"
 
 #include "mathlib.h"
 #include "video.h"

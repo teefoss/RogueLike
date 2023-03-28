@@ -1,11 +1,11 @@
 //
 //  contact.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/8/22.
 //
 
-#include "main.h"
+#include "game.h"
 #include "mylib/sound.h"
 
 void C_Player(actor_t * player, actor_t * hit)

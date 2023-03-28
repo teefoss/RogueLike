@@ -1,6 +1,6 @@
 //
 //  coord.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 3/27/23.
 //

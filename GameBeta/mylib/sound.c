@@ -1,6 +1,6 @@
 //
 //  sound.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/8/22.
 //

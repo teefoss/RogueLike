@@ -1,11 +1,11 @@
 //
 //  debug.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/4/22.
 //
 
-#include "main.h"
+#include "game.h"
 #include "debug.h"
 
 int debug_row;

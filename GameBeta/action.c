@@ -1,11 +1,11 @@
 //
 //  action.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 11/8/22.
 //
 
-#include "main.h"
+#include "game.h"
 #include <limits.h>
 
 /// Blobs take one step toward the player, if visible. NSEW only.

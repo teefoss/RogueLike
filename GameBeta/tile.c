@@ -1,11 +1,11 @@
 //
 //  tile.c
-//  GameBeta
+//  RogueLike
 //
 //  Created by Thomas Foster on 12/12/22.
 //
 
-#include "main.h"
+#include "game.h"
 #include "mathlib.h"
 
 static tile_t tile_templates[] = {
