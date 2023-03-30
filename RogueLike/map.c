@@ -192,14 +192,14 @@ void RenderTile(const tile_t * tile,
     }
 }
 
-static const int half_w = (GAME_WIDTH - RENDER_TILE_SIZE) / 2;
-static const int half_h = (GAME_HEIGHT - RENDER_TILE_SIZE) / 2;
+static const int half_w = (GAME_WIDTH - SCALED(TILE_SIZE)) / 2;
+static const int half_h = (GAME_HEIGHT - SCALED(TILE_SIZE)) / 2;
 
 vec2_t GetRenderOffset(const actor_t * player)
 {
     vec2_t offset = {
-        .x = (player->tile.x * RENDER_TILE_SIZE + player->offset_current.x) - half_w,
-        .y = (player->tile.y * RENDER_TILE_SIZE + player->offset_current.y) - half_h,
+        .x = (player->tile.x * SCALED(TILE_SIZE) + player->offset_current.x) - half_w,
+        .y = (player->tile.y * SCALED(TILE_SIZE) + player->offset_current.y) - half_h,
     };
 
     return offset;
@@ -223,13 +223,13 @@ void RenderMap(const game_t * game)
 
             int signature = CalculateWallSignature(&game->map, coord, false);
 
-            int pixel_x = (coord.x * RENDER_TILE_SIZE) - offset.x;
-            int pixel_y = (coord.y * RENDER_TILE_SIZE) - offset.y;
+            int pixel_x = (coord.x * SCALED(TILE_SIZE)) - offset.x;
+            int pixel_y = (coord.y * SCALED(TILE_SIZE)) - offset.y;
 
-            RenderTile(tile, signature, pixel_x, pixel_y, RENDER_TILE_SIZE, false);
+            RenderTile(tile, signature, pixel_x, pixel_y, SCALED(TILE_SIZE), false);
 
             if ( show_debug_info && TileCoordsEqual(coord, game->mouse_tile) ) {
-                SDL_Rect highlight = { pixel_x, pixel_y, RENDER_TILE_SIZE, RENDER_TILE_SIZE };
+                SDL_Rect highlight = { pixel_x, pixel_y, SCALED(TILE_SIZE), SCALED(TILE_SIZE) };
                 V_SetRGB(255, 80, 80);
                 V_DrawRect(&highlight);
             }
@@ -391,8 +391,8 @@ bool ManhattenPathsAreClear(map_t * map, int x0, int y0, int x1, int y1)
 ///
 box_t GetVisibleRegion(const map_t * map, const actor_t * player)
 {
-    int w = GAME_WIDTH / RENDER_TILE_SIZE;
-    int h = GAME_HEIGHT / RENDER_TILE_SIZE;
+    int w = GAME_WIDTH / SCALED(TILE_SIZE);
+    int h = GAME_HEIGHT / SCALED(TILE_SIZE);
 
     // Include a padding of 1 so tiles don't disappear when scrolling.
 
@@ -428,22 +428,6 @@ bool TileIsAdjacentTo(const map_t * map,
 
     return false;
 }
-
-
-int GetReachableTiles(map_t * map, tile_coord_t coord, int ignore_flags, tile_coord_t * out_array)
-{
-    UpdateDistanceMap(map, coord, ignore_flags);
-
-    int num_tiles = 0;
-    for ( int i = 0; i < map->width * map->height; i++ ) {
-        if ( map->tiles[i].distance >= 0 ) {
-            out_array[num_tiles++] = GetCoordinate(map, i);
-        }
-    }
-
-    return num_tiles;
-}
-
 
 
 #pragma mark - DISTANCE MAP

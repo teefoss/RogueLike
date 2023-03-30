@@ -10,7 +10,7 @@
 //const int x_deltas[NUM_DIRECTIONS] = { 0, -1, 1, 0, -1, 1, -1, 1 };
 //const int y_deltas[NUM_DIRECTIONS] = { -1, 0, 0, 1, -1, -1, 1, 1 };
 
-static const tile_coord_t direction_deltas[NUM_DIRECTIONS] = {
+static const tile_coord_t deltas[NUM_DIRECTIONS] = {
     [NORTH] = { 0, -1 },
     [EAST] = { 1, 0 },
     [SOUTH] = { 0, 1 },
@@ -27,7 +27,7 @@ int XDelta(direction_t direction)
     if ( direction == NO_DIRECTION ) {
         return 0;
     } else {
-        return direction_deltas[direction].x;
+        return deltas[direction].x;
     }
 }
 
@@ -37,8 +37,20 @@ int YDelta(direction_t direction)
     if ( direction == NO_DIRECTION ) {
         return 0;
     } else {
-        return direction_deltas[direction].y;
+        return deltas[direction].y;
     }
+}
+
+
+direction_t GetDirection(int dx, int dy)
+{
+    for ( direction_t d = 0; d < NUM_DIRECTIONS; d++ ) {
+        if ( deltas[d].x == dx && deltas[d].y == dy ) {
+            return d;
+        }
+    }
+
+    return NO_DIRECTION;
 }
 
 
@@ -50,6 +62,6 @@ tile_coord_t AdjacentTileCoord(tile_coord_t coord, direction_t direction)
     if ( direction == NO_DIRECTION ) {
         return coord;
     } else {
-        return AddTileCoords(coord, direction_deltas[direction]);
+        return AddTileCoords(coord, deltas[direction]);
     }
 }

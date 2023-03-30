@@ -12,6 +12,9 @@ int debug_row;
 bool show_debug_info;
 bool show_map_gen = false;
 
+float frame_msec;
+
+
 void DebugWaitForKeyPress(void)
 {
     const u8 * keys = SDL_GetKeyboardState(NULL);
@@ -20,6 +23,7 @@ void DebugWaitForKeyPress(void)
         SDL_Delay(10);
     }
 }
+
 
 void CheckForShowMapGenCancel(void)
 {

@@ -25,11 +25,12 @@
 //#define GAME_WIDTH (160 * DRAW_SCALE)  // 20 tile wide
 //#define GAME_HEIGHT (100 * DRAW_SCALE) // 12.5 tiles high
 #define TILE_SIZE 8
-#define RENDER_TILE_SIZE (TILE_SIZE * DRAW_SCALE)
+#define ICON_SIZE 6
+#define SCALED(size) (size * DRAW_SCALE)
 
 // Must be an odd number!
-#define MAP_WIDTH 31
-#define MAP_HEIGHT 31
+//#define MAP_WIDTH 31
+//#define MAP_HEIGHT 31
 
 #define DEBUG_TILE_SIZE 16
 #define MAX_ROOMS 200
@@ -69,10 +70,8 @@ typedef enum {
 } item_t;
 
 
-
-
-
 #pragma mark - ACTOR
+
 
 // When adding a new actor:
 // ------------------------
@@ -89,6 +88,8 @@ typedef enum {
     ACTOR_ITEM_HEALTH,
     ACTOR_ITEM_TURN,
     ACTOR_GOLD_KEY,
+    ACTOR_BLOCK,
+    ACTOR_VASE,
 
     NUM_ACTOR_TYPES
 } actor_type_t;
@@ -119,7 +120,6 @@ struct actor {
         u8 collectible      : 1; // Actors can walk through (no bump anim).
         u8 floats           : 1; // Hovers in the air.
         u8 facing_left      : 1;
-        u8 was_attacked     : 1;
         u8 remove           : 1; // Deleted
     } flags;
 
@@ -149,6 +149,7 @@ struct actor {
 
     void (* animation)(actor_t *, float move_timer);
     void (* contact)(actor_t * self, actor_t * other);
+    void (* contacted)(actor_t * self, actor_t * other); // When hit by something else.
     void (* action)(actor_t *);
 };
 
@@ -226,7 +227,7 @@ void DoFrame(game_t * game, float dt);
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
 void CastLight(game_t * game, const actor_t * actor);
-void SpawnActor(game_t * game, actors_t * actors, actor_type_t type, tile_coord_t coord);
+void SpawnActor(game_t * game, actor_type_t type, tile_coord_t coord);
 void RenderActor(const actor_t * actor, int offset_x, int offset_y);
 void MoveActor(actor_t * actor, direction_t direction);
 bool TryMoveActor(actor_t * actor, direction_t direction);
@@ -273,14 +274,6 @@ bool ManhattenPathsAreClear(map_t * map, int x0, int y0, int x1, int y1);
 vec2_t GetRenderOffset(const actor_t * player);
 void FreeDistanceMapQueue(void);
 bool TileIsAdjacentTo(const map_t * map, tile_coord_t coord, tile_type_t type, int num_directions);
-
-///
-/// Populate `out_array` with all tiles reachable from `coord`, given a
-/// set of tile types to ignore (for example, doors).
-/// - parameter ignore_flags: A bit field of `tile_type_t` flag values.
-/// - returns: The number of tiles stored in `out_array`.
-///
-int GetReachableTiles(map_t * map, tile_coord_t coord, int ignore_flags, tile_coord_t * out_array);
 
 #pragma mark - player.c
 

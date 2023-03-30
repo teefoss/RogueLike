@@ -14,6 +14,7 @@
 
 void C_Player(actor_t * player, actor_t * hit);
 void C_Monster(actor_t * monster, actor_t * hit);
+void C_Block(actor_t *, actor_t *);
 void A_Blob(actor_t * blob);
 
 #define ITEM_FLAGS { .collectible = true, .no_collision = true }
@@ -23,7 +24,7 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .flags = { .directional = true, .takes_damage = true },
         .num_frames = 2,
         .frame_msec = 500,
-        .max_health = 3,
+        .max_health = 10,
         .light = 255,
         .light_radius = 3,
         .contact = C_Player,
@@ -60,14 +61,19 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
     [ACTOR_GOLD_KEY] = {
         .flags = ITEM_FLAGS,
         .sprite_cell = { 2, 1 },
-    }
+    },
+    [ACTOR_BLOCK] = {
+        .sprite_cell = { 4, 3 },
+        .contacted = C_Block,
+    },
+    [ACTOR_VASE] = {
+        .sprite_cell = { 5, 0 },
+        .max_health = 1,
+    },
 };
 
 
-void SpawnActor(game_t * game,
-                actors_t * actors,
-                actor_type_t type,
-                tile_coord_t coord)
+void SpawnActor(game_t * game, actor_type_t type, tile_coord_t coord)
 {
     actor_t actor = templates[type];
     actor.game = game;
@@ -75,28 +81,33 @@ void SpawnActor(game_t * game,
     actor.tile = coord;
     actor.health = actor.max_health;
 
+    actors_t * actors = &game->map.actors;
+
     if ( actors->count + 1 <= MAX_ACTORS ) {
         actors->list[actors->count++] = actor;
     } else {
         printf("ran out of room in actor array!\n");
+        return;
     }
 }
 
 
 void SpawnActorAtActor(actor_t * actor, actor_type_t type)
 {
-    SpawnActor(actor->game, &actor->game->map.actors, type, actor->tile);
+    SpawnActor(actor->game, type, actor->tile);
 }
 
 
 int DamageActor(actor_t * actor)
 {
     actor->hit_timer = 1.0f;
-    actor->flags.was_attacked = true;
+//    actor->flags.was_attacked = true;
 
     if ( --actor->health == 0 ) {
         if ( actor->type != ACTOR_PLAYER ) {
             actor->flags.remove = true;
+        } else {
+            // TODO: player death
         }
 
         switch ( actor->type ) {
@@ -118,6 +129,7 @@ int DamageActor(actor_t * actor)
     return actor->health;
 }
 
+
 actor_t * GetActorAtTile(actor_t * actors, int num_actors, tile_coord_t coord)
 {
     for ( int i = 0; i < num_actors; i++ ) {
@@ -129,6 +141,7 @@ actor_t * GetActorAtTile(actor_t * actors, int num_actors, tile_coord_t coord)
 
     return NULL;
 }
+
 
 actor_t * GetPlayer(actors_t * actors)
 {
@@ -161,10 +174,11 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
     src.h = TILE_SIZE;
 
     SDL_Rect dst;
-    dst.x = (actor->tile.x * RENDER_TILE_SIZE + actor->offset_current.x) - offset_x;
-    dst.y = (actor->tile.y * RENDER_TILE_SIZE + actor->offset_current.y) - offset_y;
-    dst.w = RENDER_TILE_SIZE;
-    dst.h = RENDER_TILE_SIZE;
+    dst.x = (actor->tile.x * SCALED(TILE_SIZE) + actor->offset_current.x) - offset_x;
+    dst.y = (actor->tile.y * SCALED(TILE_SIZE) + actor->offset_current.y) - offset_y;
+    dst.y -= DRAW_SCALE * 1;
+    dst.w = SCALED(TILE_SIZE);
+    dst.h = SCALED(TILE_SIZE);
 
     src.x = actor->sprite_cell.x * TILE_SIZE;
     src.y = actor->sprite_cell.y * TILE_SIZE;
@@ -240,10 +254,15 @@ void MoveActor(actor_t * actor, direction_t direction)
     SetUpMoveAnimation(actor, direction);
 }
 
+
 bool TryMoveActor(actor_t * actor, direction_t direction)
 {
     tile_t * tile = GetAdjacentTile(&actor->game->map, actor->tile, direction);
     tile_coord_t try_coord = AdjacentTileCoord(actor->tile, direction);
+
+    if ( tile->flags.blocking ) {
+        return false;
+    }
 
     // Tile is player-only.
     if ( actor->type != ACTOR_PLAYER && tile->flags.player_only ) {
@@ -266,6 +285,10 @@ bool TryMoveActor(actor_t * actor, direction_t direction)
 
             if ( actor->contact ) {
                 actor->contact(actor, hit);
+            }
+
+            if ( hit->contacted ) {
+                hit->contacted(hit, actor);
             }
 
             // Bump into it?

@@ -38,6 +38,12 @@ void C_Player(actor_t * player, actor_t * hit)
             player->game->has_gold_key = true;
             hit->flags.remove = true;
             S_Play("l32 t100 o1 a > a > a");
+            break;
+        case ACTOR_VASE:
+            S_Play("o5 t90 l64 b d g+ e- c f b-");
+            SpawnActor(player->game, ACTOR_ITEM_HEALTH, hit->tile);
+            hit->flags.remove = true;
+            break;
         default:
             break;
     }
@@ -49,5 +55,15 @@ void C_Monster(actor_t * monster, actor_t * hit)
     if ( hit->flags.takes_damage && monster->type != hit->type ) {
         DamageActor(hit);
         S_Play("o3 l32 b c < c+");
+    }
+}
+
+void C_Block(actor_t * block, actor_t * pusher)
+{
+    int dx = block->tile.x - pusher->tile.x;
+    int dy = block->tile.y - pusher->tile.y;
+
+    if ( TryMoveActor(block, GetDirection(dx, dy)) ) {
+        S_Play("l32 o1 b-f-");
     }
 }

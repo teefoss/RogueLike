@@ -11,7 +11,31 @@
 #include "video.h"
 
 const int debug_tile_size = 16;
-//tile_coord_t * tiles; // TODO: Array used during generation.
+
+tile_coord_t * _buffer;
+static int _count;
+
+
+void BufferClear(void)
+{
+    _count = 0;
+}
+
+
+void BufferAppend(tile_coord_t coord)
+{
+    _buffer[_count++] = coord;
+}
+
+
+void BufferRemove(int index)
+{
+    _buffer[index] = _buffer[--_count];
+}
+
+
+#pragma mark -
+
 
 tile_id_t * TileID(map_t * map, tile_coord_t coord)
 {
@@ -180,8 +204,8 @@ int GetConnectors(map_t * map, int main_region, connector_t * out)
     int num_connectors = 0;
 
     tile_coord_t coord;
-    for ( coord.y = 1; coord.y < MAP_HEIGHT - 2; coord.y++ ) {
-        for ( coord.x = 1; coord.x < MAP_WIDTH - 2; coord.x++ ) {
+    for ( coord.y = 1; coord.y < map->height - 2; coord.y++ ) {
+        for ( coord.x = 1; coord.x < map->width - 2; coord.x++ ) {
 
             // Potential connectors must be wall tiles.
             if ( *TileID(map, coord) != MAP_WALL_ID ) {
@@ -299,9 +323,8 @@ tile_coord_t GetRoomCenter(SDL_Rect room)
 ///
 /// Get a list of tiles in a room that are unoccupied by an actor and not
 /// adjacent to a door.
-/// - returns: The number of valid tiles.
 ///
-int GetValidRoomTiles(const map_t * map, int room_num, tile_coord_t * out)
+static void GetValidRoomTiles(const map_t * map, int room_num)
 {
     bool * occupied = calloc(map->width * map->height, sizeof(*occupied));
 
@@ -312,7 +335,7 @@ int GetValidRoomTiles(const map_t * map, int room_num, tile_coord_t * out)
     }
 
     SDL_Rect room = map->rooms[room_num];
-    int num_valid_tiles = 0;
+    BufferClear();
 
     tile_coord_t coord;
     for ( coord.y = room.y; coord.y < room.y + room.h; coord.y++ ) {
@@ -334,54 +357,263 @@ int GetValidRoomTiles(const map_t * map, int room_num, tile_coord_t * out)
             }
 
             if ( valid ) {
-                out[num_valid_tiles++] = coord;
+                BufferAppend(coord);
             }
         }
     }
 
     free(occupied);
-
-    return num_valid_tiles;
 }
 
+
+static void GetReachableTiles(map_t * map, tile_coord_t coord, int ignore_flags)
+{
+    UpdateDistanceMap(map, coord, ignore_flags);
+
+    BufferClear();
+    for ( int i = 0; i < map->width * map->height; i++ ) {
+        if ( map->tiles[i].distance >= 0 ) {
+            BufferAppend(GetCoordinate(map, i));
+        }
+    }
+}
+
+
+static void InitTiles(map_t * map)
+{
+    tile_coord_t coord;
+    for ( coord.y = 0; coord.y < map->height; coord.y++ ) {
+        for ( coord.x = 0; coord.x < map->width; coord.x++ ) {
+
+            tile_t * t = GetTile(map, coord);
+            tile_id_t * id = TileID(map, coord);
+
+            *t = CreateTile(TILE_WALL);
+            t->room_num = -1;
+
+            if (   coord.x == 0
+                || coord.x == map->width - 1
+                || coord.y == 0
+                || coord.y == map->height - 1 )
+            {
+                *id = MAP_EDGE_ID;
+            } else {
+                *id = MAP_WALL_ID;
+            }
+        }
+    }
+}
+
+
+void SpawnRooms(map_t * map, int * current_id)
+{
+    for ( int tries = 1; tries <= 50; tries++ ) {
+        int size = Random(1, 3) * 2 + 1; // 3 - 7
+        int rectangularity = Random(0, 1 + size / 2) * 2; // 0 - 8
+
+        SDL_Rect rect;
+        rect.w = size;
+        rect.h = size;
+        if ( Chance(0.5f) ) {
+            rect.w += rectangularity;
+        } else {
+            rect.h += rectangularity;
+        }
+
+        rect.x = Random(1, (map->width - rect.w) / 2) * 2 - 1;
+        rect.y = Random(1, (map->height - rect.h) / 2) * 2 - 1;
+
+        // Check that this potential room does not overlap with any
+        // existing rooms.
+        for ( int room = 0; room < map->num_rooms; room++ ) {
+            if ( SDL_HasIntersection(&rect, &map->rooms[room]) ) {
+                goto next_try;
+            }
+        }
+
+        // Spot is clear. Open up the room and set its floor tiles to the
+        // current region ID.
+        map->rooms[map->num_rooms] = rect;
+        tile_coord_t coord;
+        for ( coord.y = rect.y; coord.y < rect.y + rect.h; coord.y++ ) {
+            for ( coord.x = rect.x; coord.x < rect.x + rect.w; coord.x++ ) {
+                tile_t * tile = GetTile(map, coord);
+                *tile = CreateTile(TILE_FLOOR);
+//                tile->flags |= FLAG(TILE_ROOM);
+                tile->room_num = map->num_rooms;
+                *TileID(map, coord) = *current_id;
+            }
+        }
+        printf("placed a room with id %d (%d, %d, %d, %d)\n",
+               *current_id,
+               rect.x, rect.y, rect.w, rect.h);
+        map->num_rooms++;
+        (*current_id)++;
+
+        RenderTilesWithDelay(map);
+
+    next_try:
+        ;
+    }
+}
+
+
+void GenerateHallways(map_t * map, int * current_id)
+{
+    do {
+        BufferClear();
+
+        // Check all odd positions and make a list of viable spots at
+        // which to begin a hallway.
+        tile_coord_t coord;
+        for ( coord.y = 1; coord.y <= map->height - 2; coord.y += 2 ) {
+            for ( coord.x = 1; coord.x <= map->width - 2; coord.x += 2 ) {
+                if ( GetTile(map, coord)->type == TILE_WALL ) {
+                    BufferAppend(coord);
+                }
+            }
+        }
+
+        if ( _count > 0 ) {
+            // There are still spots at which to start a hallway. Select
+            // a random one and begin carving it out.
+            int i = Random(0, _count - 1);
+            GenerateHallway_r(map, *current_id, _buffer[i]);
+            (*current_id)++;
+        }
+    } while ( _count > 0 );
+}
+
+
+int ConnectRegions(map_t * map, tile_coord_t * potential_door_locations, int num_regions)
+{
+    // Pick a random region to start.
+    int main_region = Random(0, num_regions - 1);
+
+    // While there are still connectors adjacent to the main region,
+    connector_t * connectors = calloc(map->width * map->height, sizeof(*connectors));
+    int num_connectors = 0;
+    int num_potential_door_locations = 0;
+    while ( (num_connectors = GetConnectors(map, main_region, connectors)) ) {
+
+        // Pick a random connector, open it up, and merge the other region with
+        // the main.
+        connector_t connector = connectors[Random(0, num_connectors - 1)];
+
+        tile_t * tile = GetTile(map, connector.coord);
+        *tile = CreateTile(TILE_FLOOR);
+
+        potential_door_locations[num_potential_door_locations++] = connector.coord;
+        ChangeAllIDs(map, connector.region, main_region);
+
+        RenderTilesWithDelay(map);
+    }
+
+    free(connectors);
+
+    return num_potential_door_locations;
+}
+
+void EliminateDeadEnds(map_t * map)
+{
+    int num_deadends = 0;
+    tile_coord_t * deadends = calloc(map->width * map->height, sizeof(*deadends));
+
+    while ( (num_deadends = GetDeadEnds(map, deadends)) ) {
+        for ( int i = 0; i < num_deadends; i++ ) {
+            *GetTile(map, deadends[i]) = CreateTile(TILE_WALL);
+            RenderTilesWithDelay(map);
+        }
+    }
+
+    free(deadends);
+}
+
+
+void SpawnDoors(map_t * map, tile_coord_t * potentials, int array_len)
+{
+    for ( int i = 0; i < array_len; i++ ) {
+        tile_t * tile = GetTile(map, potentials[i]);
+
+        tile_t * adjacents[NUM_CARDINAL_DIRECTIONS];
+        for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+            adjacents[d] = GetAdjacentTile(map, potentials[i], d);
+        }
+
+        bool is_valid =
+            (adjacents[NORTH]->type == TILE_FLOOR && adjacents[SOUTH]->type == TILE_FLOOR)
+            || (adjacents[WEST]->type == TILE_FLOOR && adjacents[EAST]->type == TILE_FLOOR);
+
+        if ( tile->type == TILE_FLOOR && is_valid ) {
+            *tile = CreateTile(TILE_DOOR);
+            RenderTilesWithDelay(map);
+        }
+    }
+
+#if 0
+    tile_coord_t coord;
+    for ( coord.y = 0; coord.y < map->height; coord.y++ ) {
+        for ( coord.x = 0; coord.x < map->width; coord.x++ ) {
+
+            if ( GetTile(map, coord)->type == TILE_DOOR ) {
+
+                tile_t * adjacents[NUM_CARDINAL_DIRECTIONS];
+                for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+                    adjacents[d] = GetAdjacentTile(map, coord, d);
+                }
+
+                // Deadend-clearing may have rendered some door spots invalid.
+                // Check if still valid.
+                if ((adjacents[NORTH]->type == TILE_FLOOR && adjacents[SOUTH]->type == TILE_FLOOR)
+                    || (adjacents[WEST]->type == TILE_FLOOR && adjacents[EAST]->type == TILE_FLOOR))
+                {
+                    // Valid, do nothing.
+                } else {
+                    // This spot is no longer a valid door.
+                    *GetTile(map, coord) = CreateTile(TILE_WALL);
+                    RenderTilesWithDelay(map);
+                }
+            }
+        }
+    }
+#endif
+}
 
 void SpawnPlayerAndStartTile(game_t * game)
 {
     tile_coord_t pt = GetRoomCenter(game->map.rooms[0]);
     printf("player start: %d, %d\n", pt.x, pt.y);
 
-    SpawnActor(game, &game->map.actors, ACTOR_PLAYER, pt);
+    SpawnActor(game, ACTOR_PLAYER, pt);
     *GetTile(&game->map, pt) = CreateTile(TILE_START);
 }
 
 
-void SpawnGoldKey(game_t * game, tile_coord_t * points)
+void SpawnGoldKey(game_t * game)
 {
     actor_t * player = GetPlayer(&game->map.actors);
-    int num_valid = GetReachableTiles(&game->map, player->tile, FLAG(TILE_DOOR), points);
+    GetReachableTiles(&game->map, player->tile, FLAG(TILE_DOOR));
 
     // Remove any points that are not in a room (-1) or are in the start room (0)
-    for ( int i = num_valid - 1; i >= 0; i-- ) {
-        tile_t * tile = GetTile(&game->map, points[i]);
+    for ( int i = _count - 1; i >= 0; i-- ) {
+        tile_t * tile = GetTile(&game->map, _buffer[i]);
         if ( tile->room_num <= 0 ) {
-            points[i] = points[--num_valid];
+            BufferRemove(i);
         }
     }
 
     tile_coord_t gold_key_tile_coord;
 
-    if ( num_valid == 0 ) {
+    if ( _count == 0 ) {
         puts("Could not find spot for gold key!");
         // The start room's only door is to the exit room.
         // For now, just spawn the key in the start room (lame).
-        num_valid = GetValidRoomTiles(&game->map, 0, points);
-        gold_key_tile_coord = points[Random(0, num_valid - 1)];
-    } else {
-        // Select a random tile from the remaining potential tiles and spawn the key.
-        gold_key_tile_coord = points[Random(0, num_valid - 1)];
+        GetValidRoomTiles(&game->map, 0);
     }
 
-    SpawnActor(game, &game->map.actors, ACTOR_GOLD_KEY, gold_key_tile_coord);
+    gold_key_tile_coord = _buffer[Random(0, _count - 1)];
+
+    SpawnActor(game, ACTOR_GOLD_KEY, gold_key_tile_coord);
 
     // Save the gold key's room number.
     tile_t * gold_key_tile = GetTile(&game->map, gold_key_tile_coord);
@@ -447,6 +679,14 @@ void SpawnExit(map_t * map)
 }
 
 
+void SpawnActorAtRandomPointInBuffer(game_t * game, actor_type_t type)
+{
+    int i = Random(0, _count - 1);
+    SpawnActor(game, type, _buffer[i]);
+    BufferRemove(i);
+}
+
+
 // https://www.tomstephensondeveloper.co.uk/post/creating-simple-procedural-dungeon-generation
 void GenerateDungeon(game_t * game, int width, int height)
 {
@@ -468,6 +708,12 @@ void GenerateDungeon(game_t * game, int width, int height)
 
     int map_size = width * height;
 
+    _count = 0;
+    _buffer = calloc(map_size, sizeof(*_buffer));
+    if ( _buffer == NULL ) {
+        Error("Could not allocate tile coord buffer");
+    }
+
     if ( map->tiles ) {
         free(map->tiles);
     }
@@ -486,224 +732,40 @@ void GenerateDungeon(game_t * game, int width, int height)
         Error("Could not allocate map tile id array");
     }
 
-    tile_coord_t coord;
-    for ( coord.y = 0; coord.y < height; coord.y++ ) {
-        for ( coord.x = 0; coord.x < width; coord.x++ ) {
-
-            tile_t * t = GetTile(map, coord);
-            tile_id_t * id = TileID(map, coord);
-
-            *t = CreateTile(TILE_WALL);
-            t->room_num = -1;
-
-            if (   coord.x == 0
-                || coord.x == width - 1
-                || coord.y == 0
-                || coord.y == height - 1 )
-            {
-                *id = MAP_EDGE_ID;
-            } else {
-                *id = MAP_WALL_ID;
-            }
-        }
-    }
+    InitTiles(map);
 
     map->num_rooms = 0;
     int current_id = 0; // Regions
 
-    //
-    // Spawn rooms
-    //
+    SpawnRooms(map, &current_id);
 
-    for ( int tries = 1; tries <= 50; tries++ ) {
-        int size = Random(1, 3) * 2 + 1; // 3 - 7
-        int rectangularity = Random(0, 1 + size / 2) * 2; // 0 - 8
-
-        SDL_Rect rect;
-        rect.w = size;
-        rect.h = size;
-        if ( Chance(0.5f) ) {
-            rect.w += rectangularity;
-        } else {
-            rect.h += rectangularity;
-        }
-
-        rect.x = Random(1, (width - rect.w) / 2) * 2 - 1;
-        rect.y = Random(1, (height - rect.h) / 2) * 2 - 1;
-
-        // Check that this potential room does not overlap with any
-        // existing rooms.
-        for ( int room = 0; room < map->num_rooms; room++ ) {
-            if ( SDL_HasIntersection(&rect, &map->rooms[room]) ) {
-                goto next_try;
-            }
-        }
-
-        // Spot is clear. Open up the room and set its floor tiles to the
-        // current region ID.
-        map->rooms[map->num_rooms] = rect;
-        for ( coord.y = rect.y; coord.y < rect.y + rect.h; coord.y++ ) {
-            for ( coord.x = rect.x; coord.x < rect.x + rect.w; coord.x++ ) {
-                tile_t * tile = GetTile(map, coord);
-                *tile = CreateTile(TILE_FLOOR);
-//                tile->flags |= FLAG(TILE_ROOM);
-                tile->room_num = map->num_rooms;
-                *TileID(map, coord) = current_id;
-            }
-        }
-        printf("placed a room with id %d (%d, %d, %d, %d)\n",
-               current_id,
-               rect.x, rect.y, rect.w, rect.h);
-        map->num_rooms++;
-        current_id++;
-
-        RenderTilesWithDelay(map);
-
-    next_try:
-        ;
-    }
-
-    //
-    // Generate hallways.
-    //
-
-    tile_coord_t * potentials = calloc(map_size, sizeof(*potentials));
-
-    int num_potentials;
-    do {
-        num_potentials = 0;
-
-        // Check all odd positions and make a list of viable spots at
-        // which to begin a hallway.
-        for ( coord.y = 1; coord.y <= map->height - 2; coord.y += 2 ) {
-            for ( coord.x = 1; coord.x <= map->width - 2; coord.x += 2 ) {
-                if ( GetTile(map, coord)->type == TILE_WALL ) {
-                    potentials[num_potentials++] = coord;
-                }
-            }
-        }
-
-        if ( num_potentials > 0 ) {
-            // There are still spots at which to start a hallway. Select
-            // a random one and begin carving it out.
-            int i = Random(0, num_potentials - 1);
-            GenerateHallway_r(map, current_id, potentials[i]);
-            current_id++;
-        }
-    } while ( num_potentials > 0 );
+    GenerateHallways(map, &current_id);
 
     const int num_regions = current_id;
 
-    //
-    // Open up doors between rooms and hallways.
-    //
-
     tile_coord_t * potential_door_locations = calloc(map_size, sizeof(*potential_door_locations));
-    int num_potential_door_locations = 0;
-
-    // Pick a random region to start.
-    int main_region = Random(0, num_regions - 1);
-
-    // While there are still connectors adjacent to the main region,
-    int num_connectors = 0;
-    connector_t connectors[MAP_WIDTH * MAP_HEIGHT];
-    while ( (num_connectors = GetConnectors(map, main_region, connectors)) ) {
-
-        // Pick a random connector, open it up, and merge the other region with
-        // the main.
-        connector_t connector = connectors[Random(0, num_connectors - 1)];
-        *GetTile(map, connector.coord) = CreateTile(TILE_FLOOR);
-        potential_door_locations[num_potential_door_locations++] = connector.coord;
-        ChangeAllIDs(map, connector.region, main_region);
-
-        RenderTilesWithDelay(map);
-    }
-
-    //
-    // Eliminate deadends.
-    //
-
-    int num_deadends = 0;
-    tile_coord_t * deadends = calloc(map_size, sizeof(*deadends));
-
-    while ( (num_deadends = GetDeadEnds(map, deadends)) ) {
-        for ( int i = 0; i < num_deadends; i++ ) {
-            *GetTile(map, deadends[i]) = CreateTile(TILE_WALL);
-            RenderTilesWithDelay(map);
-        }
-    }
-
-    free(deadends);
-
-    //
-    // Add doors
-    //
-
-    for ( int i = 0; i < num_potential_door_locations; i++ ) {
-        tile_t * tile = GetTile(map, potential_door_locations[i]);
-
-        if ( tile->type == TILE_FLOOR ) {
-            *tile = CreateTile(TILE_DOOR);
-            RenderTilesWithDelay(map);
-        }
-    }
-
-    //
-    // Remove invalid doors.
-    //
-
-    for ( coord.y = 0; coord.y < height; coord.y++ ) {
-        for ( coord.x = 0; coord.x < width; coord.x++ ) {
-
-            if ( GetTile(map, coord)->type == TILE_DOOR ) {
-
-                tile_t * adjacents[NUM_CARDINAL_DIRECTIONS];
-                for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-                    adjacents[d] = GetAdjacentTile(map, coord, d);
-                }
-
-                // Deadend-clearing may have rendered some door spots invalid.
-                // Check if still valid.
-                if ((adjacents[NORTH]->type == TILE_FLOOR
-                    && adjacents[SOUTH]->type == TILE_FLOOR)
-                    || (adjacents[WEST]->type == TILE_FLOOR &&
-                        adjacents[EAST]->type == TILE_FLOOR))
-                {
-                    // Valid, do nothing.
-                } else {
-                    // This spot is no longer a valid door.
-                    *GetTile(map, coord) = CreateTile(TILE_WALL);
-                    RenderTilesWithDelay(map);
-                }
-            }
-        }
-    }
-
+    int num_potential_door_locations = ConnectRegions(map, potential_door_locations, num_regions);
+    EliminateDeadEnds(map);
+    SpawnDoors(map, potential_door_locations, num_potential_door_locations);
+    free(potential_door_locations);
     SpawnExit(map);
 
-    //
     // Spawn actors.
-    //
 
-    tile_coord_t * valid_points = calloc(map_size, sizeof(*valid_points));
     game->map.actors.count = 0;
     SpawnPlayerAndStartTile(game);
-    SpawnGoldKey(game, valid_points);
+    SpawnGoldKey(game);
 
     // In each room...
     for ( int i = 0; i < map->num_rooms; i++ ) {
+        GetValidRoomTiles(&game->map, i);
         float chance = 1.0f;
         int area = map->rooms[i].w * map->rooms[i].h;
-        int max_monsters = area / 9;
+        int max_monsters = area / 4;
 
         for ( int j = 0; j < 4; j++ ) {
             if ( Chance(chance) ) {
-                int num_points = GetValidRoomTiles(&game->map, i, valid_points);
-                int point_index = Random(0, num_points - 1);
-                SpawnActor(game,
-                           &game->map.actors,
-                           ACTOR_BLOB,
-                           valid_points[point_index]);
+                SpawnActorAtRandomPointInBuffer(game, ACTOR_BLOB);
                 --max_monsters;
             }
 
@@ -713,10 +775,12 @@ void GenerateDungeon(game_t * game, int width, int height)
                 chance *= 0.66f;
             }
         }
-    }
 
-    free(potential_door_locations);
-    free(valid_points);
+        int max_vases = area / 9;
+        for ( int j = 0; j < max_vases; j++ ) {
+            SpawnActorAtRandomPointInBuffer(game, ACTOR_VASE);
+        }
+    }
 
     if ( show_map_gen ) {
         DebugWaitForKeyPress();

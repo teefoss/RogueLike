@@ -11,6 +11,7 @@
 
 #include "game.h"
 #include "debug.h"
+#include "icon.h"
 
 #include "mathlib.h"
 #include "sound.h"
@@ -64,7 +65,7 @@ const game_state_t intermission = {
 
 void LoadLevel(game_t * game, int level_num)
 {
-    GenerateDungeon(game, MAP_WIDTH, MAP_HEIGHT);
+    GenerateDungeon(game, 31, 31);
     PlayerCastSightLines(&game->map);
 
     game->player_turns = INITIAL_TURNS;
@@ -124,7 +125,7 @@ bool DoIntermissionInput(game_t * game, const SDL_Event * event)
 
 void IntermissionOnExit(game_t * game)
 {
-    GenerateDungeon(game, MAP_WIDTH, MAP_HEIGHT);
+    GenerateDungeon(game, 31, 31);
     game->player_turns = INITIAL_TURNS;
     PlayerCastSightLines(&game->map);
 }
@@ -136,7 +137,7 @@ void IntermissionOnExit(game_t * game)
 void MovePlayer(game_t * game, direction_t direction)
 {
     actor_t * player = GetPlayer(&game->map.actors);
-    player->flags.was_attacked = false;
+//    player->flags.was_attacked = false;
 
     game->log[0] = '\0'; // Clear the log.
 
@@ -197,14 +198,14 @@ void MovePlayer(game_t * game, direction_t direction)
 
         // Do all actor turns.
         actors_t * actors = &game->map.actors;
-        for ( int i = 1; i < actors->count; i++ ) {
+        for ( int i = 0; i < actors->count; i++ ) {
             actor_t * actor = &actors->list[i];
 
-            if ( actor->action && !actor->flags.was_attacked) {
+            if ( !actor->flags.remove && actor->action ) {
                 actor->action(actor);
             }
 
-            actor->flags.was_attacked = false; // reset
+//            actor->flags.was_attacked = false; // reset
         }
     }
 }
@@ -369,10 +370,15 @@ void LevelTurnUpdate(game_t * game, float dt)
 
 #pragma mark - RENDER
 
+
+void RenderHUDMeter(void)
+{
+    // TODO: this
+}
+
+
 void RenderHUD(const game_t * game, const actor_t * player)
 {
-    SDL_Texture * icons = GetTexture("assets/icons.png");
-
     const int margin = 16;
     const int char_w = V_CharWidth();
     const int char_h = V_CharHeight();
@@ -386,13 +392,7 @@ void RenderHUD(const game_t * game, const actor_t * player)
 
     V_PrintString(margin, margin, "Level %d", game->level);
     if ( game->has_gold_key ) {
-        SDL_Rect src = { 5 * 5, 0, 5, 5 };
-        SDL_Rect dst = {
-            margin,
-            margin * 2 + DRAW_SCALE,
-            5 * DRAW_SCALE,
-            5 * DRAW_SCALE };
-        V_DrawTexture(icons, &src, &dst);
+        RenderIcon(ICON_GOLD_KEY, margin, margin * 2 + SCALED(1));
     }
 
     // Log
@@ -422,65 +422,30 @@ void RenderHUD(const game_t * game, const actor_t * player)
 
     // Turns
 
-    const int icon_size = 5 * DRAW_SCALE;
-    SDL_Rect src = { 10, 0, 5, 5 };
-    SDL_Rect dst = { 0, hud_y, icon_size, icon_size };
-    dst.x = V_PrintString(hud_x, hud_y, " Turns ");
+    int turns_x = V_PrintString(hud_x, hud_y, " Turns ");
 
     for ( int i = 0; i < game->player_turns; i++ ) {
-        V_DrawTexture(icons, &src, &dst);
-        dst.x += 6 * DRAW_SCALE;
+        RenderIcon(ICON_TURN, turns_x + i * SCALED(ICON_SIZE), hud_y);
     }
 
     // Attack
 
     hud_y -= char_h;
-    dst.y = hud_y;
-    dst.x = V_PrintString(hud_x, hud_y, "Attack ");
-    src.x = 4 * 5;
+    int attack_x = V_PrintString(hud_x, hud_y, "Attack ");
 
-    for ( int i = 1; i <= player->damage; i++  ) {
-        V_DrawTexture(icons, &src, &dst);
-        dst.x += 6 * DRAW_SCALE;
+    for ( int i = 0; i < player->damage; i++  ) {
+        RenderIcon(ICON_DAMAGE, attack_x + i * SCALED(ICON_SIZE), hud_y);
     }
 
     // Health
 
     hud_y -= char_h;
-    dst.y = hud_y;
-    dst.x = V_PrintString(hud_x, hud_y, "Health ");
 
-    for ( int i = 1; i <= player->max_health; i++ ) {
-        if ( i > player->health ) {
-            src.x = 5;
-        } else {
-            src.x = 0;
-        }
-        V_DrawTexture(icons, &src, &dst);
-        dst.x += 6 * DRAW_SCALE;
-    }
+    int health_x = V_PrintString(hud_x, hud_y, "Health ");
 
-    // Inventory
-
-    hud_y += char_h;
-    int inventory_x = GAME_WIDTH - (NUM_ITEMS * icon_size + margin);
-    for ( int i = 0; i < NUM_ITEMS; i++ ) {
-        if ( game->inventory.item_counts[i] == 0 ) {
-            continue;
-        }
-
-        src.x = i * 5;
-        src.y = 5;
-        dst.x = inventory_x + (i * (icon_size + (1 * DRAW_SCALE)));
-        V_DrawTexture(icons, &src, &dst);
-        V_PrintString(dst.x, dst.y + char_h, "%d", game->inventory.item_counts[i]);
-        if ( i == game->inventory.selected_item ) {
-            src.x = 15;
-            src.y = 0;
-            dst.y -= icon_size + DRAW_SCALE;
-            V_DrawTexture(icons, &src, &dst);
-            dst.y += icon_size + DRAW_SCALE;
-        }
+    for ( int i = 0; i < player->max_health; i++ ) {
+        icon_t icon = i > player->health ? ICON_EMPTY_HEART : ICON_FULL_HEART;
+        RenderIcon(icon, health_x + i * SCALED(ICON_SIZE), hud_y);
     }
 }
 
@@ -498,6 +463,7 @@ void GamePlayRender(const game_t * game)
 
         if ( show_debug_info ) {
             const actor_t * player = GetPlayer((actors_t *)&game->map.actors);
+            DEBUG_PRINT("Frame time: %.1f", frame_msec * 1000.0f);
             DEBUG_PRINT("Player tile: %d, %d", player->tile.x, player->tile.y);
         } else {
             RenderHUD(game, GetPlayer((actors_t *)&game->map.actors));
@@ -624,8 +590,8 @@ void DoFrame(game_t * game, float dt)
         mx -= offset.x;
         my -= offset.y;
 
-        mx /= RENDER_TILE_SIZE;
-        my /= RENDER_TILE_SIZE;
+        mx /= SCALED(TILE_SIZE);
+        my /= SCALED(TILE_SIZE);
         game->mouse_tile.x = mx;
         game->mouse_tile.y = my;
     }
@@ -646,9 +612,6 @@ void DoFrame(game_t * game, float dt)
                 return;
             case SDL_KEYDOWN:
                 switch ( event.key.keysym.sym ) {
-                    case SDLK_g:
-                        GenerateDungeon(game, MAP_WIDTH, MAP_HEIGHT);
-                        break;
                     case SDLK_BACKQUOTE:
                         show_debug_info = !show_debug_info;
                         break;

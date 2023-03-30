@@ -20,6 +20,7 @@ do { \
 
 extern int debug_row;
 extern bool show_debug_info;
+extern float frame_msec;
 
 void DebugWaitForKeyPress(void);
 

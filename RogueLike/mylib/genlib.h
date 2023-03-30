@@ -49,10 +49,19 @@ extern "C" {
 #define PROFILE_END(var) printf(#var" took %f ms\n", \
                                 (ProgramTime() - var) * 1000.0f);
 
-#define Error(...) { fprintf(stderr, "%s: ", __func__); \
-                     fprintf(stderr, __VA_ARGS__);      \
-                     fprintf(stderr, "\n");             \
-                     exit(EXIT_FAILURE); }
+#define PROFILE(func, var) do { \
+    float __profile_start__ = ProgramTime(); \
+    func; \
+    float __profile_end__ = ProgramTime(); \
+    var = __profile_end__ - __profile_start__; \
+} while ( 0 )
+
+#define Error(...) do {                 \
+    fprintf(stderr, "%s: ", __func__);  \
+    fprintf(stderr, __VA_ARGS__);       \
+    fprintf(stderr, "\n");              \
+    exit(EXIT_FAILURE);                 \
+} while ( 0 );
 
 #define CASE_RETURN_STRING(e) case e: return #e;
 

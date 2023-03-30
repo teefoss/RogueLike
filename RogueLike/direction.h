@@ -27,6 +27,7 @@ typedef enum {
 
 int XDelta(direction_t direction);
 int YDelta(direction_t direction);
+direction_t GetDirection(int dx, int dy);
 tile_coord_t AdjacentTileCoord(tile_coord_t coord, direction_t direction);
 
 #endif /* direction_h */

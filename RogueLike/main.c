@@ -10,6 +10,7 @@
 #include "mathlib.h"
 #include "sound.h"
 #include "game.h"
+#include "debug.h"
 
 int main(void)
 {
@@ -47,9 +48,8 @@ int main(void)
             continue;
         }
 
-//        PROFILE_START(frame_time);
-        DoFrame(game, target_dt);
-//        PROFILE_END(frame_time);
+        PROFILE(DoFrame(game, target_dt), frame_msec);
+
         old_time = new_time;
     }
 
