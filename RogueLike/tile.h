@@ -8,13 +8,17 @@
 #ifndef tile_h
 #define tile_h
 
+#define MAX_LIGHT 255
+
 typedef enum {
     TILE_FLOOR,
     TILE_WALL,
     TILE_DOOR,
-    TILE_EXIT,
-    TILE_GOLD_DOOR,
-    TILE_START,
+    TILE_EXIT, // Level exit stairs
+    TILE_GOLD_DOOR, // Exit room locked door
+    TILE_START, // Just a floor with a symbol, to mark player's start tile
+
+    NUM_TILE_TYPES,
 } tile_type_t;
 
 
@@ -35,15 +39,18 @@ typedef struct {
 
     u8 light; // Current light level.
     u8 light_target; // Used to lerp (light -> light_target).
-
     s16 distance; // For pathfinding. Updated via UpdateDistanceMap()
-
-    // Sprite sheet location.
-    // Tiles with multiple visible varieties are layed out horizontally
-    // and its location is the leftmost cell.
-    struct { u8 x, y; } sprite_cell;
 } tile_t;
 
 tile_t CreateTile(tile_type_t type);
+
+void RenderTile(const tile_t * tile,
+                int signature,
+                int pixel_x,
+                int pixel_y,
+                int scale, // TODO: scale is the wrong term
+                bool debug);
+
+void DebugDrawTile(const tile_t * tile, int x, int y, int size);
 
 #endif /* tile_h */

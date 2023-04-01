@@ -34,6 +34,12 @@ void BufferRemove(int index)
 }
 
 
+tile_coord_t BufferRandom(void)
+{
+    return _buffer[Random(0, _count - 1)];
+}
+
+
 #pragma mark -
 
 
@@ -57,50 +63,11 @@ void RenderTilesWithDelay(map_t * map)
 
 void DebugRenderTiles(const map_t * map)
 {
-    SDL_Texture * tiles = GetTexture("assets/tiles2.png");
-    SDL_SetTextureColorMod(tiles, 255, 255, 255);
-
-    SDL_Rect src = { .w = TILE_SIZE, .h = TILE_SIZE };
-    SDL_Rect dst = { .w = debug_tile_size, .h = debug_tile_size };
-
     for ( int y = 0; y < map->height; y++ ) {
         for ( int x = 0; x < map->width; x++ ) {
             tile_t * tile = GetTile((map_t *)map, (tile_coord_t){ x, y });
-            if ( tile->type == TILE_WALL ) {
-                src.x = 0;
-                src.y = 0;
-            } else {
-                src.x = tile->sprite_cell.x * TILE_SIZE;
-                src.y = tile->sprite_cell.y * TILE_SIZE;
-                if ( tile->num_variants ) {
-                    src.x += (tile->variety % tile->num_variants) * TILE_SIZE;
-                }
-            }
-
-            dst.x = x * debug_tile_size;
-            dst.y = y * debug_tile_size;
-
-            V_DrawTexture(tiles, &src, &dst);
+            DebugDrawTile(tile, x, y, debug_tile_size);
         }
-    }
-}
-
-
-void DebugRenderActors(const actors_t * actors)
-{
-    SDL_Texture * actor_sheet = GetTexture("assets/actors.png");
-
-    SDL_Rect src = { .w = TILE_SIZE, .h = TILE_SIZE };
-    SDL_Rect dst = { .w = debug_tile_size, .h = debug_tile_size };
-
-    const actor_t * a = actors->list;
-    for ( ; a < actors->list + actors->count; a++ ) {
-        src.x = a->sprite_cell.x * TILE_SIZE;
-        src.y = a->sprite_cell.y * TILE_SIZE;
-        dst.x = a->tile.x * debug_tile_size;
-        dst.y = a->tile.y * debug_tile_size - 4;
-
-        V_DrawTexture(actor_sheet, &src, &dst);
     }
 }
 
@@ -591,7 +558,7 @@ void SpawnPlayerAndStartTile(game_t * game)
 
 void SpawnGoldKey(game_t * game)
 {
-    actor_t * player = GetPlayer(&game->map.actors);
+    actor_t * player = GetPlayer(game);
     GetReachableTiles(&game->map, player->tile, FLAG(TILE_DOOR));
 
     // Remove any points that are not in a room (-1) or are in the start room (0)
@@ -626,8 +593,10 @@ void SpawnGoldKey(game_t * game)
 /// is not adjacent to a door. If none are found, place the exit in the center
 /// of the room.
 ///
-void SpawnExit(map_t * map)
+void SpawnExit(game_t * game)
 {
+    map_t * map = &game->map;
+
     int exit_room = map->num_rooms - 1;
 
     tile_coord_t corners[4];
@@ -657,6 +626,15 @@ void SpawnExit(map_t * map)
     }
 
     *GetTile(map, exit_coord) = CreateTile(TILE_EXIT);
+
+    // Spawn blocks
+    for ( direction_t d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+        tile_t * adjacent = GetAdjacentTile(map, exit_coord, d);
+        tile_coord_t coord = AdjacentTileCoord(exit_coord, d);
+        if ( adjacent->type == TILE_FLOOR ) {
+            SpawnActor(game, ACTOR_BLOCK_UP, coord);
+        }
+    }
 
     // Turn any doors adjacent to the exit room into gold doors.
     SDL_Rect rect = map->rooms[exit_room];
@@ -732,6 +710,8 @@ void GenerateDungeon(game_t * game, int width, int height)
         Error("Could not allocate map tile id array");
     }
 
+    game->map.actors.count = 0;
+
     InitTiles(map);
 
     map->num_rooms = 0;
@@ -748,12 +728,16 @@ void GenerateDungeon(game_t * game, int width, int height)
     EliminateDeadEnds(map);
     SpawnDoors(map, potential_door_locations, num_potential_door_locations);
     free(potential_door_locations);
-    SpawnExit(map);
+    SpawnExit(game);
 
     // Spawn actors.
 
-    game->map.actors.count = 0;
     SpawnPlayerAndStartTile(game);
+
+
+    // Pick a room that is not the start or end room for the button.
+    int button_room_num = Random(1, map->num_rooms - 2);
+
     SpawnGoldKey(game);
 
     // In each room...
@@ -762,6 +746,10 @@ void GenerateDungeon(game_t * game, int width, int height)
         float chance = 1.0f;
         int area = map->rooms[i].w * map->rooms[i].h;
         int max_monsters = area / 4;
+
+        if ( button_room_num == i ) {
+            SpawnActor(game, ACTOR_BUTTON_UP, BufferRandom());
+        }
 
         for ( int j = 0; j < 4; j++ ) {
             if ( Chance(chance) ) {
@@ -780,6 +768,8 @@ void GenerateDungeon(game_t * game, int width, int height)
         for ( int j = 0; j < max_vases; j++ ) {
             SpawnActorAtRandomPointInBuffer(game, ACTOR_VASE);
         }
+
+        SpawnActorAtRandomPointInBuffer(game, ACTOR_CLOSED_CHEST);
     }
 
     if ( show_map_gen ) {

@@ -44,6 +44,24 @@ void C_Player(actor_t * player, actor_t * hit)
             SpawnActor(player->game, ACTOR_ITEM_HEALTH, hit->tile);
             hit->flags.remove = true;
             break;
+        case ACTOR_CLOSED_CHEST:
+            SpawnActor(player->game, ACTOR_ITEM_HEALTH, hit->tile);
+            SpawnActor(player->game, ACTOR_OPEN_CHEST, hit->tile);
+            hit->flags.remove = true;
+            S_Play("o3 t100 l32 f c b-");
+            break;
+        case ACTOR_BUTTON_UP:
+            for ( int i = 0; i < player->game->map.actors.count; i++ ) {
+                actor_t * a = &player->game->map.actors.list[i];
+                if ( a->type == ACTOR_BLOCK_UP ) {
+                    a->flags.remove = true;
+                    SpawnActor(player->game, ACTOR_BLOCK_DOWN, a->tile);
+                }
+            }
+            hit->flags.remove = true;
+            SpawnActor(player->game, ACTOR_BUTTON_DOWN, hit->tile);
+            S_Play("o1 t90 l32 a c+");
+            break;
         default:
             break;
     }

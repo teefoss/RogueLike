@@ -3,6 +3,12 @@
 Actor animation during turn (walking)
 Log slide right on disappear
 Check for mem leaks
+Update game includes lighting etc?
+Don't pick up item if full
+Sword/Shield sprite
+Debug Mouse click to teleport
+Remove actors struct
+Add coord to tile_t
 
 # BUGS
 
@@ -13,8 +19,32 @@ Blob light level additive
 
 ## LEVEL
 
+The Forest (one level )
+- lakes and forests, dark - find well (need bucket to descend)
+The well (levels ?-?)
+- first: water surrounded by dirt
+- followed by single rooms with stairs down
+The Tunnel (one level)
+- One long hallway with snakes
+The Flooded Grotto (2 levels, perlin, water)
+The Catacombs (10? levels)
+The Gateway (1 level, non-proc, just a set up for the labyrinth)
+The Labyrinth (1 level - huge)
+
 Overall end options:
  - Set number of levels?
+ Create a character, tracks no. runs, loot obtained on successful runs
+ Goal: Final treasure, a set no. of items (The Jade Amulet of Destiny, etc.) Game 'complete'
+ when found all and discovered all other varieties of gems
+ 
+ Treasures go in order: started with more mundane sounding items, the final has the rainbow effect.
+ 
+ Level types:
+ - (1) forest (perlin trees and rivers)
+ - dungeon of various sizes
+ - cave ()
+ 
+ 
  - Option to exit early, but miss better loot on higher levels?
 
 ## ITEMS

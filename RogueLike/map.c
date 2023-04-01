@@ -108,95 +108,13 @@ tile_coord_t GetCoordinate(const map_t * map, int index)
     return coord;
 }
 
-/// - parameter debug: Ignore lighting and tile's revealed property.
-void RenderTile(const tile_t * tile,
-                int signature,
-                int pixel_x,
-                int pixel_y,
-                int scale, // TODO: scale is the wrong term
-                bool debug)
-{
-    SDL_Texture * tiles = GetTexture("assets/tiles2.png");
-
-    SDL_Rect src, dst;
-    src.w = src.h = TILE_SIZE;
-    dst.w = dst.h = scale;
-    dst.x = pixel_x;
-    dst.y = pixel_y;
-
-    if ( debug ) {
-        // In debug, always draw at full light.
-        SDL_SetTextureColorMod(tiles, 255, 255, 255);
-    } else {
-        // Apply tile's light level.
-        SDL_SetTextureColorMod(tiles, tile->light, tile->light, tile->light);
-    }
-
-    src.x = tile->sprite_cell.x * TILE_SIZE;
-    src.y = tile->sprite_cell.y * TILE_SIZE;
-
-    switch ( (tile_type_t)tile->type ) {
-        case TILE_WALL:
-            src.x = 0;
-            src.y = 0;
-            V_DrawTexture(tiles, &src, &dst); // Blank it to start.
-
-            direction_t draw_order[NUM_DIRECTIONS] = {
-                NORTH,
-                NORTH_WEST,
-                NORTH_EAST,
-                WEST,
-                SOUTH_WEST,
-                EAST,
-                SOUTH_EAST,
-                SOUTH
-            };
-
-            src.y = 32;
-            for ( int i = 0; i < NUM_DIRECTIONS; i++ ) {
-                direction_t direction = draw_order[i];
-
-                if ( signature & FLAG(direction) ) {
-                    src.x = direction * TILE_SIZE;
-                    V_DrawTexture(tiles, &src, &dst);
-                }
-            }
-#if 0
-            src.x = NUM_TILE_SPRITES * TILE_SIZE; // 'Missing tile' texture.
-            for ( int i = 0; i < NUM_TILE_SPRITES; i++ ) {
-                if ( (signature & tile_masks[i]) == tile_signatures[i] ) {
-                    src.x = (tile->sprite_cell.x + i) * TILE_SIZE;
-                    break;
-                }
-            }
-#endif
-            return;
-        case TILE_FLOOR:
-            if ( tile->variety < 112 ) {
-                src.x += (tile->variety % 8) * TILE_SIZE;
-            }
-            break;
-        default:
-            break;
-    }
-
-    V_DrawTexture(tiles, &src, &dst);
-
-    // F1 - show tile distance to player
-    if ( !tile->flags.blocking ) {
-        const u8 * keys = SDL_GetKeyboardState(NULL);
-        if ( keys[SDL_SCANCODE_F1] ) {
-            V_SetGray(255);
-            V_PrintString(dst.x, dst.y, "%d", tile->distance);
-        }
-    }
-}
-
-static const int half_w = (GAME_WIDTH - SCALED(TILE_SIZE)) / 2;
-static const int half_h = (GAME_HEIGHT - SCALED(TILE_SIZE)) / 2;
 
 vec2_t GetRenderOffset(const actor_t * player)
 {
+    SDL_Rect viewport = GetLevelViewport(player->game);
+    int half_w = (viewport.w - SCALED(TILE_SIZE)) / 2;
+    int half_h = (viewport.h - SCALED(TILE_SIZE)) / 2;
+
     vec2_t offset = {
         .x = (player->tile.x * SCALED(TILE_SIZE) + player->offset_current.x) - half_w,
         .y = (player->tile.y * SCALED(TILE_SIZE) + player->offset_current.y) - half_h,
@@ -205,8 +123,23 @@ vec2_t GetRenderOffset(const actor_t * player)
     return offset;
 }
 
+
+int CompareActors(const void * a, const void * b) {
+    const actor_t * actor1 = (const actor_t *)a;
+    const actor_t * actor2 = (const actor_t *)b;
+
+    if (actor1->tile.y != actor2->tile.y) {
+        return actor1->tile.y - actor2->tile.y;
+    } else {
+        return actor1->draw_priority - actor2->draw_priority;
+    }
+}
+
+
 void RenderMap(const game_t * game)
 {
+    const SDL_Rect viewport = GetLevelViewport(game);
+    SDL_RenderSetViewport(renderer, &viewport);
     vec2_t offset = game->camera;
     const actors_t * actors = &game->map.actors;
 
@@ -214,7 +147,7 @@ void RenderMap(const game_t * game)
     // Draw all tiles.
     //
 
-    box_t vis_rect = GetVisibleRegion(&game->map, GetPlayer((actors_t *)actors));
+    box_t vis_rect = GetVisibleRegion(game);
 
     tile_coord_t coord;
     for ( coord.y = vis_rect.min.y; coord.y <= vis_rect.max.y; coord.y++ ) {
@@ -241,7 +174,7 @@ void RenderMap(const game_t * game)
     //
 
     // Make a list of visible actors.
-    const actor_t * visible_actors[MAX_ACTORS];
+    actor_t visible_actors[MAX_ACTORS];
     int num_visible_actors = 0;
 
     for ( int i = 0; i < actors->count; i++ ) {
@@ -254,22 +187,21 @@ void RenderMap(const game_t * game)
             && actor->tile.y >= vis_rect.min.y
             && actor->tile.y <= vis_rect.max.y )
         {
-            visible_actors[num_visible_actors++] = actor;
+            visible_actors[num_visible_actors++] = *actor;
         }
     }
 
-    // Sort the list by y position.
-    for ( int i = 0; i < num_visible_actors; i++ ) {
-        for ( int j = i + 1; j < num_visible_actors; j++ ) {
-            if ( visible_actors[j]->tile.y < visible_actors[i]->tile.y ) {
-                SWAP(visible_actors[j], visible_actors[i]);
-            }
-        }
-    }
+    SDL_qsort(visible_actors, num_visible_actors, sizeof(actor_t), CompareActors);
 
     for ( int i = 0; i < num_visible_actors; i++ ) {
-        RenderActor(visible_actors[i], offset.x, offset.y);
+        const actor_t * a = &visible_actors[i];
+        int size = SCALED(TILE_SIZE);
+        int x = a->tile.x * size + a->offset_current.x - game->camera.x;
+        int y = a->tile.y * size + a->offset_current.y - game->camera.y;
+        RenderActor(a, x, y, SCALED(TILE_SIZE), false);
     }
+
+    SDL_RenderSetViewport(renderer, NULL);
 }
 
 
@@ -368,7 +300,6 @@ static bool VLineIsClear(map_t * map, int x, int y0, int y1)
 }
 
 
-
 /*
  . . . . . . .
  . * * * * 1 .
@@ -389,18 +320,21 @@ bool ManhattenPathsAreClear(map_t * map, int x0, int y0, int x1, int y1)
 /// Get the rectangular region around the player that is currently visible
 /// on screen.
 ///
-box_t GetVisibleRegion(const map_t * map, const actor_t * player)
+box_t GetVisibleRegion(const game_t * game)
 {
-    int w = GAME_WIDTH / SCALED(TILE_SIZE);
-    int h = GAME_HEIGHT / SCALED(TILE_SIZE);
+    SDL_Rect viewport = GetLevelViewport(game);
+    int w = viewport.w / SCALED(TILE_SIZE);
+    int h = viewport.h / SCALED(TILE_SIZE);
 
     // Include a padding of 1 so tiles don't disappear when scrolling.
+
+    const actor_t * player = GetPlayer(game);
 
     box_t region;
     region.min.x = MAX(0, (player->tile.x - w / 2) - 1);
     region.min.y = MAX(0, (player->tile.y - h / 2) - 1);
-    region.max.x = MIN((player->tile.x + w / 2) + 1, map->width - 1);
-    region.max.y = MIN((player->tile.y + h / 2) + 1, map->height - 1);
+    region.max.x = MIN((player->tile.x + w / 2) + 1, game->map.width - 1);
+    region.max.y = MIN((player->tile.y + h / 2) + 1, game->map.height - 1);
 
     return region;
 }
@@ -512,8 +446,8 @@ void UpdateDistanceMap(map_t * map, tile_coord_t coord, int ignore_flags)
             {
                 // open and not yet visited
                 edge->distance = distance + 1;
-                qtile_t qtile = { edge, edge_coord };
-                Put(qtile);
+                qtile_t next_qtile = { edge, edge_coord };
+                Put(next_qtile);
             }
         }
     }

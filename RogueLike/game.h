@@ -13,6 +13,8 @@
 #include "coord.h"
 #include "direction.h"
 #include "tile.h"
+#include "actor.h"
+#include "item.h"
 
 #include <SDL_rect.h>
 #include <SDL_events.h>
@@ -28,6 +30,9 @@
 #define ICON_SIZE 6
 #define SCALED(size) (size * DRAW_SCALE)
 
+#define HUD_MARGIN 16
+//#define INVENTORY_X ((float)GAME_WIDTH * 0.75f)
+
 // Must be an odd number!
 //#define MAP_WIDTH 31
 //#define MAP_HEIGHT 31
@@ -36,7 +41,7 @@
 #define MAX_ROOMS 200
 #define MAX_ACTORS 200
 
-#define INITIAL_TURNS 1
+#define INITIAL_TURNS 0
 
 #define DIR_BIT(direction) (1 << direction)
 #define FLAG(i) (1 << i)
@@ -49,118 +54,17 @@ typedef struct {
 } box_t;
 
 
-#pragma mark - ITEMS
-
-
-typedef enum {
-    ITEM_HEALTH,    // +1 health
-    ITEM_TURN,      // +1 turn
-
-    // Sword(s) wooden, steel, obsidian
-    // Shield(s): 25% chance to block
-    // - wooden 100% chance to break
-    // - steel 75% chance to break
-    // - obsidian 50% chance to break
-    // Stone of returning: drop and activate to return to stone.
-    // Gem that allows you to go back a level (starting pad turns purple)
-    // Charge: move continuously until hit something
-    // hover and examine monster's health and attack rating
-
-    NUM_ITEMS,
-} item_t;
-
-
-#pragma mark - ACTOR
-
-
-// When adding a new actor:
-// ------------------------
-// 1. Add to enum below, somewhere above 'NUM_ACTOR_TYPES'
-// 2. Add a template in actor.c
-// 3. Optionally, add a contact function in contact.c. Declare it at the
-//    top of actor.c and add it to template.
-// 4. Optionally, add an action function in action.c. Declare it at the
-//    top of actior.c and add it to the template.
-typedef enum {
-    ACTOR_PLAYER,
-    ACTOR_TORCH,
-    ACTOR_BLOB,
-    ACTOR_ITEM_HEALTH,
-    ACTOR_ITEM_TURN,
-    ACTOR_GOLD_KEY,
-    ACTOR_BLOCK,
-    ACTOR_VASE,
-
-    NUM_ACTOR_TYPES
-} actor_type_t;
-
-typedef enum {
-    // Actor can face left or right (sprite gets flipped per facing_left)
-    ACTOR_DIRECTIONAL,
-    ACTOR_TAKES_DAMAGE,
-    ACTOR_BLOCKS_SIGHT,
-    ACTOR_NO_BUMP, // Other actors can walk through.
-    ACTOR_COLLECTIBLE, // Play can pick it up.
-    ACTOR_FLOAT, // Hovers
-} actor_flags_t;
-
-
-typedef struct game game_t;
-typedef struct actor actor_t;
-
-struct actor {
-    game_t * game;
-    u8 type;
-
-    struct {
-        u8 directional      : 1; // Look at 'facing_left' for sprite flip.
-        u8 takes_damage     : 1; // Can be hurt by other actors.
-        u8 blocks_sight     : 1;
-        u8 no_collision     : 1;
-        u8 collectible      : 1; // Actors can walk through (no bump anim).
-        u8 floats           : 1; // Hovers in the air.
-        u8 facing_left      : 1;
-        u8 remove           : 1; // Deleted
-    } flags;
-
-    tile_coord_t tile;
-
-    vec2_t offset_start;
-    vec2_t offset_current;
-
-    u8 frame;
-    u8 num_frames;
-    u16 frame_msec;
-
-    // Sprite sheet location.
-    // Animated sprite frames are layed out horizontally.
-    // sprite_location is the first frame in an animation.
-    struct { u8 x, y; } sprite_cell;
-
-    u8 max_health;
-    s8 health;
-    u8 damage;
-
-    // An actor's light propogates to surrounding tiles.
-    u8 light;
-    u8 light_radius;
-
-    float hit_timer;
-
-    void (* animation)(actor_t *, float move_timer);
-    void (* contact)(actor_t * self, actor_t * other);
-    void (* contacted)(actor_t * self, actor_t * other); // When hit by something else.
-    void (* action)(actor_t *);
-};
-
-
-
-
 #pragma mark - GAME
+
 
 typedef struct {
     int count;
     actor_t list[MAX_ACTORS];
+
+    // if targets[12] = 1: actor[12] is targeting actor[1]
+    // if targetted[1] = 12: actor[1] is being targetted by actor[12]
+    int targets[MAX_ACTORS];
+    int targetted[MAX_ACTORS];
 } actors_t;
 
 typedef struct {
@@ -172,6 +76,8 @@ typedef struct {
     SDL_Rect rooms[MAX_ROOMS];
     actors_t actors;
 } map_t;
+
+typedef struct game game_t;
 
 typedef struct game_state {
     bool (* process_input)(game_t *, const SDL_Event *);
@@ -202,6 +108,8 @@ struct game {
     tile_coord_t mouse_tile;
 
     vec2_t camera;
+    float inventory_x;
+    bool inventory_open;
 
     // Player
     inventory_t inventory;
@@ -220,22 +128,8 @@ struct game {
 bool InventoryIsEmtpy(const inventory_t * inventory);
 game_t * InitGame(void);
 void DoFrame(game_t * game, float dt);
+SDL_Rect GetLevelViewport(const game_t * game);
 
-
-#pragma mark - actor.c
-
-/// Propogate actor's light to surrounding tiles by setting their `light_target`
-/// value.
-void CastLight(game_t * game, const actor_t * actor);
-void SpawnActor(game_t * game, actor_type_t type, tile_coord_t coord);
-void RenderActor(const actor_t * actor, int offset_x, int offset_y);
-void MoveActor(actor_t * actor, direction_t direction);
-bool TryMoveActor(actor_t * actor, direction_t direction);
-int DamageActor(actor_t * actor);
-actor_t * GetActorAtXY(actor_t * actors, int num_actors, int x, int y);
-actor_t * GetPlayer(actors_t * actors);
-const actor_t * GetPlayerReadOnly(const actor_t * actors, int num_actors);
-void UpdateActorFacing(actor_t * actor, int dx);
 
 #pragma mark - animation.c
 
@@ -257,7 +151,6 @@ void CheckForShowMapGenCancel(void);
 
 void GenerateDungeon(game_t * game, int width, int height);
 void DebugRenderTiles(const map_t * map); // TODO: move these
-void DebugRenderActors(const actors_t * actors);
 
 
 #pragma mark - map.c
@@ -265,7 +158,7 @@ void DebugRenderActors(const actors_t * actors);
 tile_t * GetAdjacentTile(map_t * map, tile_coord_t coord, direction_t direction);
 tile_t * GetTile(map_t * map, tile_coord_t coord);
 tile_coord_t GetCoordinate(const map_t * map, int index);
-box_t GetVisibleRegion(const map_t * map, const actor_t * player);
+box_t GetVisibleRegion(const game_t * game);
 bool IsInBounds(const map_t * map, int x, int y);
 bool LineOfSight(map_t * map, tile_coord_t t1, tile_coord_t t2, bool reveal);
 void RenderMap(const game_t * game);
@@ -277,7 +170,14 @@ bool TileIsAdjacentTo(const map_t * map, tile_coord_t coord, tile_type_t type, i
 
 #pragma mark - player.c
 
-void PlayerCastSightLines(map_t * map);
+#define GetPlayer(game) _Generic((game),    \
+    const game_t *: GetPlayerConst,         \
+    game_t *: GetPlayerNonConst             \
+)(game)
+
+void PlayerCastSightLines(game_t * game);
 void CollectItem(actor_t * player, actor_t * item_actor, item_t item);
+const actor_t * GetPlayerConst(const game_t * game);
+actor_t * GetPlayerNonConst(game_t * game);
 
 #endif /* main_h */

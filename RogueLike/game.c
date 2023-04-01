@@ -66,7 +66,7 @@ const game_state_t intermission = {
 void LoadLevel(game_t * game, int level_num)
 {
     GenerateDungeon(game, 31, 31);
-    PlayerCastSightLines(&game->map);
+    PlayerCastSightLines(game);
 
     game->player_turns = INITIAL_TURNS;
     game->has_gold_key = false;
@@ -127,7 +127,7 @@ void IntermissionOnExit(game_t * game)
 {
     GenerateDungeon(game, 31, 31);
     game->player_turns = INITIAL_TURNS;
-    PlayerCastSightLines(&game->map);
+    PlayerCastSightLines(game);
 }
 
 
@@ -136,10 +136,12 @@ void IntermissionOnExit(game_t * game)
 
 void MovePlayer(game_t * game, direction_t direction)
 {
-    actor_t * player = GetPlayer(&game->map.actors);
+    actor_t * player = GetPlayer(game);
 //    player->flags.was_attacked = false;
 
     game->log[0] = '\0'; // Clear the log.
+
+    // Do player-tile collisions:
 
     // The tile we are moving to.
     tile_t * tile = GetAdjacentTile(&game->map, player->tile, direction);
@@ -183,13 +185,12 @@ void MovePlayer(game_t * game, direction_t direction)
             MoveActor(player, direction);
             S_Play("l32o3bb-a-fd-<a-d<g");
             break;
-
         default:
             break;
     }
 
     UpdateActorFacing(player, XDelta(direction));
-    PlayerCastSightLines(&game->map);
+    PlayerCastSightLines(game);
     ChangeState(game, &level_turn);
 
     // Update all actors when player is out of turns.
@@ -244,7 +245,7 @@ void ChangeInventorySelection(inventory_t * inventory, int direction)
 void UseItem(game_t * game)
 {
     inventory_t * in = &game->inventory;
-    actor_t * player = GetPlayer(&game->map.actors);
+    actor_t * player = GetPlayer(game);
 
     // If the inventory is empty, just leave.
     if ( in->item_counts[in->selected_item] == 0 ) {
@@ -297,14 +298,20 @@ bool LevelIdleProcessInput(game_t * game, const SDL_Event * event)
                 case SDLK_d:
                     MovePlayer(game, EAST);
                     return true;
-                case SDLK_RIGHT:
-                    ChangeInventorySelection(&game->inventory, +1);
+                case SDLK_UP:
+                    if ( game->inventory_open ) {
+                        ChangeInventorySelection(&game->inventory, +1);
+                    }
                     return true;
-                case SDLK_LEFT:
-                    ChangeInventorySelection(&game->inventory, -1);
+                case SDLK_DOWN:
+                    if ( game->inventory_open ) {
+                        ChangeInventorySelection(&game->inventory, -1);
+                    }
                     return true;
                 case SDLK_RETURN:
-                    UseItem(game);
+                    if ( game->inventory_open ) {
+                        UseItem(game);
+                    }
                     return true;
                 default:
                     return false;
@@ -317,7 +324,7 @@ bool LevelIdleProcessInput(game_t * game, const SDL_Event * event)
 
 void LevelIdleUpdate(game_t * game, float dt)
 {
-    actor_t * player = GetPlayer(&game->map.actors);
+    actor_t * player = GetPlayer(game);
     if ( GetTile(&game->map, player->tile)->type == TILE_EXIT ) {
         ChangeState(game, &intermission);
         LoadLevel(game, game->level + 1);
@@ -371,15 +378,38 @@ void LevelTurnUpdate(game_t * game, float dt)
 #pragma mark - RENDER
 
 
-void RenderHUDMeter(void)
+int InventoryRenderX(inventory_t * inventory)
 {
-    // TODO: this
+    int max_width = 0;
+
+    if ( InventoryIsEmtpy(inventory) ) {
+        return GAME_WIDTH - (V_CharWidth() * strlen("Inventory") + HUD_MARGIN * 2);
+    }
+
+    for ( int i = 0; i < NUM_ITEMS; i++ ) {
+        if ( inventory->item_counts[i] == 0 ) {
+            continue;
+        }
+
+        max_width = MAX(max_width, HUD_MARGIN * 2 + ItemInfoWidth(i));
+    }
+
+    return GAME_WIDTH - max_width;
+}
+
+
+SDL_Rect GetLevelViewport(const game_t * game)
+{
+    int inventory_width = GAME_WIDTH - game->inventory_x;
+    SDL_Rect viewport = { 0, 0, GAME_WIDTH - inventory_width, GAME_HEIGHT };
+
+    return viewport;
 }
 
 
 void RenderHUD(const game_t * game, const actor_t * player)
 {
-    const int margin = 16;
+    const int margin = HUD_MARGIN;
     const int char_w = V_CharWidth();
     const int char_h = V_CharHeight();
     V_SetGray(255);
@@ -397,10 +427,9 @@ void RenderHUD(const game_t * game, const actor_t * player)
 
     // Log
 
-    // FIXME: last character not appearing)
     int log_len = (int)strlen(game->log);
     if ( log_len ) {
-        int log_x = GAME_WIDTH - (log_len * char_w + margin);
+        int log_x = game->inventory_x - (log_len * char_w + margin);
 
         if ( game->state == &level_turn ) {
             float x = log_x;
@@ -457,16 +486,61 @@ void GamePlayRender(const game_t * game)
     const u8 * keys = SDL_GetKeyboardState(NULL);
     if ( keys[SDL_SCANCODE_F2] ) {
         DebugRenderTiles(&game->map);
-        DebugRenderActors(&game->map.actors);
+//        DebugRenderActors(&game->map.actors);
+        const actors_t * actors = &game->map.actors;
+        for ( int i = 0; i < actors->count; i++ ) {
+            const actor_t * actor = &actors->list[i];
+            int size = 16;
+            int x = actor->tile.x * size;
+            int y = actor->tile.y * size;
+            RenderActor(actor, x, y, size, true);
+        }
     } else {
         RenderMap(game);
 
         if ( show_debug_info ) {
-            const actor_t * player = GetPlayer((actors_t *)&game->map.actors);
+            const actor_t * player = GetPlayer(game);
             DEBUG_PRINT("Frame time: %.1f", frame_msec * 1000.0f);
             DEBUG_PRINT("Player tile: %d, %d", player->tile.x, player->tile.y);
         } else {
-            RenderHUD(game, GetPlayer((actors_t *)&game->map.actors));
+            RenderHUD(game, GetPlayer(game));
+        }
+
+        if ( game->inventory_x != GAME_WIDTH ) {
+            SDL_Rect inventory_panel = {
+                .x = game->inventory_x,
+                .y = 0,
+                .w = GAME_WIDTH - game->inventory_x,
+                .h = GAME_HEIGHT
+            };
+
+            V_SetGray(16);
+            V_FillRect(&inventory_panel);
+            V_SetGray(32);
+            V_DrawVLine(game->inventory_x, 0, GAME_HEIGHT);
+
+            inventory_panel.x += HUD_MARGIN;
+            inventory_panel.y += HUD_MARGIN;
+            inventory_panel.w -= HUD_MARGIN;
+            inventory_panel.h -= HUD_MARGIN;
+            SDL_RenderSetViewport(renderer, &inventory_panel);
+
+            V_SetRGB(255, 255, 255);
+            int row = 0;
+            int char_h = V_CharHeight();
+
+            V_PrintString(0, row++ * char_h, "Inventory");
+            row++;
+
+            const inventory_t * in = &game->inventory;
+            for ( int i = 0; i < NUM_ITEMS; i++ ) {
+                if ( in->item_counts[i] ) {
+                    bool selected = in->selected_item == i;
+                    RenderItemInfo(i, in->item_counts[i], 0, row++ * char_h, selected);
+                }
+            }
+
+            SDL_RenderSetViewport(renderer, NULL);
         }
     }
 }
@@ -499,6 +573,8 @@ game_t * InitGame(void)
     game->state = &null;
     game->is_running = true;
     game->ticks = 0;
+    game->inventory_open = false;
+    game->inventory_x = GAME_WIDTH;
     LoadLevel(game, 1);
     ChangeState(game, &level_idle);
 
@@ -508,10 +584,10 @@ game_t * InitGame(void)
 
 void UpdateGame(game_t * game, float dt)
 {
-    actor_t * player = GetPlayer(&game->map.actors);
+    actor_t * player = GetPlayer(game);
     actors_t * actors = &game->map.actors;
 
-    box_t visible_region = GetVisibleRegion(&game->map, player);
+    box_t visible_region = GetVisibleRegion(game);
 
     // Reset tile light and blocks.
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
@@ -522,6 +598,33 @@ void UpdateGame(game_t * game, float dt)
 
     UpdateState(game, dt);
 
+    // TODO: think about removing actors more.
+
+    // Get a list of a indices to be removed
+    STORAGE(int, MAX_ACTORS) remove_indices = { 0 };
+    for ( int i = 0; i < actors->count; i++ ) {
+        if ( actors->list[i].flags.remove ) {
+            APPEND(remove_indices, i);
+        }
+    }
+
+    // For actors that target one of the removed actors, clear the target.
+    for ( int i = 0; i < actors->count; i++ ) {
+        actor_t * a = &actors->list[i];
+
+        for ( int j = 0; j < remove_indices.count; j++ ) {
+            if ( a->target == &actors->list[remove_indices.data[j]] ) {
+                a->target = NULL;
+            }
+        }
+    }
+
+    // Remove actors flagged to be removed.
+    for ( int i = remove_indices.count - 1; i >= 0; i-- ) {
+        actors->list[remove_indices.data[i]] = actors->list[--actors->count];
+    }
+
+#if 0
     // Remove actors flagged to be removed.
     for ( int i = actors->count - 1; i >= 0; i-- ) {
         actor_t * actor = &actors->list[i];
@@ -530,6 +633,7 @@ void UpdateGame(game_t * game, float dt)
             actors->list[i] = actors->list[--actors->count];
         }
     }
+#endif
 
     // Update Actors: cast light, run timers.
     for ( int i = 0; i < actors->count; i++ ) {
@@ -543,7 +647,7 @@ void UpdateGame(game_t * game, float dt)
 
     // Update map light.
     // Get the visible region again, in case the player has moved.
-    visible_region = GetVisibleRegion(&game->map, player);
+    visible_region = GetVisibleRegion(game);
 
     for ( int y = visible_region.min.y; y <= visible_region.max.y; y++ ) {
         for ( int x = visible_region.min.x; x <= visible_region.max.x; x++ ) {
@@ -574,6 +678,14 @@ void UpdateGame(game_t * game, float dt)
 
     vec2_t offset = GetRenderOffset(player);
     game->camera = Vec2LerpEpsilon(game->camera, offset, 0.2f, 1.0f);
+
+    // Update inventory panel position
+
+    float target = game->inventory_open ? InventoryRenderX(&game->inventory) : GAME_WIDTH;
+    game->inventory_x = Lerp(game->inventory_x, target, 0.33f);
+    if ( fabsf(target - game->inventory_x) < 1.0f ) {
+        game->inventory_x = target;
+    }
 }
 
 // TODO: profile function macro -> ms stored in debug.c global and displayed in debug screen
@@ -586,7 +698,7 @@ void DoFrame(game_t * game, float dt)
         int mx, my;
         SDL_GetMouseState(&mx, &my);
 
-        vec2_t offset = GetRenderOffset(GetPlayer(&game->map.actors));
+        vec2_t offset = GetRenderOffset(GetPlayer(game));
         mx -= offset.x;
         my -= offset.y;
 
@@ -617,6 +729,9 @@ void DoFrame(game_t * game, float dt)
                         break;
                     case SDLK_BACKSLASH:
                         V_ToggleFullscreen(DESKTOP);
+                        break;
+                    case SDLK_TAB:
+                        game->inventory_open = !game->inventory_open;
                         break;
                     default:
                         break;

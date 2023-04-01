@@ -12,10 +12,44 @@
 #include "video.h"
 #include "sound.h"
 
+enum {
+    DRAW_PRIORITY_NONE,
+    DRAW_PRIORITY_ITEM,
+    DRAW_PRIORITY_MONSTER,
+    DRAW_PRIORITY_PLAYER,
+};
+
+// Sprite sheet location.
+// Animated sprite frames are layed out horizontally.
+// sprite_location is the first frame in an animation.
+static const struct {
+    u8 x;
+    u8 y;
+} sprite_cell[NUM_ACTOR_TYPES] = {
+    [ACTOR_PLAYER]          = { 0, 0 },
+    [ACTOR_TORCH]           = { 2, 3 },
+    [ACTOR_BLOB]            = { 0, 2 },
+    [ACTOR_ITEM_HEALTH]     = { 0, 1 },
+    [ACTOR_ITEM_TURN]       = { 1, 1 },
+    [ACTOR_GOLD_KEY]        = { 2, 1 },
+    [ACTOR_BLOCK]           = { 4, 3 },
+    [ACTOR_VASE]            = { 5, 0 },
+    [ACTOR_CLOSED_CHEST]    = { 0, 3 },
+    [ACTOR_OPEN_CHEST]      = { 1, 3 },
+    [ACTOR_BLOCK_UP]        = { 0, 6 },
+    [ACTOR_BLOCK_DOWN]      = { 1, 6 },
+    [ACTOR_BUTTON_UP]       = { 2, 6 },
+    [ACTOR_BUTTON_DOWN]     = { 1, 6 },
+};
+
+static SDL_Rect src = { .w = TILE_SIZE, .h = TILE_SIZE };
+
+
+
 void C_Player(actor_t * player, actor_t * hit);
 void C_Monster(actor_t * monster, actor_t * hit);
 void C_Block(actor_t *, actor_t *);
-void A_Blob(actor_t * blob);
+void A_ChaseBasic(actor_t * blob);
 
 #define ITEM_FLAGS { .collectible = true, .no_collision = true }
 
@@ -28,47 +62,64 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
         .light = 255,
         .light_radius = 3,
         .contact = C_Player,
-        .sprite_cell = { 0, 0 },
         .damage = 1,
+        .draw_priority = DRAW_PRIORITY_PLAYER,
     },
     [ACTOR_TORCH] = {
         .num_frames = 2,
         .frame_msec = 300,
         .light = 255,
         .light_radius = 2,
-        .sprite_cell = { 2, 3 },
     },
     [ACTOR_BLOB] = {
         .flags = { .takes_damage = true },
         .num_frames = 2,
         .frame_msec = 300,
         .max_health = 2,
-        .action = A_Blob,
+        .action = A_ChaseBasic,
         .contact = C_Monster,
         .light_radius = 1,
         .light = 160,
-        .sprite_cell = { 0, 2 },
         .damage = 1,
+        .draw_priority = DRAW_PRIORITY_MONSTER,
     },
     [ACTOR_ITEM_HEALTH] = {
         .flags = ITEM_FLAGS,
-        .sprite_cell = { 0, 1 },
+        .draw_priority = DRAW_PRIORITY_ITEM,
     },
     [ACTOR_ITEM_TURN] = {
         .flags = ITEM_FLAGS,
-        .sprite_cell = { 1, 1 },
+        .draw_priority = DRAW_PRIORITY_ITEM,
     },
     [ACTOR_GOLD_KEY] = {
         .flags = ITEM_FLAGS,
-        .sprite_cell = { 2, 1 },
+        .draw_priority = DRAW_PRIORITY_ITEM,
     },
     [ACTOR_BLOCK] = {
-        .sprite_cell = { 4, 3 },
         .contacted = C_Block,
     },
-    [ACTOR_VASE] = {
-        .sprite_cell = { 5, 0 },
-        .max_health = 1,
+    [ACTOR_OPEN_CHEST] = {
+        .flags = { .no_collision = true }
+    },
+    [ACTOR_BLOCK_UP] = {
+        .flags = { .no_shadow = true },
+    },
+    [ACTOR_BLOCK_DOWN] = {
+        .flags = { .no_collision = true, .no_shadow = true }
+    },
+    [ACTOR_BUTTON_UP] = {
+        .flags = {
+            .no_draw_offset = true,
+            .no_shadow = true,
+            .no_collision = true,
+        },
+    },
+    [ACTOR_BUTTON_DOWN] = {
+        .flags = {
+            .no_collision = true,
+            .no_shadow = true,
+            .no_draw_offset = true,
+        },
     },
 };
 
@@ -143,73 +194,43 @@ actor_t * GetActorAtTile(actor_t * actors, int num_actors, tile_coord_t coord)
 }
 
 
-actor_t * GetPlayer(actors_t * actors)
-{
-    for ( int i = 0; i < actors->count; i++ ) {
-        if ( actors->list[i].type == ACTOR_PLAYER ) {
-            return &actors->list[i];
-        }
-    }
-
-    return NULL;
-}
-
-const actor_t * GetPlayerReadOnly(const actor_t * actors, int num_actors)
-{
-    for ( int i = 0; i < num_actors; i++ ) {
-        if ( actors[i].type == ACTOR_PLAYER ) {
-            return &actors[i];
-        }
-    }
-
-    return NULL;
-}
-
-void RenderActor(const actor_t * actor, int offset_x, int offset_y)
+void RenderActor(const actor_t * actor, int x, int y, int size, bool debug)
 {
     SDL_Texture * actor_sheet = GetTexture("assets/actors.png");
 
-    SDL_Rect src;
-    src.w = TILE_SIZE;
-    src.h = TILE_SIZE;
-
-    SDL_Rect dst;
-    dst.x = (actor->tile.x * SCALED(TILE_SIZE) + actor->offset_current.x) - offset_x;
-    dst.y = (actor->tile.y * SCALED(TILE_SIZE) + actor->offset_current.y) - offset_y;
-    dst.y -= DRAW_SCALE * 1;
-    dst.w = SCALED(TILE_SIZE);
-    dst.h = SCALED(TILE_SIZE);
-
-    src.x = actor->sprite_cell.x * TILE_SIZE;
-    src.y = actor->sprite_cell.y * TILE_SIZE;
-
-    // Select animation frame.
-    if ( actor->num_frames > 1 ) {
-        src.x += TILE_SIZE * actor->frame;
+    tile_t * tile = GetTile(&actor->game->map, actor->tile);
+    if ( !debug ) {
+        SDL_SetTextureColorMod(actor_sheet, tile->light, tile->light, tile->light);
+    } else {
+        SDL_SetTextureColorMod(actor_sheet, 255, 255, 255);
     }
 
-    // Select damage sprite?
+    src.x = (sprite_cell[actor->type].x + actor->frame) * TILE_SIZE;
+    src.y = sprite_cell[actor->type].y * TILE_SIZE;
+
     if ( actor->hit_timer > 0.0f ) {
         src.x += TILE_SIZE * actor->num_frames;
     }
 
-#if 1
-    // Draw actor's shadow
-    SDL_Rect shadow_sprite_location = {
-        .x = 4 * TILE_SIZE,
-        .y = 0 * TILE_SIZE,
-        .w = TILE_SIZE,
-        .h = TILE_SIZE
-    };
-    V_DrawTexture(actor_sheet, &shadow_sprite_location, &dst);
+    SDL_Rect dst = { x, y, size, size };
 
-    // Tweak its y position
-    if ( actor->flags.floats ) {
-        dst.y += (sinf(actor->game->ticks / 7) * 5.0f) - 5;
-    } else {
-        dst.y -= 1 * TILE_SIZE;
+    // Draw actor's shadow
+    if ( !actor->flags.no_shadow ) {
+        SDL_Rect shadow_sprite_location = {
+            .x = 4 * TILE_SIZE,
+            .y = 0 * TILE_SIZE,
+            .w = TILE_SIZE,
+            .h = TILE_SIZE
+        };
+        V_DrawTexture(actor_sheet, &shadow_sprite_location, &dst);
     }
-#endif
+
+    // y position tweaks
+    if ( actor->flags.floats ) {
+        dst.y += (sinf(actor->game->ticks / 7) * SCALED(1)) - SCALED(6);
+    } else {
+        dst.y -= SCALED(3);
+    }
 
     if ( actor->flags.directional && actor->flags.facing_left ) {
         V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
@@ -217,6 +238,7 @@ void RenderActor(const actor_t * actor, int offset_x, int offset_y)
         V_DrawTexture(actor_sheet, &src, &dst);
     }
 }
+
 
 void CastLight(game_t * game, const actor_t * actor)
 {
@@ -239,7 +261,9 @@ void CastLight(game_t * game, const actor_t * actor)
                 int distance = DISTANCE(actor->tile.x, actor->tile.y, x, y);
 
                 if ( distance <= r ) {
-                    t->light_target = actor->light;
+                    if ( t->light_target < actor->light ) {
+                        t->light_target = actor->light;
+                    }
                 }
             }
         }
@@ -296,8 +320,6 @@ bool TryMoveActor(actor_t * actor, direction_t direction)
                 SetUpBumpAnimation(actor, direction);
                 return false;
             }
-
-            break;
         }
     }
 
