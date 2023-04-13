@@ -49,25 +49,25 @@ tile_id_t * TileID(map_t * map, tile_coord_t coord)
 }
 
 
-void RenderTilesWithDelay(map_t * map)
-{
-    if ( show_map_gen ) {
-        CheckForShowMapGenCancel();
-        V_ClearRGB(0, 0, 0);
-        DebugRenderTiles(map);
-        V_Refresh();
-        SDL_Delay(25);
-    }
-}
-
-
-void DebugRenderTiles(const map_t * map)
+void DebugRenderTiles(const map_t * map, area_t area, int tile_size)
 {
     for ( int y = 0; y < map->height; y++ ) {
         for ( int x = 0; x < map->width; x++ ) {
             tile_t * tile = GetTile((map_t *)map, (tile_coord_t){ x, y });
-            DebugDrawTile(tile, x, y, debug_tile_size);
+            RenderTile(tile, area, 0, x * tile_size, y * tile_size, tile_size, true);
         }
+    }
+}
+
+
+void RenderTilesWithDelay(game_t * game)
+{
+    if ( show_map_gen ) {
+        CheckForShowMapGenCancel();
+        V_ClearRGB(0, 0, 0);
+        DebugRenderTiles(&game->map, game->area, area_info[game->area].debug_map_tile_size);
+        V_Refresh();
+        SDL_Delay(25);
     }
 }
 
@@ -84,7 +84,7 @@ static void GenerateHallway_r(map_t * map, int current_id, tile_coord_t coord)
     here->room_num = -1;
     *id = current_id;
 
-    RenderTilesWithDelay(map);
+//    RenderTilesWithDelay(map);
 
     struct {
         tile_coord_t coord;
@@ -135,7 +135,7 @@ static void GenerateHallway_r(map_t * map, int current_id, tile_coord_t coord)
     tile_id_t * inbetween_id = TileID(map, inbetween_coord);
     *inbetween_id = current_id;
 
-    RenderTilesWithDelay(map);
+//    RenderTilesWithDelay(map);
 
     GenerateHallway_r(map, current_id, next_coord);
 }
@@ -333,9 +333,9 @@ static void GetValidRoomTiles(const map_t * map, int room_num)
 }
 
 
-static void GetReachableTiles(map_t * map, tile_coord_t coord, int ignore_flags)
+static void GetReachableTiles(map_t * map, tile_coord_t start, int ignore_flags)
 {
-    UpdateDistanceMap(map, coord, ignore_flags);
+    CalculateDistances(map, start, ignore_flags);
 
     BufferClear();
     for ( int i = 0; i < map->width * map->height; i++ ) {
@@ -417,7 +417,7 @@ void SpawnRooms(map_t * map, int * current_id)
         map->num_rooms++;
         (*current_id)++;
 
-        RenderTilesWithDelay(map);
+//        RenderTilesWithDelay(map);
 
     next_try:
         ;
@@ -473,7 +473,7 @@ int ConnectRegions(map_t * map, tile_coord_t * potential_door_locations, int num
         potential_door_locations[num_potential_door_locations++] = connector.coord;
         ChangeAllIDs(map, connector.region, main_region);
 
-        RenderTilesWithDelay(map);
+//        RenderTilesWithDelay(map);
     }
 
     free(connectors);
@@ -489,7 +489,7 @@ void EliminateDeadEnds(map_t * map)
     while ( (num_deadends = GetDeadEnds(map, deadends)) ) {
         for ( int i = 0; i < num_deadends; i++ ) {
             *GetTile(map, deadends[i]) = CreateTile(TILE_WALL);
-            RenderTilesWithDelay(map);
+//            RenderTilesWithDelay(map);
         }
     }
 
@@ -513,7 +513,7 @@ void SpawnDoors(map_t * map, tile_coord_t * potentials, int array_len)
 
         if ( tile->type == TILE_FLOOR && is_valid ) {
             *tile = CreateTile(TILE_DOOR);
-            RenderTilesWithDelay(map);
+//            RenderTilesWithDelay(map);
         }
     }
 
@@ -672,6 +672,8 @@ void GenerateDungeon(game_t * game, int width, int height)
         Error("Dugeon width and height must be odd");
     }
 
+    game->area = AREA_DUNGEON;
+
     map_t * map = &game->map;
     map->width = width;
     map->height = height;
@@ -737,6 +739,9 @@ void GenerateDungeon(game_t * game, int width, int height)
 
     // Pick a room that is not the start or end room for the button.
     int button_room_num = Random(1, map->num_rooms - 2);
+
+    // Get Reachable Tiles:
+    // - ignoring doors, gold doors (but not exit pillars)
 
     SpawnGoldKey(game);
 

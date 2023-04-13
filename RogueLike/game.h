@@ -15,6 +15,8 @@
 #include "tile.h"
 #include "actor.h"
 #include "item.h"
+#include "level.h"
+#include "particle.h"
 
 #include <SDL_rect.h>
 #include <SDL_events.h>
@@ -36,10 +38,10 @@
 // Must be an odd number!
 //#define MAP_WIDTH 31
 //#define MAP_HEIGHT 31
+#define MAP_MAX 100
 
 #define DEBUG_TILE_SIZE 16
 #define MAX_ROOMS 200
-#define MAX_ACTORS 200
 
 #define INITIAL_TURNS 0
 
@@ -47,6 +49,7 @@
 #define FLAG(i) (1 << i)
 #define HAS_FLAG(flags, flag) (flags & FLAG(flag) != 0)
 
+#define NUM_STARS 5000
 
 typedef struct {
     SDL_Point min; // upper left
@@ -99,7 +102,6 @@ typedef struct {
     int selected_item;
 } inventory_t;
 
-
 struct game {
     bool is_running;
     int ticks;
@@ -107,7 +109,7 @@ struct game {
     float move_timer;
     tile_coord_t mouse_tile;
 
-    vec2_t camera;
+    vec2_t camera; /// In window space (scaled coordinates)
     float inventory_x;
     bool inventory_open;
 
@@ -115,20 +117,28 @@ struct game {
     inventory_t inventory;
     bool has_gold_key;
     int player_turns;
+    area_t area;
     int level;
-
+    
+    // Dungeon
     int gold_key_room_num;
+
+    // Forest
+    SDL_Point stars[NUM_STARS];
 
     char log[100];
 
     int state_timer;
     const game_state_t * state; // TODO: stack
+
+    particle_array_t particles;
 };
 
 bool InventoryIsEmtpy(const inventory_t * inventory);
 game_t * InitGame(void);
 void DoFrame(game_t * game, float dt);
 SDL_Rect GetLevelViewport(const game_t * game);
+vec2_t GetWindowScale(void);
 
 
 #pragma mark - animation.c
@@ -147,12 +157,6 @@ void DebugWaitForKeyPress(void);
 void CheckForShowMapGenCancel(void);
 
 
-#pragma mark - gen.c
-
-void GenerateDungeon(game_t * game, int width, int height);
-void DebugRenderTiles(const map_t * map); // TODO: move these
-
-
 #pragma mark - map.c
 
 tile_t * GetAdjacentTile(map_t * map, tile_coord_t coord, direction_t direction);
@@ -160,13 +164,15 @@ tile_t * GetTile(map_t * map, tile_coord_t coord);
 tile_coord_t GetCoordinate(const map_t * map, int index);
 box_t GetVisibleRegion(const game_t * game);
 bool IsInBounds(const map_t * map, int x, int y);
-bool LineOfSight(map_t * map, tile_coord_t t1, tile_coord_t t2, bool reveal);
+bool LineOfSight(map_t * map, tile_coord_t t1, tile_coord_t t2);
 void RenderMap(const game_t * game);
-void UpdateDistanceMap(map_t * map, tile_coord_t coord, int ignore_flags);
+void CalculateDistances(map_t * map, tile_coord_t coord, int ignore_flags);
 bool ManhattenPathsAreClear(map_t * map, int x0, int y0, int x1, int y1);
 vec2_t GetRenderOffset(const actor_t * player);
 void FreeDistanceMapQueue(void);
 bool TileIsAdjacentTo(const map_t * map, tile_coord_t coord, tile_type_t type, int num_directions);
+void RenderTilesInRegion(const game_t * game, const box_t * region, int tile_size, vec2_t offset, bool debug);
+
 
 #pragma mark - player.c
 
@@ -175,8 +181,8 @@ bool TileIsAdjacentTo(const map_t * map, tile_coord_t coord, tile_type_t type, i
     game_t *: GetPlayerNonConst             \
 )(game)
 
-void PlayerCastSightLines(game_t * game);
-void CollectItem(actor_t * player, actor_t * item_actor, item_t item);
+void PlayerCastSight(game_t * game);
+bool CollectItem(actor_t * player, actor_t * item_actor, item_t item);
 const actor_t * GetPlayerConst(const game_t * game);
 actor_t * GetPlayerNonConst(game_t * game);
 

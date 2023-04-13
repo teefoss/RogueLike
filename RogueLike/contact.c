@@ -20,18 +20,20 @@ void C_Player(actor_t * player, actor_t * hit)
 
     switch ( hit->type ) {
         case ACTOR_ITEM_HEALTH:
-            CollectItem(player, hit, ITEM_HEALTH);
-            strncpy(player->game->log,
-                    "Picked up a Health Potion!",
-                    sizeof(player->game->log));
-            S_Play("l32 o2 e b g+ > d+");
+            if ( CollectItem(player, hit, ITEM_HEALTH) ) {
+                strncpy(player->game->log,
+                        "Picked up a Health Potion!",
+                        sizeof(player->game->log));
+                S_Play("l32 o2 e b g+ > d+");
+            }
             break;
         case ACTOR_ITEM_TURN:
-            CollectItem(player, hit, ITEM_TURN);
-            strncpy(player->game->log,
-                    "Picked up a Turn Potion!",
-                    sizeof(player->game->log));
-            S_Play("l32 o2 a b > f+");
+            if ( CollectItem(player, hit, ITEM_TURN) ) {
+                strncpy(player->game->log,
+                        "Picked up a Turn Potion!",
+                        sizeof(player->game->log));
+                S_Play("l32 o2 a b > f+");
+            }
             break;
         case ACTOR_GOLD_KEY:
             strncpy(player->game->log, "Got the golden key!", sizeof(player->game->log));
@@ -67,12 +69,22 @@ void C_Player(actor_t * player, actor_t * hit)
     }
 }
 
+
 void C_Monster(actor_t * monster, actor_t * hit)
 {
     // Monsters can damage other monsters, but not of the same type
     if ( hit->flags.takes_damage && monster->type != hit->type ) {
         DamageActor(hit);
         S_Play("o3 l32 b c < c+");
+    }
+}
+
+
+void C_Spider(actor_t * spider, actor_t * hit)
+{
+    if ( hit->flags.takes_damage ) {
+        DamageActor(hit);
+        S_Play("o4 l32 f b c+");
     }
 }
 

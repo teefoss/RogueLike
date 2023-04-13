@@ -16,11 +16,17 @@ int main(void)
 {
     Randomize();
 
-    float window_scale = 1.5;
+    if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0 ) {
+        Error("Could not init SDL: %s", SDL_GetError());
+    }
+
+//    SDL_DisplayMode display_mode;
+//    SDL_GetCurrentDisplayMode(0, &display_mode);
+//    printf("desktop size: %d x %d\n", display_mode.w, display_mode.h);
 
     video_info_t info = {
-        .window_width = GAME_WIDTH * window_scale,
-        .window_height = GAME_HEIGHT * window_scale,
+        .window_width = GAME_WIDTH * 1.5,
+        .window_height = GAME_HEIGHT * 1.5,
 //        .render_flags = SDL_RENDERER_PRESENTVSYNC,
         .window_flags = SDL_WINDOW_ALLOW_HIGHDPI,
         .render_flags = 0,
@@ -36,6 +42,8 @@ int main(void)
 
     game_t * game = InitGame();
 
+    PrintTilesAreDarkThatShouldntBe(&game->map, "done with InitGame");
+
     int old_time = SDL_GetTicks();
     const float target_dt = 1.0f / FPS;
 
@@ -49,6 +57,9 @@ int main(void)
         }
 
         PROFILE(DoFrame(game, target_dt), frame_msec);
+        if ( frame_msec > max_frame_msec ) {
+            max_frame_msec = frame_msec;
+        }
 
         old_time = new_time;
     }

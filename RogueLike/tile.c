@@ -6,6 +6,8 @@
 //
 
 #include "game.h"
+#include "debug.h"
+
 #include "mathlib.h"
 #include "video.h"
 #include "texture.h"
@@ -13,25 +15,89 @@
 // Sprite sheet location.
 // Tiles with multiple visible varieties are layed out horizontally
 // and its location is the leftmost cell.
-struct {
-    u8 x;
-    u8 y;
-} sprite_cells[NUM_TILE_TYPES] = {
-    [TILE_FLOOR]        = { 0, 1 },
-    [TILE_WALL]         = { 0, 0 },
-    [TILE_DOOR]         = { 3, 3 },
-    [TILE_EXIT]         = { 0, 3 },
-    [TILE_GOLD_DOOR]    = { 2, 3 },
-    [TILE_START]        = { 4, 3 },
+typedef struct tile_info tile_info_t;
+static struct tile_info {
+    struct { u8 x, y; } sprite_cell;
+    u8 height; // in tiles, unspecified (0) is treated as 1 tile
+    s8 y_offset; // in tiles
+    u8 num_variants;
+} _info[NUM_TILE_TYPES][NUM_AREAS] = {
+    [TILE_FLOOR] = {
+        [AREA_FOREST] = {
+            .sprite_cell = { 0, 5 },
+            .height = 2,
+            .num_variants = 9,
+        },
+        [AREA_DUNGEON] = {
+            .sprite_cell = { 0, 1 },
+            .num_variants = 8,
+        }
+    },
+    [TILE_WALL] = {
+        [AREA_FOREST] = {
+            .sprite_cell = { 0, 5 },
+            .height = 2,
+        },
+        [AREA_DUNGEON] = {
+            .sprite_cell = { 1, 0 },
+        }
+    },
+    [TILE_DOOR] = {
+        [AREA_DUNGEON] = {
+            .sprite_cell = { 3, 3 },
+        },
+    },
+    [TILE_EXIT] = {
+        [AREA_FOREST] = {
+            .sprite_cell = { 0, 5 },
+        },
+        [AREA_DUNGEON] = {
+            .sprite_cell = { 0, 3 },
+        },
+    },
+    [TILE_GOLD_DOOR] = {
+        [AREA_DUNGEON] = {
+            .sprite_cell = { 2, 3 },
+        },
+    },
+    [TILE_START] = {
+        [AREA_DUNGEON] = {
+            .sprite_cell = { 4, 3 },
+        },
+    },
+    [TILE_WATER] = {
+        [AREA_FOREST] = {
+            .sprite_cell = { 0, 7 },
+            .num_variants = 8,
+        },
+    },
+    [TILE_TELEPORTER] = {
+        [AREA_FOREST] = {
+            .sprite_cell = { 1, 8 },
+        },
+    },
 };
 
 
 static tile_t tile_templates[] = {
-    [TILE_FLOOR] = { .num_variants = 8, },
-    [TILE_WALL] = { .flags = { .blocking = true }, },
-    [TILE_DOOR] = { .flags = { .blocking = true }, },
-    [TILE_EXIT] = { .flags = { .player_only = true }, },
-    [TILE_GOLD_DOOR] = { .flags = { .blocking = true }, },
+    [TILE_WALL] = {
+        .flags = { .blocking = true },
+    },
+    [TILE_DOOR] = {
+        .flags = { .blocking = true },
+    },
+    [TILE_EXIT] = {
+        .flags = { .player_only = true },
+    },
+    [TILE_GOLD_DOOR] = {
+        .flags = { .blocking = true },
+    },
+    [TILE_TELEPORTER] = {
+        .flags = { .bright = true },
+    },
+    [TILE_WATER] = {
+        .flags = { .blocking = true }
+    },
 };
 
 
@@ -45,63 +111,111 @@ tile_t CreateTile(tile_type_t type)
 }
 
 
+const char * TileName(tile_type_t type)
+{
+    switch ( type ) {
+            CASE_RETURN_STRING(TILE_FLOOR);
+            CASE_RETURN_STRING(TILE_WALL);
+            CASE_RETURN_STRING(TILE_DOOR);
+            CASE_RETURN_STRING(TILE_EXIT);
+            CASE_RETURN_STRING(TILE_GOLD_DOOR);
+            CASE_RETURN_STRING(TILE_START);
+            CASE_RETURN_STRING(TILE_WATER);
+            CASE_RETURN_STRING(TILE_TELEPORTER);
+            CASE_RETURN_STRING(NUM_TILE_TYPES);
+    }
+}
+
+
 /// - parameter debug: Ignore lighting and tile's revealed property.
 void RenderTile(const tile_t * tile,
+                area_t area,
                 int signature,
                 int pixel_x,
                 int pixel_y,
-                int scale, // TODO: scale is the wrong term
+                int render_size,
                 bool debug)
 {
     SDL_Texture * tiles = GetTexture("assets/tiles2.png");
+    tile_info_t * info = &_info[tile->type][area];
 
-    SDL_Rect src, dst;
-    src.w = src.h = TILE_SIZE;
-    dst.w = dst.h = scale;
-    dst.x = pixel_x;
-    dst.y = pixel_y;
-
-    if ( debug ) {
+    if ( debug || tile->flags.bright ) {
         // In debug, always draw at full light.
         SDL_SetTextureColorMod(tiles, 255, 255, 255);
     } else {
         // Apply tile's light level.
-        SDL_SetTextureColorMod(tiles, tile->light, tile->light, tile->light);
+        if ( area == AREA_FOREST ) {
+            SDL_SetTextureColorMod(tiles, tile->light, tile->light, 128);
+        } else {
+            SDL_SetTextureColorMod(tiles, tile->light, tile->light, tile->light);
+        }
     }
 
-    src.x = sprite_cells[tile->type].x * TILE_SIZE;
-    src.y = sprite_cells[tile->type].y * TILE_SIZE;
+    SDL_Rect src;
+    src.w = TILE_SIZE;
+    src.x = info->sprite_cell.x * TILE_SIZE;
+    src.y = info->sprite_cell.y * TILE_SIZE;
+
+    SDL_Rect dst;
+    dst.x = pixel_x;
+    dst.y = pixel_y + info->y_offset * render_size;
+    dst.w = render_size;
+
+    // Calculate height.
+    if ( info->height ) {
+        src.h = info->height * TILE_SIZE;
+        dst.h = info->height * render_size;
+    } else {
+        src.h = TILE_SIZE;
+        dst.h = render_size;
+    }
 
     switch ( (tile_type_t)tile->type ) {
         case TILE_WALL:
-            src.x = 0;
-            src.y = 0;
-            V_DrawTexture(tiles, &src, &dst); // Blank it to start.
+            if ( area == AREA_DUNGEON ) {
+                src.x = 1 * TILE_SIZE;
+                src.y = 0 * TILE_SIZE;
+                V_DrawTexture(tiles, &src, &dst); // Blank it to start.
 
-            direction_t draw_order[NUM_DIRECTIONS] = {
-                NORTH,
-                NORTH_WEST,
-                NORTH_EAST,
-                WEST,
-                SOUTH_WEST,
-                EAST,
-                SOUTH_EAST,
-                SOUTH
-            };
+                direction_t draw_order[NUM_DIRECTIONS] = {
+                    NORTH,
+                    NORTH_WEST,
+                    NORTH_EAST,
+                    WEST,
+                    SOUTH_WEST,
+                    EAST,
+                    SOUTH_EAST,
+                    SOUTH
+                };
 
-            src.y = 32;
-            for ( int i = 0; i < NUM_DIRECTIONS; i++ ) {
-                direction_t direction = draw_order[i];
+                src.y = 32;
+                for ( int i = 0; i < NUM_DIRECTIONS; i++ ) {
+                    direction_t direction = draw_order[i];
 
-                if ( signature & FLAG(direction) ) {
-                    src.x = direction * TILE_SIZE;
-                    V_DrawTexture(tiles, &src, &dst);
+                    if ( signature & FLAG(direction) ) {
+                        src.x = direction * TILE_SIZE;
+                        V_DrawTexture(tiles, &src, &dst);
+                    }
+                }
+                return;
+            }
+            break;
+        case TILE_FLOOR:
+            if ( area == AREA_FOREST ) {
+                if ( tile->variety == 012 ) {
+                    src.x += (info->num_variants - 1) * TILE_SIZE; // flower
+                } else if ( tile->variety < 170 ) {
+                    src.x += (tile->variety % (info->num_variants - 1)) * TILE_SIZE;
+                }
+            } else {
+                if ( tile->variety > 112 ) {
+                    src.x += (tile->variety % info->num_variants) * TILE_SIZE;
                 }
             }
-            return;
-        case TILE_FLOOR:
+            break;
+        case TILE_WATER:
             if ( tile->variety < 112 ) {
-                src.x += (tile->variety % 8) * TILE_SIZE;
+                src.x += (tile->variety % info->num_variants) * TILE_SIZE;
             }
             break;
         default:
@@ -112,36 +226,9 @@ void RenderTile(const tile_t * tile,
 
     // F1 - show tile distance to player
     if ( !tile->flags.blocking ) {
-        const u8 * keys = SDL_GetKeyboardState(NULL);
-        if ( keys[SDL_SCANCODE_F1] ) {
+        if ( show_distances ) {
             V_SetGray(255);
             V_PrintString(dst.x, dst.y, "%d", tile->distance);
         }
     }
-}
-
-
-void DebugDrawTile(const tile_t * tile, int x, int y, int size)
-{
-    SDL_Texture * tiles = GetTexture("assets/tiles2.png");
-    SDL_SetTextureColorMod(tiles, 255, 255, 255);
-
-    SDL_Rect src = { .w = TILE_SIZE, .h = TILE_SIZE };
-    SDL_Rect dst = { .w = size, .h = size };
-
-    if ( tile->type == TILE_WALL ) {
-        src.x = 0;
-        src.y = 0;
-    } else {
-        src.x = sprite_cells[tile->type].x * TILE_SIZE;
-        src.y = sprite_cells[tile->type].y * TILE_SIZE;
-        if ( tile->num_variants ) {
-            src.x += (tile->variety % tile->num_variants) * TILE_SIZE;
-        }
-    }
-
-    dst.x = x * size;
-    dst.y = y * size;
-
-    V_DrawTexture(tiles, &src, &dst);
 }

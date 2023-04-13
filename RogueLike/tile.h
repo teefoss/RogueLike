@@ -8,6 +8,8 @@
 #ifndef tile_h
 #define tile_h
 
+#include "level.h"
+
 #define MAX_LIGHT 255
 
 typedef enum {
@@ -17,6 +19,8 @@ typedef enum {
     TILE_EXIT, // Level exit stairs
     TILE_GOLD_DOOR, // Exit room locked door
     TILE_START, // Just a floor with a symbol, to mark player's start tile
+    TILE_WATER,
+    TILE_TELEPORTER,
 
     NUM_TILE_TYPES,
 } tile_type_t;
@@ -27,7 +31,6 @@ typedef s8 tile_id_t;
 typedef struct {
     u8 type; // a tile_type_t
     u8 variety; // A value that can be used for visual randomization.
-    u8 num_variants; // Visual
     s8 room_num; // or -1 if not in a room.
 
     struct {
@@ -35,22 +38,24 @@ typedef struct {
         u8 player_only  : 1;
         u8 visible      : 1;
         u8 revealed     : 1;
+        u8 bright       : 1;
     } flags;
 
     u8 light; // Current light level.
-    u8 light_target; // Used to lerp (light -> light_target).
-    s16 distance; // For pathfinding. Updated via UpdateDistanceMap()
+    s16 distance; // For pathfinding. Updated via CalculateDistances()
 } tile_t;
 
 tile_t CreateTile(tile_type_t type);
 
 void RenderTile(const tile_t * tile,
+                area_t area,
                 int signature,
                 int pixel_x,
                 int pixel_y,
-                int scale, // TODO: scale is the wrong term
+                int render_size,
                 bool debug);
 
-void DebugDrawTile(const tile_t * tile, int x, int y, int size);
+//void DebugDrawTile(const tile_t * tile, int x, int y, int size);
+const char * TileName(tile_type_t type);
 
 #endif /* tile_h */

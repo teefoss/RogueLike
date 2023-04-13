@@ -21,7 +21,13 @@ do { \
 extern int debug_row;
 extern bool show_debug_info;
 extern float frame_msec;
+extern float max_frame_msec;
+extern bool show_debug_map;
+extern bool show_distances;
 
+bool TilesAreLitThatShouldntBe(map_t * map);
+void PrintTilesAreFucked(map_t * map, const char * string);
+void PrintTilesAreDarkThatShouldntBe(map_t * map, const char * string);
 void DebugWaitForKeyPress(void);
 
 #endif /* debug_h */

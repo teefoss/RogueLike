@@ -12,88 +12,138 @@
 #include "video.h"
 #include "sound.h"
 
+#include <limits.h>
+
 enum {
     DRAW_PRIORITY_NONE,
     DRAW_PRIORITY_ITEM,
+    DRAW_PRIORITY_KEY,
     DRAW_PRIORITY_MONSTER,
     DRAW_PRIORITY_PLAYER,
 };
 
-// Sprite sheet location.
+
 // Animated sprite frames are layed out horizontally.
-// sprite_location is the first frame in an animation.
-static const struct {
-    u8 x;
-    u8 y;
-} sprite_cell[NUM_ACTOR_TYPES] = {
-    [ACTOR_PLAYER]          = { 0, 0 },
-    [ACTOR_TORCH]           = { 2, 3 },
-    [ACTOR_BLOB]            = { 0, 2 },
-    [ACTOR_ITEM_HEALTH]     = { 0, 1 },
-    [ACTOR_ITEM_TURN]       = { 1, 1 },
-    [ACTOR_GOLD_KEY]        = { 2, 1 },
-    [ACTOR_BLOCK]           = { 4, 3 },
-    [ACTOR_VASE]            = { 5, 0 },
-    [ACTOR_CLOSED_CHEST]    = { 0, 3 },
-    [ACTOR_OPEN_CHEST]      = { 1, 3 },
-    [ACTOR_BLOCK_UP]        = { 0, 6 },
-    [ACTOR_BLOCK_DOWN]      = { 1, 6 },
-    [ACTOR_BUTTON_UP]       = { 2, 6 },
-    [ACTOR_BUTTON_DOWN]     = { 1, 6 },
+// `cell` is the first frame in an animation.
+actor_sprite_t sprite_info[NUM_ACTOR_TYPES] = {
+    [ACTOR_PLAYER] = {
+        .cell = { 0, 0 },
+        .num_frames = 2,
+        .frame_msec = 500,
+        .draw_priority = DRAW_PRIORITY_PLAYER,
+    },
+    [ACTOR_TORCH] = {
+        .cell = { 2, 3 },
+        .num_frames = 2,
+        .frame_msec = 300,
+    },
+    [ACTOR_BLOB] = {
+        .cell = { 0, 2 },
+        .num_frames = 2,
+        .frame_msec = 300,
+        .draw_priority = DRAW_PRIORITY_MONSTER,
+    },
+    [ACTOR_SPIDER] = {
+        .cell = { 4, 2 },
+        .num_frames = 4,
+        .frame_msec = 100,
+        .draw_priority = DRAW_PRIORITY_MONSTER,
+    },
+    [ACTOR_ITEM_HEALTH] = {
+        .cell = { 0, 1 },
+        .draw_priority = DRAW_PRIORITY_ITEM,
+    },
+    [ACTOR_ITEM_TURN] = {
+        .cell = { 1, 1 },
+        .draw_priority = DRAW_PRIORITY_ITEM,
+    },
+    [ACTOR_GOLD_KEY] = {
+        .cell = { 2, 1 },
+        .draw_priority = DRAW_PRIORITY_KEY,
+    },
+    [ACTOR_BLOCK] = {
+        .cell = { 4, 3 }
+    },
+    [ACTOR_VASE] = {
+        .cell = { 5, 0 }
+    },
+    [ACTOR_CLOSED_CHEST] = {
+        .cell = { 0, 3 }
+    },
+    [ACTOR_OPEN_CHEST] = {
+        .cell = { 1, 3 }
+    },
+    [ACTOR_BLOCK_UP] = {
+        .cell = { 0, 6 }
+    },
+    [ACTOR_BLOCK_DOWN] = {
+        .cell = { 1, 6 }
+    },
+    [ACTOR_BUTTON_UP] = {
+        .cell = { 2, 6 }
+    },
+    [ACTOR_BUTTON_DOWN] = {
+        .cell = { 1, 6 }
+    },
+    [ACTOR_TREE] = {
+        .cell = { 0, 7 }
+    },
+    [ACTOR_WELL] = {
+        .cell = { 3, 6 },
+        .height = 2,
+        .y_offset = -1,
+    }
 };
-
-static SDL_Rect src = { .w = TILE_SIZE, .h = TILE_SIZE };
-
 
 
 void C_Player(actor_t * player, actor_t * hit);
 void C_Monster(actor_t * monster, actor_t * hit);
+void C_Spider(actor_t * spider, actor_t * hit);
 void C_Block(actor_t *, actor_t *);
-void A_ChaseBasic(actor_t * blob);
+
+void A_TargetAndChasePlayerIfVisible(actor_t *);
+void A_ChasePlayerIfVisible(actor_t *);
+void A_StupidChasePlayerIfVisible(actor_t * actor);
 
 #define ITEM_FLAGS { .collectible = true, .no_collision = true }
 
 static actor_t templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
         .flags = { .directional = true, .takes_damage = true },
-        .num_frames = 2,
-        .frame_msec = 500,
         .max_health = 10,
         .light = 255,
         .light_radius = 3,
         .contact = C_Player,
         .damage = 1,
-        .draw_priority = DRAW_PRIORITY_PLAYER,
     },
     [ACTOR_TORCH] = {
-        .num_frames = 2,
-        .frame_msec = 300,
         .light = 255,
         .light_radius = 2,
     },
     [ACTOR_BLOB] = {
         .flags = { .takes_damage = true },
-        .num_frames = 2,
-        .frame_msec = 300,
         .max_health = 2,
-        .action = A_ChaseBasic,
+        .action = A_TargetAndChasePlayerIfVisible,
         .contact = C_Monster,
         .light_radius = 1,
         .light = 160,
         .damage = 1,
-        .draw_priority = DRAW_PRIORITY_MONSTER,
+    },
+    [ACTOR_SPIDER] = {
+        .flags = { .takes_damage = true },
+        .max_health = 1,
+        .action = A_StupidChasePlayerIfVisible,
+        .contact = C_Spider,
+        .damage = 1,
     },
     [ACTOR_ITEM_HEALTH] = {
         .flags = ITEM_FLAGS,
-        .draw_priority = DRAW_PRIORITY_ITEM,
     },
     [ACTOR_ITEM_TURN] = {
         .flags = ITEM_FLAGS,
-        .draw_priority = DRAW_PRIORITY_ITEM,
     },
     [ACTOR_GOLD_KEY] = {
         .flags = ITEM_FLAGS,
-        .draw_priority = DRAW_PRIORITY_ITEM,
     },
     [ACTOR_BLOCK] = {
         .contacted = C_Block,
@@ -121,6 +171,9 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
             .no_draw_offset = true,
         },
     },
+    [ACTOR_WELL] = {
+        .flags = { .no_shadow = true, .no_draw_offset = true },
+    }
 };
 
 
@@ -129,6 +182,7 @@ void SpawnActor(game_t * game, actor_type_t type, tile_coord_t coord)
     actor_t actor = templates[type];
     actor.game = game;
     actor.type = type;
+    actor.sprite = &sprite_info[type];
     actor.tile = coord;
     actor.health = actor.max_health;
 
@@ -149,32 +203,57 @@ void SpawnActorAtActor(actor_t * actor, actor_type_t type)
 }
 
 
+void KillActor(actor_t * actor)
+{
+    if ( actor->type != ACTOR_PLAYER ) {
+        actor->flags.remove = true;
+    } else {
+        // TODO: player death
+    }
+
+    SDL_Point position = {
+        .x = actor->tile.x * TILE_SIZE,
+        .y = actor->tile.y * TILE_SIZE,
+    };
+
+    switch ( actor->type ) {
+        case ACTOR_PLAYER:
+            break;
+        case ACTOR_BLOB: {
+            if ( Chance(0.5) ) {
+                SpawnActorAtActor(actor, ACTOR_ITEM_HEALTH);
+            } else {
+                SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
+            }
+            break;
+        }
+        case ACTOR_SPIDER:
+            if ( Chance(0.2) ) {
+                SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
+            }
+            for ( int i = 0; i < 30; i++ ) {
+                particle_t p;
+                p.position.x = Random(position.x, position.x + TILE_SIZE);
+                p.position.y = Random(position.y, position.y + TILE_SIZE);
+                p.velocity = RandomVelocity(10.0f, 20.0f);
+                p.color = (SDL_Color){ 0, 0, 0, 255 };
+                p.lifespan = Random(MS2TICKS(200, FPS), MS2TICKS(400, FPS));
+                InsertParticle(&actor->game->particles, p);
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+
 int DamageActor(actor_t * actor)
 {
     actor->hit_timer = 1.0f;
-//    actor->flags.was_attacked = true;
+    actor->flags.was_attacked = true;
 
     if ( --actor->health == 0 ) {
-        if ( actor->type != ACTOR_PLAYER ) {
-            actor->flags.remove = true;
-        } else {
-            // TODO: player death
-        }
-
-        switch ( actor->type ) {
-            case ACTOR_PLAYER:
-                break;
-            case ACTOR_BLOB: {
-                if ( Chance(0.5) ) {
-                    SpawnActorAtActor(actor, ACTOR_ITEM_HEALTH);
-                } else {
-                    SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
-                }
-                break;
-            }
-            default:
-                break;
-        }
+        KillActor(actor);
     }
 
     return actor->health;
@@ -205,16 +284,32 @@ void RenderActor(const actor_t * actor, int x, int y, int size, bool debug)
         SDL_SetTextureColorMod(actor_sheet, 255, 255, 255);
     }
 
-    src.x = (sprite_cell[actor->type].x + actor->frame) * TILE_SIZE;
-    src.y = sprite_cell[actor->type].y * TILE_SIZE;
+    SDL_Rect src;
+    src.x = (actor->sprite->cell.x + actor->frame) * TILE_SIZE;
+    src.y = actor->sprite->cell.y * TILE_SIZE;
+    src.w = TILE_SIZE;
 
+    // "Damaged" sprite?
     if ( actor->hit_timer > 0.0f ) {
-        src.x += TILE_SIZE * actor->num_frames;
+        src.x += TILE_SIZE * actor->sprite->num_frames;
     }
 
-    SDL_Rect dst = { x, y, size, size };
+    SDL_Rect dst;
+    dst.x = x;
+    dst.y = y + actor->sprite->y_offset * size;
+    dst.w = size;
+
+    // Adjust height.
+    if ( actor->sprite->height ) {
+        src.h = actor->sprite->height * TILE_SIZE;
+        dst.h = actor->sprite->height * size;
+    } else {
+        src.h = TILE_SIZE;
+        dst.h = size;
+    }
 
     // Draw actor's shadow
+    // TODO: adjust shadow for tall sprites
     if ( !actor->flags.no_shadow ) {
         SDL_Rect shadow_sprite_location = {
             .x = 4 * TILE_SIZE,
@@ -226,10 +321,13 @@ void RenderActor(const actor_t * actor, int x, int y, int size, bool debug)
     }
 
     // y position tweaks
+    // TODO: adjust for tall sprites
     if ( actor->flags.floats ) {
         dst.y += (sinf(actor->game->ticks / 7) * SCALED(1)) - SCALED(6);
     } else {
-        dst.y -= SCALED(3);
+        if ( !debug ) {
+            dst.y -= SCALED(3);
+        }
     }
 
     if ( actor->flags.directional && actor->flags.facing_left ) {
@@ -248,21 +346,21 @@ void CastLight(game_t * game, const actor_t * actor)
         return;
     }
 
-    for ( int y = actor->tile.y - r; y <= actor->tile.y + r; y++ ) {
-        for ( int x = actor->tile.x - r; x <= actor->tile.x + r; x++ ) {
-            tile_t * t = GetTile(&game->map, (tile_coord_t){ x, y });
+    tile_coord_t coord;
+    for ( coord.y = actor->tile.y - r; coord.y <= actor->tile.y + r; coord.y++ ) {
+        for ( coord.x = actor->tile.x - r; coord.x <= actor->tile.x + r; coord.x++ ) {
+            tile_t * t = GetTile(&game->map, coord);
 
+//            if ( t && LineOfSight(&game->map, actor->tile, coord, false))
             if ( t && ManhattenPathsAreClear(&game->map,
                                              actor->tile.x,
                                              actor->tile.y,
-                                             x,
-                                             y) )
+                                             coord.x,
+                                             coord.y) )
             {
-                int distance = DISTANCE(actor->tile.x, actor->tile.y, x, y);
-
-                if ( distance <= r ) {
-                    if ( t->light_target < actor->light ) {
-                        t->light_target = actor->light;
+                if ( TileDistance(actor->tile, coord) <= r ) {
+                    if ( t->flags.revealed && actor->light > t->light ) {
+                        t->light = actor->light;
                     }
                 }
             }
@@ -332,4 +430,28 @@ void UpdateActorFacing(actor_t * actor, int dx)
     if ( dx ) {
         actor->flags.facing_left = dx < 0;
     }
+}
+
+
+void Teleport(actor_t * actor, tile_coord_t from)
+{
+    map_t * map = &actor->game->map;
+
+    int min_distance = INT_MAX;
+    tile_coord_t to = actor->tile;
+
+    // Find the nearest teleport.
+    for ( int i = 0; i < map->width * map->height; i++ ) {
+        if ( map->tiles[i].type == TILE_TELEPORTER ) {
+            tile_coord_t coord = GetCoordinate(map, i);
+
+            int distance = DISTANCE(coord.x, coord.y, from.x, from.y);
+            if ( distance != 0 && distance < min_distance ) {
+                min_distance = distance;
+                to = coord;
+            }
+        }
+    }
+
+    actor->tile = to;
 }

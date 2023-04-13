@@ -7,29 +7,49 @@
 
 #include "game.h"
 
-void PlayerCastSightLines(game_t * game)
+
+void SetTileVisible(map_t * map, tile_coord_t coord)
 {
-    int num_lines = 0;
+    tile_t * tile = GetTile(map, coord);
 
-    box_t vis = GetVisibleRegion(game);
-    const actor_t * player = GetPlayer(game);
+    tile->flags.visible = true;
+    tile->flags.revealed = true;
+    printf(" - set %d, %d to vis and revealed\n", coord.x, coord.y);
 
-    tile_coord_t tile;
-    for ( tile.y = vis.min.y; tile.y <= vis.max.y; tile.y++ ) {
-        for ( tile.x = vis.min.x; tile.x <= vis.max.x; tile.x++ ) {
-            GetTile(&game->map, tile)->flags.visible = false; // Reset it.
-
-            // Update tile visibility along the way.
-            LineOfSight(&game->map, player->tile, tile, true);
-            num_lines++;
+    // Also reveals tiles adjacent to floors.
+    if ( !tile->flags.blocking ) {
+        printf(" - %d, %d is a floor\n", coord.x, coord.y);
+        for ( direction_t d = 0; d < NUM_DIRECTIONS; d++ ) {
+            tile_t * adj = GetAdjacentTile(map, coord, d);
+            if ( adj ) {
+                printf(" - setting adjacent tile at direction %d to vis, rev\n", d);
+                adj->flags.visible = true;
+                adj->flags.revealed = true;
+            }
         }
     }
-
-    printf("cast %d sight lines\n", num_lines);
 }
 
 
-void CollectItem(actor_t * player, actor_t * item_actor, item_t item)
+/// Reveal and set tiles visible if LOS to player.
+void PlayerCastSight(game_t * game)
+{
+    box_t vis = GetVisibleRegion(game);
+    const actor_t * player = GetPlayer(game);
+
+    tile_coord_t coord;
+    for ( coord.y = vis.min.y; coord.y <= vis.max.y; coord.y++ ) {
+        for ( coord.x = vis.min.x; coord.x <= vis.max.x; coord.x++ ) {
+            if ( LineOfSight(&game->map, player->tile, coord) ) {
+                printf("player can see (%d, %d)\n", coord.x, coord.y);
+                SetTileVisible(&game->map, coord);
+            }
+        }
+    }
+}
+
+
+bool CollectItem(actor_t * player, actor_t * item_actor, item_t item)
 {
     inventory_t * inventory = &player->game->inventory;
 
@@ -40,7 +60,10 @@ void CollectItem(actor_t * player, actor_t * item_actor, item_t item)
 
         inventory->item_counts[item]++;
         item_actor->flags.remove = true;
+        return true;
     }
+
+    return false;
 }
 
 

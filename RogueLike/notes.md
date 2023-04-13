@@ -2,18 +2,19 @@
 
 Actor animation during turn (walking)
 Log slide right on disappear
-Check for mem leaks
 Update game includes lighting etc?
-Don't pick up item if full
 Sword/Shield sprite
 Debug Mouse click to teleport
-Remove actors struct
-Add coord to tile_t
+Remove actors struct?
 
 # BUGS
 
 Horizontal walkway reveal
-Blob light level additive
+Mob spawns on exit tile
+Pillar button never spawned?
+- make exit pillars tiles, not actors
+- reexamine why pillar button should not be a tile
+Health bar wrong length
 
 # DESIGN
 
@@ -76,3 +77,8 @@ But the deeper you go, the more dangerous the dungeon becomes. The monsters beco
 At the very bottom of the dungeon lies the ultimate treasure: a magical artifact that is said to grant unlimited power to whoever possesses it. But to reach it, you must face the most powerful monster of all, the dungeon's guardian.
 
 Will you be able to defeat the guardian and claim the ultimate treasure? Or will you become just another adventurer lost in the cursed dungeon? The choice is yours in this thrilling rogue-like adventure.
+
+
+# Resources
+
+- https://www.redblobgames.com/maps/terrain-from-noise/
