@@ -58,6 +58,7 @@
 		6011213F29189F4B004A0AF3 /* actor.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = actor.c; sourceTree = "<group>"; };
 		60558AA9291AF9CC00814C16 /* contact.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = contact.c; sourceTree = "<group>"; };
 		60558AAB291B08F400814C16 /* action.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = action.c; sourceTree = "<group>"; };
+		60577A3A29EA3CA800BF0AD8 /* map.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = map.h; sourceTree = "<group>"; };
 		60637F2929136A4200352516 /* RogueLike */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = RogueLike; sourceTree = BUILT_PRODUCTS_DIR; };
 		60637F2C29136A4200352516 /* game.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = game.c; sourceTree = "<group>"; };
 		60637F3929136DAC00352516 /* sprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sprite.c; sourceTree = "<group>"; };
@@ -175,6 +176,7 @@
 				60F0A71329D296390022A995 /* tile.h */,
 				60FBE3DF2947CC1D007C3862 /* tile.c */,
 				60F0A71429D33B200022A995 /* notes.md */,
+				60577A3A29EA3CA800BF0AD8 /* map.h */,
 			);
 			path = RogueLike;
 			sourceTree = "<group>";
