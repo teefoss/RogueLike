@@ -8,7 +8,7 @@
 #include "game.h"
 #include "mylib/sound.h"
 
-void C_Player(actor_t * player, actor_t * hit)
+void C_Player(Actor * player, Actor * hit)
 {
     if ( hit->flags.takes_damage ) {
         if ( DamageActor(hit) == 0 ) {
@@ -54,7 +54,7 @@ void C_Player(actor_t * player, actor_t * hit)
             break;
         case ACTOR_BUTTON_UP:
             for ( int i = 0; i < player->game->map.actors.count; i++ ) {
-                actor_t * a = &player->game->map.actors.list[i];
+                Actor * a = &player->game->map.actors.list[i];
                 if ( a->type == ACTOR_BLOCK_UP ) {
                     a->flags.remove = true;
                     SpawnActor(player->game, ACTOR_BLOCK_DOWN, a->tile);
@@ -70,7 +70,7 @@ void C_Player(actor_t * player, actor_t * hit)
 }
 
 
-void C_Monster(actor_t * monster, actor_t * hit)
+void C_Monster(Actor * monster, Actor * hit)
 {
     // Monsters can damage other monsters, but not of the same type
     if ( hit->flags.takes_damage && monster->type != hit->type ) {
@@ -80,7 +80,7 @@ void C_Monster(actor_t * monster, actor_t * hit)
 }
 
 
-void C_Spider(actor_t * spider, actor_t * hit)
+void C_Spider(Actor * spider, Actor * hit)
 {
     if ( hit->flags.takes_damage ) {
         DamageActor(hit);
@@ -88,7 +88,7 @@ void C_Spider(actor_t * spider, actor_t * hit)
     }
 }
 
-void C_Block(actor_t * block, actor_t * pusher)
+void C_Block(Actor * block, Actor * pusher)
 {
     int dx = block->tile.x - pusher->tile.x;
     int dy = block->tile.y - pusher->tile.y;

@@ -22,8 +22,8 @@ typedef enum {
     ICON_HEALTH_POTION,
     ICON_TURN_POTION,
     NUM_ICONS,
-} icon_t;
+} Icon;
 
-void RenderIcon(icon_t icon, int x, int y);
+void RenderIcon(Icon icon, int x, int y);
 
 #endif /* icon_h */

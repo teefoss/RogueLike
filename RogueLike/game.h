@@ -15,8 +15,10 @@
 #include "tile.h"
 #include "actor.h"
 #include "item.h"
-#include "level.h"
+#include "area.h"
 #include "particle.h"
+
+#include "mathlib.h"
 
 #include <SDL_rect.h>
 #include <SDL_events.h>
@@ -51,102 +53,98 @@
 
 #define NUM_STARS 5000
 
-typedef struct {
-    SDL_Point min; // upper left
-    SDL_Point max; // lower right
-} box_t;
-
 
 #pragma mark - GAME
 
 
 typedef struct {
     int count;
-    actor_t list[MAX_ACTORS];
-
-    // if targets[12] = 1: actor[12] is targeting actor[1]
-    // if targetted[1] = 12: actor[1] is being targetted by actor[12]
-    int targets[MAX_ACTORS];
-    int targetted[MAX_ACTORS];
-} actors_t;
+    Actor list[MAX_ACTORS];
+} Actors;
 
 typedef struct {
     int width;
     int height;
-    tile_t * tiles;
-    tile_id_t * tile_ids;
+    Tile * tiles;
+    TileID * tile_ids;
     int num_rooms;
     SDL_Rect rooms[MAX_ROOMS];
-    actors_t actors;
-} map_t;
+    Actors actors;
+} Map;
 
-typedef struct game game_t;
+typedef struct game Game;
 
 typedef struct game_state {
-    bool (* process_input)(game_t *, const SDL_Event *);
-    void (* update)(game_t *, float dt);
-    void (* render)(const game_t *);
+    bool (* process_input)(Game *, const SDL_Event *);
+    void (* update)(Game *, float dt);
+    void (* render)(const Game *);
 
-    void (* on_enter)(game_t *);
-    void (* on_exit)(game_t *);
+    void (* on_enter)(Game *);
+    void (* on_exit)(Game *);
 
     // If state has a finite length, next_state must not be NULL.
     // -1 == indefinite length.
     int duration_ticks;
     const struct game_state * next_state;
-} game_state_t;
+} GameState;
 
 
 typedef struct {
     int item_counts[NUM_ITEMS];
     int selected_item;
-} inventory_t;
+} Inventory;
+
+
+typedef struct {
+    SDL_Point pt;
+    SDL_Color color;
+} Star;
 
 struct game {
     bool is_running;
     int ticks;
-    map_t map;
+    Map map;
     float move_timer;
-    tile_coord_t mouse_tile;
+    TileCoord mouse_tile;
 
-    vec2_t camera; /// In window space (scaled coordinates)
+    vec2_t camera; // world focus point scaled coordinates
     float inventory_x;
     bool inventory_open;
 
     // Player
-    inventory_t inventory;
+    Inventory inventory;
     bool has_gold_key;
     int player_turns;
-    area_t area;
+    Area area;
     int level;
     
     // Dungeon
     int gold_key_room_num;
 
     // Forest
-    SDL_Point stars[NUM_STARS];
+    Star stars[NUM_STARS];
 
     char log[100];
 
     int state_timer;
-    const game_state_t * state; // TODO: stack
+    const GameState * state; // TODO: stack
 
-    particle_array_t particles;
+    ParticleArray particles;
 };
 
-bool InventoryIsEmtpy(const inventory_t * inventory);
-game_t * InitGame(void);
-void DoFrame(game_t * game, float dt);
-SDL_Rect GetLevelViewport(const game_t * game);
+bool InventoryIsEmtpy(const Inventory * inventory);
+Game * InitGame(void);
+void DoFrame(Game * game, float dt);
+SDL_Rect GetLevelViewport(const Game * game);
 vec2_t GetWindowScale(void);
 
 
 #pragma mark - animation.c
 
-void LevelTurnUpdate(game_t * game, float dt);
-void AnimateActorMove(actor_t * actor, float move_timer);
-void SetUpMoveAnimation(actor_t * actor, direction_t direction);
-void SetUpBumpAnimation(actor_t * actor, direction_t direction);
+void LevelTurnUpdate(Game * game, float dt);
+void AnimateActorMove(Actor * actor, float move_timer);
+void SetUpMoveAnimation(Actor * actor, Direction direction);
+void SetUpBumpAnimation(Actor * actor, Direction direction);
 
 
 #pragma mark - debug.c
@@ -158,32 +156,32 @@ void CheckForShowMapGenCancel(void);
 
 
 #pragma mark - map.c
+// TODO: sep file
 
-tile_t * GetAdjacentTile(map_t * map, tile_coord_t coord, direction_t direction);
-tile_t * GetTile(map_t * map, tile_coord_t coord);
-tile_coord_t GetCoordinate(const map_t * map, int index);
-box_t GetVisibleRegion(const game_t * game);
-bool IsInBounds(const map_t * map, int x, int y);
-bool LineOfSight(map_t * map, tile_coord_t t1, tile_coord_t t2);
-void RenderMap(const game_t * game);
-void CalculateDistances(map_t * map, tile_coord_t coord, int ignore_flags);
-bool ManhattenPathsAreClear(map_t * map, int x0, int y0, int x1, int y1);
-vec2_t GetRenderOffset(const actor_t * player);
+Tile * GetAdjacentTile(Map * map, TileCoord coord, Direction direction);
+Tile * GetTile(Map * map, TileCoord coord);
+TileCoord GetCoordinate(const Map * map, int index);
+box_t GetVisibleRegion(const Game * game);
+bool IsInBounds(const Map * map, int x, int y);
+bool LineOfSight(Map * map, TileCoord t1, TileCoord t2);
+void RenderMap(const Game * game);
+void CalculateDistances(Map * map, TileCoord coord, int ignore_flags);
+bool ManhattenPathsAreClear(Map * map, int x0, int y0, int x1, int y1);
 void FreeDistanceMapQueue(void);
-bool TileIsAdjacentTo(const map_t * map, tile_coord_t coord, tile_type_t type, int num_directions);
-void RenderTilesInRegion(const game_t * game, const box_t * region, int tile_size, vec2_t offset, bool debug);
-
+bool TileIsAdjacentTo(const Map * map, TileCoord coord, TileType type, int num_directions);
+void RenderTilesInRegion(const Game * game, const box_t * region, int tile_size, vec2_t offset, bool debug);
+vec2_t GetRenderLocation(const Game * game, vec2_t pt);
 
 #pragma mark - player.c
 
 #define GetPlayer(game) _Generic((game),    \
-    const game_t *: GetPlayerConst,         \
-    game_t *: GetPlayerNonConst             \
+    const Game *: GetPlayerConst,         \
+    Game *: GetPlayerNonConst             \
 )(game)
 
-void PlayerCastSight(game_t * game);
-bool CollectItem(actor_t * player, actor_t * item_actor, item_t item);
-const actor_t * GetPlayerConst(const game_t * game);
-actor_t * GetPlayerNonConst(game_t * game);
+void PlayerCastSight(Game * game);
+bool CollectItem(Actor * player, Actor * item_actor, Item item);
+const Actor * GetPlayerConst(const Game * game);
+Actor * GetPlayerNonConst(Game * game);
 
 #endif /* main_h */

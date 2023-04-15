@@ -38,10 +38,10 @@ void CheckForShowMapGenCancel(void)
 }
 
 
-bool TilesAreLitThatShouldntBe(map_t * map)
+bool TilesAreLitThatShouldntBe(Map * map)
 {
     for ( int i = 0; i < map->width * map->height; i++ ) {
-        tile_t * tile = &map->tiles[i];
+        Tile * tile = &map->tiles[i];
 
         if ( !tile->flags.revealed && tile->light > 0 ) {
             return true;
@@ -52,18 +52,18 @@ bool TilesAreLitThatShouldntBe(map_t * map)
 }
 
 
-void PrintTilesAreFucked(map_t * map, const char * string)
+void PrintTilesAreFucked(Map * map, const char * string)
 {
     bool effed = TilesAreLitThatShouldntBe(map);
     printf("%s: tiles %s\n", string, effed ? "effed" : "OK");
 }
 
 
-void PrintTilesAreDarkThatShouldntBe(map_t * map, const char * string)
+void PrintTilesAreDarkThatShouldntBe(Map * map, const char * string)
 {
     for ( int y = 0; y < map->height; y++ ) {
         for (int x = 0; x < map->width; x++ ) {
-            tile_t * tile = GetTile(map, (tile_coord_t){ x, y });
+            Tile * tile = GetTile(map, (TileCoord){ x, y });
             if ( tile->flags.revealed && tile->light == 0 ) {
                 printf("%s: fucked\n", string);
                 return;

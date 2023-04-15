@@ -1,15 +1,15 @@
 //
-//  level.c
+//  area.c
 //  RogueLike
 //
 //  Created by Thomas Foster on 4/3/23.
 //
 
-#include "level.h"
+#include "area.h"
 
 #define FOREST_LIGHT 40
 
-const area_info_t area_info[NUM_AREAS] = {
+const AreaInfo area_info[NUM_AREAS] = {
     [AREA_FOREST] = {
         .unrevealed_light = FOREST_LIGHT,
         .revealed_light = FOREST_LIGHT,

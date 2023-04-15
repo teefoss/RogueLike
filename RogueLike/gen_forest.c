@@ -14,12 +14,12 @@ int tile_regions[FOREST_SIZE][FOREST_SIZE];
 int region_areas[FOREST_SIZE * FOREST_SIZE];
 
 static int num_tiles;
-static tile_coord_t tiles[FOREST_SIZE * FOREST_SIZE];
+static TileCoord tiles[FOREST_SIZE * FOREST_SIZE];
 
-static void GetTilesInRegion(const map_t * map, int region)
+static void GetTilesInRegion(const Map * map, int region)
 {
     num_tiles = 0;
-    tile_coord_t coord;
+    TileCoord coord;
     for ( coord.y = 0; coord.y < FOREST_SIZE; coord.y++ ) {
         for ( coord.x = 0; coord.x < FOREST_SIZE; coord.x++ ) {
             if ( tile_regions[coord.y][coord.x] == region ) {
@@ -42,7 +42,7 @@ static int RandomIndex(void)
 }
 
 
-static void SpawnActorAtRandomLocation(game_t * game, actor_type_t type)
+static void SpawnActorAtRandomLocation(Game * game, ActorType type)
 {
     int index = RandomIndex();
     SpawnActor(game, type, tiles[index]);
@@ -50,10 +50,10 @@ static void SpawnActorAtRandomLocation(game_t * game, actor_type_t type)
 }
 
 
-static tile_coord_t CreateTileAtRandomLocation(map_t * map, tile_type_t type)
+static TileCoord CreateTileAtRandomLocation(Map * map, TileType type)
 {
     int index = RandomIndex();
-    tile_coord_t coord = tiles[index];
+    TileCoord coord = tiles[index];
     *GetTile(map, coord) = CreateTile(type);
     RemoveTile(index);
 
@@ -61,9 +61,9 @@ static tile_coord_t CreateTileAtRandomLocation(map_t * map, tile_type_t type)
 }
 
 
-static void FloodFillGroundTiles_r(map_t * map, tile_coord_t coord, int region)
+static void FloodFillGroundTiles_r(Map * map, TileCoord coord, int region)
 {
-    tile_t * tile = GetTile(map, coord);
+    Tile * tile = GetTile(map, coord);
     if ( tile == NULL ) {
         printf("NULL tile\n");
         return;
@@ -71,24 +71,34 @@ static void FloodFillGroundTiles_r(map_t * map, tile_coord_t coord, int region)
     if ( tile->type == TILE_FLOOR && tile_regions[coord.y][coord.x] == -1 ) {
         tile_regions[coord.y][coord.x] = region;
         region_areas[region]++;
-        for ( direction_t d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-            tile_coord_t adjacent_coord = AdjacentTileCoord(coord, d);
+        for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+            TileCoord adjacent_coord = AdjacentTileCoord(coord, d);
             FloodFillGroundTiles_r(map, adjacent_coord, region);
         }
     }
 }
 
 
-void GenerateForest(game_t * game)
+void GenerateForest(Game * game)
 {
     game->area = AREA_FOREST;
 
     for ( int i = 0; i < NUM_STARS; i++ ) {
-        game->stars[i].x = Random(0, GAME_WIDTH - 1);
-        game->stars[i].y = Random(0, GAME_HEIGHT - 1);
+        game->stars[i].pt.x = Random(0, GAME_WIDTH - 1);
+        game->stars[i].pt.y = Random(0, GAME_HEIGHT - 1);
+
+        SDL_Color * c = &game->stars[i].color;
+        int n = Random(0, 1000);
+        if ( n == 1000 ) {
+            *c = (SDL_Color){ 0, 248, 0, 255 };
+        } else if ( n < 500 ) {
+            *c = (SDL_Color){ 208, 208, 208, 255 };
+        } else {
+            *c = (SDL_Color){ 128, 128, 128, 255 };
+        }
     }
 
-    map_t * map = &game->map;
+    Map * map = &game->map;
 
     map->width = FOREST_SIZE;
     map->height = FOREST_SIZE;
@@ -109,11 +119,11 @@ void GenerateForest(game_t * game)
 
     RandomizeNoise((u32)time(NULL));
 //    RandomizeNoise(0);
-    STORAGE(tile_coord_t, FOREST_SIZE * FOREST_SIZE) ground_coords = { 0 };
+    STORAGE(TileCoord, FOREST_SIZE * FOREST_SIZE) ground_coords = { 0 };
 
     for ( int y = 0; y < FOREST_SIZE; y++ ) {
         for ( int x = 0; x < FOREST_SIZE; x++ ) {
-            tile_coord_t coord = { x, y };
+            TileCoord coord = { x, y };
 
             // Distance from this tile to center of map.
             float distance = DISTANCE(x, y, FOREST_SIZE / 2, FOREST_SIZE / 2);
@@ -136,7 +146,7 @@ void GenerateForest(game_t * game)
                 water_noise = -1.0f;
             }
 
-            tile_t * tile = GetTile(map, coord);
+            Tile * tile = GetTile(map, coord);
             if ( noise < -0.35f || noise > 0.05 ) {
                 *tile = CreateTile(TILE_WALL);
             } else {
@@ -161,7 +171,7 @@ void GenerateForest(game_t * game)
     // For all ground tiles
     int region = -1;
     for ( int i = 0; i < ground_coords.count; i++ ) {
-        tile_coord_t coord = ground_coords.data[i];
+        TileCoord coord = ground_coords.data[i];
         if ( tile_regions[coord.y][coord.x] == -1 ) { // Not yet visited
             region++;
             FloodFillGroundTiles_r(map, coord, region);
@@ -192,7 +202,7 @@ void GenerateForest(game_t * game)
     // Spawn second teleporter, spiders, and exit in largest region.
     GetTilesInRegion(map, largest_region);
     CreateTileAtRandomLocation(&game->map, TILE_TELEPORTER);
-    tile_coord_t exit_coord = CreateTileAtRandomLocation(&game->map, TILE_EXIT);
+    TileCoord exit_coord = CreateTileAtRandomLocation(&game->map, TILE_EXIT);
     SpawnActor(game, ACTOR_WELL, exit_coord);
     for ( int i = 0; i < region_areas[largest_region] / 10; i++ ) {
         SpawnActorAtRandomLocation(game, ACTOR_SPIDER);

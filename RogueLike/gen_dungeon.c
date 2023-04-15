@@ -12,7 +12,7 @@
 
 const int debug_tile_size = 16;
 
-tile_coord_t * _buffer;
+TileCoord * _buffer;
 static int _count;
 
 
@@ -22,7 +22,7 @@ void BufferClear(void)
 }
 
 
-void BufferAppend(tile_coord_t coord)
+void BufferAppend(TileCoord coord)
 {
     _buffer[_count++] = coord;
 }
@@ -34,7 +34,7 @@ void BufferRemove(int index)
 }
 
 
-tile_coord_t BufferRandom(void)
+TileCoord BufferRandom(void)
 {
     return _buffer[Random(0, _count - 1)];
 }
@@ -43,24 +43,24 @@ tile_coord_t BufferRandom(void)
 #pragma mark -
 
 
-tile_id_t * TileID(map_t * map, tile_coord_t coord)
+TileID * GetTileID(Map * map, TileCoord coord)
 {
     return &map->tile_ids[coord.y * map->width + coord.x];
 }
 
 
-void DebugRenderTiles(const map_t * map, area_t area, int tile_size)
+void DebugRenderTiles(const Map * map, Area area, int tile_size)
 {
     for ( int y = 0; y < map->height; y++ ) {
         for ( int x = 0; x < map->width; x++ ) {
-            tile_t * tile = GetTile((map_t *)map, (tile_coord_t){ x, y });
+            Tile * tile = GetTile((Map *)map, (TileCoord){ x, y });
             RenderTile(tile, area, 0, x * tile_size, y * tile_size, tile_size, true);
         }
     }
 }
 
 
-void RenderTilesWithDelay(game_t * game)
+void RenderTilesWithDelay(Game * game)
 {
     if ( show_map_gen ) {
         CheckForShowMapGenCancel();
@@ -76,10 +76,10 @@ void RenderTilesWithDelay(game_t * game)
 /// Carve out a hallway recursively, setting each new floor tile with the
 /// current region ID.
 ///
-static void GenerateHallway_r(map_t * map, int current_id, tile_coord_t coord)
+static void GenerateHallway_r(Map * map, int current_id, TileCoord coord)
 {
-    tile_t * here = GetTile(map, coord);
-    tile_id_t * id = TileID(map, coord);
+    Tile * here = GetTile(map, coord);
+    TileID * id = GetTileID(map, coord);
     *here = CreateTile(TILE_FLOOR);
     here->room_num = -1;
     *id = current_id;
@@ -87,22 +87,22 @@ static void GenerateHallway_r(map_t * map, int current_id, tile_coord_t coord)
 //    RenderTilesWithDelay(map);
 
     struct {
-        tile_coord_t coord;
-        direction_t direction;
+        TileCoord coord;
+        Direction direction;
     } directions[NUM_CARDINAL_DIRECTIONS];
 
     int num_open_directions = 0;
 
     // Make a list of the coordinates of possible directions.
-    for ( direction_t d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+    for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
 //        int next_x = x + x_deltas[i] * 2;
 //        int next_y = y + y_deltas[i] * 2;
 //        tile_t * next = GetTile(map, next_x, next_y);
-        tile_coord_t next_coord = {
+        TileCoord next_coord = {
             coord.x + XDelta(d) * 2,
             coord.y + YDelta(d) * 2
         };
-        tile_t * next = GetTile(map, next_coord);
+        Tile * next = GetTile(map, next_coord);
 
         if ( next && next->type == TILE_WALL ) {
 //        if ( IsInBounds(map, next_x, next_y) && next->type == TILE_WALL ) {
@@ -118,11 +118,11 @@ static void GenerateHallway_r(map_t * map, int current_id, tile_coord_t coord)
 
     // Pick a random direction and open it up.
     int i = Random(0, num_open_directions - 1);
-    direction_t dir = directions[i].direction;
-    tile_coord_t next_coord = directions[i].coord;
+    Direction dir = directions[i].direction;
+    TileCoord next_coord = directions[i].coord;
 
     // Clear the spot in between this and the next.
-    tile_coord_t inbetween_coord = {
+    TileCoord inbetween_coord = {
         next_coord.x - XDelta(dir),
         next_coord.y - YDelta(dir)
     };
@@ -130,9 +130,9 @@ static void GenerateHallway_r(map_t * map, int current_id, tile_coord_t coord)
 //    int inbetween_y = next.y - y_deltas[dir];
 //    map[inbetween_y][inbetween_x] = CreateTile(TILE_FLOOR);
 //    ids[inbetween_y][inbetween_x] = current_id;
-    tile_t * inbetween = GetTile(map, inbetween_coord);
+    Tile * inbetween = GetTile(map, inbetween_coord);
     *inbetween = CreateTile(TILE_FLOOR);
-    tile_id_t * inbetween_id = TileID(map, inbetween_coord);
+    TileID * inbetween_id = GetTileID(map, inbetween_coord);
     *inbetween_id = current_id;
 
 //    RenderTilesWithDelay(map);
@@ -144,7 +144,7 @@ static void GenerateHallway_r(map_t * map, int current_id, tile_coord_t coord)
 
 
 /// Change all `from` IDs to `to`.
-void ChangeAllIDs(map_t * map, tile_id_t from, tile_id_t to)
+void ChangeAllIDs(Map * map, TileID from, TileID to)
 {
     for ( int i = 0; i < map->width * map->height; i++ ) {
         if ( map->tile_ids[i] == from ) {
@@ -158,7 +158,7 @@ void ChangeAllIDs(map_t * map, tile_id_t from, tile_id_t to)
 
 // A map tile that is adjacent to the main region and another different region.
 typedef struct {
-    tile_coord_t coord;
+    TileCoord coord;
     int region; // the other region
     bool valid;
 } connector_t;
@@ -166,16 +166,16 @@ typedef struct {
 #define MAP_EDGE_ID (-2)
 #define MAP_WALL_ID (-1)
 
-int GetConnectors(map_t * map, int main_region, connector_t * out)
+int GetConnectors(Map * map, int main_region, connector_t * out)
 {
     int num_connectors = 0;
 
-    tile_coord_t coord;
+    TileCoord coord;
     for ( coord.y = 1; coord.y < map->height - 2; coord.y++ ) {
         for ( coord.x = 1; coord.x < map->width - 2; coord.x++ ) {
 
             // Potential connectors must be wall tiles.
-            if ( *TileID(map, coord) != MAP_WALL_ID ) {
+            if ( *GetTileID(map, coord) != MAP_WALL_ID ) {
                 continue;
             }
 
@@ -185,9 +185,9 @@ int GetConnectors(map_t * map, int main_region, connector_t * out)
             int other_region = -1;
 
             for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-                tile_coord_t adjacent = AdjacentTileCoord(coord, d);
+                TileCoord adjacent = AdjacentTileCoord(coord, d);
 
-                tile_id_t id = *TileID(map, adjacent);
+                TileID id = *GetTileID(map, adjacent);
                 if ( id == main_region ) {
                     touches_main = true;
                 }
@@ -213,22 +213,22 @@ int GetConnectors(map_t * map, int main_region, connector_t * out)
 
 
 /// Get an array of coordinates of tiles that are dead ends.
-int GetDeadEnds(map_t * map, tile_coord_t * out)
+int GetDeadEnds(Map * map, TileCoord * out)
 {
     int count = 0;
 
     for ( int y = 1; y < map->height - 1; y++ ) {
         for ( int x = 1; x < map->width - 1; x++ ) {
-            tile_coord_t coord = { x, y };
-            tile_t * tile = GetTile(map, coord);
+            TileCoord coord = { x, y };
+            Tile * tile = GetTile(map, coord);
 
             if ( tile->type == TILE_FLOOR ) {
 
                 // Count the number of non-wall connections to this tile.
                 int connection_count = 0;
-                for ( direction_t d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+                for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
 //                    tile_t * adj = GetTile(map, x + x_deltas[d], y + y_deltas[d]);
-                    tile_t * adj = GetAdjacentTile(map, coord, d);
+                    Tile * adj = GetAdjacentTile(map, coord, d);
                     if ( adj->type != TILE_WALL ) {
                         connection_count++;
                     }
@@ -246,20 +246,20 @@ int GetDeadEnds(map_t * map, tile_coord_t * out)
 }
 
 
-static void GetRoomCorners(SDL_Rect room, tile_coord_t corners[4])
+static void GetRoomCorners(SDL_Rect room, TileCoord corners[4])
 {
     int top = room.y;
     int left = room.x;
     int right = room.x + room.w - 1;
     int bottom = room.y + room.h - 1;
 
-    corners[0] = (tile_coord_t){ left,  top };
-    corners[1] = (tile_coord_t){ right, top };
-    corners[2] = (tile_coord_t){ left,  bottom };
-    corners[3] = (tile_coord_t){ right, bottom };
+    corners[0] = (TileCoord){ left,  top };
+    corners[1] = (TileCoord){ right, top };
+    corners[2] = (TileCoord){ left,  bottom };
+    corners[3] = (TileCoord){ right, bottom };
 }
 
-
+#if 0
 static SDL_Point GetRandomPointInRoom(map_t * map, int room_num)
 {
     SDL_Rect room = map->rooms[room_num];
@@ -278,11 +278,11 @@ static tile_coord_t GetRandomRoomCorner(map_t * map, int room_num)
     GetRoomCorners(room, corners);
     return corners[Random(0, 3)];
 }
+#endif
 
-
-tile_coord_t GetRoomCenter(SDL_Rect room)
+TileCoord GetRoomCenter(SDL_Rect room)
 {
-    tile_coord_t center = { room.x + room.w / 2, room.y + room.h / 2 };
+    TileCoord center = { room.x + room.w / 2, room.y + room.h / 2 };
     return center;
 }
 
@@ -291,7 +291,7 @@ tile_coord_t GetRoomCenter(SDL_Rect room)
 /// Get a list of tiles in a room that are unoccupied by an actor and not
 /// adjacent to a door.
 ///
-static void GetValidRoomTiles(const map_t * map, int room_num)
+static void GetValidRoomTiles(const Map * map, int room_num)
 {
     bool * occupied = calloc(map->width * map->height, sizeof(*occupied));
 
@@ -304,7 +304,7 @@ static void GetValidRoomTiles(const map_t * map, int room_num)
     SDL_Rect room = map->rooms[room_num];
     BufferClear();
 
-    tile_coord_t coord;
+    TileCoord coord;
     for ( coord.y = room.y; coord.y < room.y + room.h; coord.y++ ) {
         for ( coord.x = room.x; coord.x < room.x + room.w; coord.x++ ) {
 
@@ -314,8 +314,8 @@ static void GetValidRoomTiles(const map_t * map, int room_num)
                 valid = false;
             }
 
-            for ( direction_t d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-                const tile_t * t = GetAdjacentTile((map_t *)map, coord, d);
+            for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+                const Tile * t = GetAdjacentTile((Map *)map, coord, d);
 
                 if ( t->type == TILE_DOOR || t->type == TILE_GOLD_DOOR ) {
                     valid = false;
@@ -333,7 +333,7 @@ static void GetValidRoomTiles(const map_t * map, int room_num)
 }
 
 
-static void GetReachableTiles(map_t * map, tile_coord_t start, int ignore_flags)
+static void GetReachableTiles(Map * map, TileCoord start, int ignore_flags)
 {
     CalculateDistances(map, start, ignore_flags);
 
@@ -346,14 +346,14 @@ static void GetReachableTiles(map_t * map, tile_coord_t start, int ignore_flags)
 }
 
 
-static void InitTiles(map_t * map)
+static void InitTiles(Map * map)
 {
-    tile_coord_t coord;
+    TileCoord coord;
     for ( coord.y = 0; coord.y < map->height; coord.y++ ) {
         for ( coord.x = 0; coord.x < map->width; coord.x++ ) {
 
-            tile_t * t = GetTile(map, coord);
-            tile_id_t * id = TileID(map, coord);
+            Tile * t = GetTile(map, coord);
+            TileID * id = GetTileID(map, coord);
 
             *t = CreateTile(TILE_WALL);
             t->room_num = -1;
@@ -372,7 +372,7 @@ static void InitTiles(map_t * map)
 }
 
 
-void SpawnRooms(map_t * map, int * current_id)
+void SpawnRooms(Map * map, int * current_id)
 {
     for ( int tries = 1; tries <= 50; tries++ ) {
         int size = Random(1, 3) * 2 + 1; // 3 - 7
@@ -401,14 +401,14 @@ void SpawnRooms(map_t * map, int * current_id)
         // Spot is clear. Open up the room and set its floor tiles to the
         // current region ID.
         map->rooms[map->num_rooms] = rect;
-        tile_coord_t coord;
+        TileCoord coord;
         for ( coord.y = rect.y; coord.y < rect.y + rect.h; coord.y++ ) {
             for ( coord.x = rect.x; coord.x < rect.x + rect.w; coord.x++ ) {
-                tile_t * tile = GetTile(map, coord);
+                Tile * tile = GetTile(map, coord);
                 *tile = CreateTile(TILE_FLOOR);
 //                tile->flags |= FLAG(TILE_ROOM);
                 tile->room_num = map->num_rooms;
-                *TileID(map, coord) = *current_id;
+                *GetTileID(map, coord) = *current_id;
             }
         }
         printf("placed a room with id %d (%d, %d, %d, %d)\n",
@@ -425,14 +425,14 @@ void SpawnRooms(map_t * map, int * current_id)
 }
 
 
-void GenerateHallways(map_t * map, int * current_id)
+void GenerateHallways(Map * map, int * current_id)
 {
     do {
         BufferClear();
 
         // Check all odd positions and make a list of viable spots at
         // which to begin a hallway.
-        tile_coord_t coord;
+        TileCoord coord;
         for ( coord.y = 1; coord.y <= map->height - 2; coord.y += 2 ) {
             for ( coord.x = 1; coord.x <= map->width - 2; coord.x += 2 ) {
                 if ( GetTile(map, coord)->type == TILE_WALL ) {
@@ -452,7 +452,7 @@ void GenerateHallways(map_t * map, int * current_id)
 }
 
 
-int ConnectRegions(map_t * map, tile_coord_t * potential_door_locations, int num_regions)
+int ConnectRegions(Map * map, TileCoord * potential_door_locations, int num_regions)
 {
     // Pick a random region to start.
     int main_region = Random(0, num_regions - 1);
@@ -467,7 +467,7 @@ int ConnectRegions(map_t * map, tile_coord_t * potential_door_locations, int num
         // the main.
         connector_t connector = connectors[Random(0, num_connectors - 1)];
 
-        tile_t * tile = GetTile(map, connector.coord);
+        Tile * tile = GetTile(map, connector.coord);
         *tile = CreateTile(TILE_FLOOR);
 
         potential_door_locations[num_potential_door_locations++] = connector.coord;
@@ -481,10 +481,10 @@ int ConnectRegions(map_t * map, tile_coord_t * potential_door_locations, int num
     return num_potential_door_locations;
 }
 
-void EliminateDeadEnds(map_t * map)
+void EliminateDeadEnds(Map * map)
 {
     int num_deadends = 0;
-    tile_coord_t * deadends = calloc(map->width * map->height, sizeof(*deadends));
+    TileCoord * deadends = calloc(map->width * map->height, sizeof(*deadends));
 
     while ( (num_deadends = GetDeadEnds(map, deadends)) ) {
         for ( int i = 0; i < num_deadends; i++ ) {
@@ -497,12 +497,12 @@ void EliminateDeadEnds(map_t * map)
 }
 
 
-void SpawnDoors(map_t * map, tile_coord_t * potentials, int array_len)
+void SpawnDoors(Map * map, TileCoord * potentials, int array_len)
 {
     for ( int i = 0; i < array_len; i++ ) {
-        tile_t * tile = GetTile(map, potentials[i]);
+        Tile * tile = GetTile(map, potentials[i]);
 
-        tile_t * adjacents[NUM_CARDINAL_DIRECTIONS];
+        Tile * adjacents[NUM_CARDINAL_DIRECTIONS];
         for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
             adjacents[d] = GetAdjacentTile(map, potentials[i], d);
         }
@@ -546,9 +546,9 @@ void SpawnDoors(map_t * map, tile_coord_t * potentials, int array_len)
 #endif
 }
 
-void SpawnPlayerAndStartTile(game_t * game)
+void SpawnPlayerAndStartTile(Game * game)
 {
-    tile_coord_t pt = GetRoomCenter(game->map.rooms[0]);
+    TileCoord pt = GetRoomCenter(game->map.rooms[0]);
     printf("player start: %d, %d\n", pt.x, pt.y);
 
     SpawnActor(game, ACTOR_PLAYER, pt);
@@ -556,20 +556,20 @@ void SpawnPlayerAndStartTile(game_t * game)
 }
 
 
-void SpawnGoldKey(game_t * game)
+void SpawnGoldKey(Game * game)
 {
-    actor_t * player = GetPlayer(game);
+    Actor * player = GetPlayer(game);
     GetReachableTiles(&game->map, player->tile, FLAG(TILE_DOOR));
 
     // Remove any points that are not in a room (-1) or are in the start room (0)
     for ( int i = _count - 1; i >= 0; i-- ) {
-        tile_t * tile = GetTile(&game->map, _buffer[i]);
+        Tile * tile = GetTile(&game->map, _buffer[i]);
         if ( tile->room_num <= 0 ) {
             BufferRemove(i);
         }
     }
 
-    tile_coord_t gold_key_tile_coord;
+    TileCoord gold_key_tile_coord;
 
     if ( _count == 0 ) {
         puts("Could not find spot for gold key!");
@@ -583,7 +583,7 @@ void SpawnGoldKey(game_t * game)
     SpawnActor(game, ACTOR_GOLD_KEY, gold_key_tile_coord);
 
     // Save the gold key's room number.
-    tile_t * gold_key_tile = GetTile(&game->map, gold_key_tile_coord);
+    Tile * gold_key_tile = GetTile(&game->map, gold_key_tile_coord);
     game->gold_key_room_num = gold_key_tile->room_num;
 }
 
@@ -593,13 +593,13 @@ void SpawnGoldKey(game_t * game)
 /// is not adjacent to a door. If none are found, place the exit in the center
 /// of the room.
 ///
-void SpawnExit(game_t * game)
+void SpawnExit(Game * game)
 {
-    map_t * map = &game->map;
+    Map * map = &game->map;
 
     int exit_room = map->num_rooms - 1;
 
-    tile_coord_t corners[4];
+    TileCoord corners[4];
     GetRoomCorners(map->rooms[exit_room], corners);
 
     // Make a list of viable corners.
@@ -616,7 +616,7 @@ void SpawnExit(game_t * game)
         }
     }
 
-    tile_coord_t exit_coord;
+    TileCoord exit_coord;
 
     if ( num_usable == 0 ) {
         exit_coord = GetRoomCenter(map->rooms[exit_room]);
@@ -628,9 +628,9 @@ void SpawnExit(game_t * game)
     *GetTile(map, exit_coord) = CreateTile(TILE_EXIT);
 
     // Spawn blocks
-    for ( direction_t d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-        tile_t * adjacent = GetAdjacentTile(map, exit_coord, d);
-        tile_coord_t coord = AdjacentTileCoord(exit_coord, d);
+    for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+        Tile * adjacent = GetAdjacentTile(map, exit_coord, d);
+        TileCoord coord = AdjacentTileCoord(exit_coord, d);
         if ( adjacent->type == TILE_FLOOR ) {
             SpawnActor(game, ACTOR_BLOCK_UP, coord);
         }
@@ -648,7 +648,7 @@ void SpawnExit(game_t * game)
     // TODO: do this not dumb.
     for ( int y = rect.y; y <= rect.y + rect.h; y++ ) {
         for ( int x = rect.x; x <= rect.x + rect.w; x++ ) {
-            tile_t * tile = GetTile(map, (tile_coord_t){ x, y });
+            Tile * tile = GetTile(map, (TileCoord){ x, y });
             if ( tile->type == TILE_DOOR ) {
                 *tile = CreateTile(TILE_GOLD_DOOR);
             }
@@ -657,7 +657,7 @@ void SpawnExit(game_t * game)
 }
 
 
-void SpawnActorAtRandomPointInBuffer(game_t * game, actor_type_t type)
+void SpawnActorAtRandomPointInBuffer(Game * game, ActorType type)
 {
     int i = Random(0, _count - 1);
     SpawnActor(game, type, _buffer[i]);
@@ -666,7 +666,7 @@ void SpawnActorAtRandomPointInBuffer(game_t * game, actor_type_t type)
 
 
 // https://www.tomstephensondeveloper.co.uk/post/creating-simple-procedural-dungeon-generation
-void GenerateDungeon(game_t * game, int width, int height)
+void GenerateDungeon(Game * game, int width, int height)
 {
     if ( width % 2 == 0 || height % 2 == 0 ) {
         Error("Dugeon width and height must be odd");
@@ -674,7 +674,7 @@ void GenerateDungeon(game_t * game, int width, int height)
 
     game->area = AREA_DUNGEON;
 
-    map_t * map = &game->map;
+    Map * map = &game->map;
     map->width = width;
     map->height = height;
 
@@ -725,7 +725,7 @@ void GenerateDungeon(game_t * game, int width, int height)
 
     const int num_regions = current_id;
 
-    tile_coord_t * potential_door_locations = calloc(map_size, sizeof(*potential_door_locations));
+    TileCoord * potential_door_locations = calloc(map_size, sizeof(*potential_door_locations));
     int num_potential_door_locations = ConnectRegions(map, potential_door_locations, num_regions);
     EliminateDeadEnds(map);
     SpawnDoors(map, potential_door_locations, num_potential_door_locations);

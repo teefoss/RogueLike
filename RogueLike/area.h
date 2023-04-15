@@ -1,5 +1,5 @@
 //
-//  level.h
+//  area.h
 //  RogueLike
 //
 //  Created by Thomas Foster on 4/3/23.
@@ -15,7 +15,7 @@ typedef enum {
     AREA_FOREST,
     AREA_DUNGEON,
     NUM_AREAS,
-} area_t;
+} Area;
 
 typedef struct {
     u8 unrevealed_light;
@@ -23,8 +23,8 @@ typedef struct {
     u8 visible_light;
     u8 debug_map_tile_size;
     bool reveal_all; // No fog of war
-} area_info_t;
+} AreaInfo;
 
-extern const area_info_t area_info[NUM_AREAS];
+extern const AreaInfo area_info[NUM_AREAS];
 
-#endif /* level_h */
+#endif /* area_h */

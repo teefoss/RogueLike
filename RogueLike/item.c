@@ -11,7 +11,7 @@
 
 static const struct {
     const char * name;
-    icon_t icon;
+    Icon icon;
 } item_info[NUM_ITEMS] = {
     [ITEM_HEALTH] = {
         .name = "Health Potion",
@@ -24,7 +24,7 @@ static const struct {
 };
 
 
-void RenderItemInfo(item_t item, int count, int x, int y, bool is_selected)
+void RenderItemInfo(Item item, int count, int x, int y, bool is_selected)
 {
     V_SetRGB(255, 255, 255);
     int x1 = V_PrintString(x, y, "%d", count);
@@ -40,7 +40,7 @@ void RenderItemInfo(item_t item, int count, int x, int y, bool is_selected)
 }
 
 
-int ItemInfoWidth(item_t item)
+int ItemInfoWidth(Item item)
 {
     int width = 0;
     width += V_CharWidth() + SCALED(1); // count

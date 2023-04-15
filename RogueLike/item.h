@@ -24,9 +24,9 @@ typedef enum {
     // hover and examine monster's health and attack rating
 
     NUM_ITEMS,
-} item_t;
+} Item;
 
-void RenderItemInfo(item_t item, int count, int x, int y, bool is_selected);
-int ItemInfoWidth(item_t item);
+void RenderItemInfo(Item item, int count, int x, int y, bool is_selected);
+int ItemInfoWidth(Item item);
 
 #endif /* item_h */

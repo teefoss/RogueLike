@@ -31,6 +31,8 @@
 #define ADD_2D(a, b) (typeof(a)){ a.x + b.x, a.y + b.y }
 // ...
 
+typedef struct { int left, top, right, bottom; } box_t;
+
 typedef enum {
     RECT_SIDE_TOP,
     RECT_SIDE_BOTTOM,

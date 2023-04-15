@@ -40,7 +40,7 @@ int main(void)
 
     S_InitSound();
 
-    game_t * game = InitGame();
+    Game * game = InitGame();
 
     PrintTilesAreDarkThatShouldntBe(&game->map, "done with InitGame");
 

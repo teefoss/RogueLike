@@ -17,17 +17,17 @@ typedef struct {
     vec2_t velocity;
     SDL_Color color;
     u16 lifespan; // frame ticks
-} particle_t;
+} Particle;
 
 typedef struct {
-    particle_t * buffer;
+    Particle * buffer;
     int buffer_size;
     int num_particles;
-} particle_array_t;
+} ParticleArray;
 
-void InitParticleArray(particle_array_t * array);
-void InsertParticle(particle_array_t * array, particle_t particle);
-void UpdateParticles(particle_array_t * array, float dt);
-void RenderParticles(const particle_array_t * array, int draw_scale, vec2_t offset);
+void InitParticleArray(ParticleArray * array);
+void InsertParticle(ParticleArray * array, Particle particle);
+void UpdateParticles(ParticleArray * array, float dt);
+void RenderParticles(const ParticleArray * array, int draw_scale, vec2_t offset);
 
 #endif /* particle_h */

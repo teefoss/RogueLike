@@ -8,21 +8,18 @@
 #include "game.h"
 
 
-void SetTileVisible(map_t * map, tile_coord_t coord)
+void SetTileVisible(Map * map, TileCoord coord)
 {
-    tile_t * tile = GetTile(map, coord);
+    Tile * tile = GetTile(map, coord);
 
     tile->flags.visible = true;
     tile->flags.revealed = true;
-    printf(" - set %d, %d to vis and revealed\n", coord.x, coord.y);
 
     // Also reveals tiles adjacent to floors.
-    if ( !tile->flags.blocking ) {
-        printf(" - %d, %d is a floor\n", coord.x, coord.y);
-        for ( direction_t d = 0; d < NUM_DIRECTIONS; d++ ) {
-            tile_t * adj = GetAdjacentTile(map, coord, d);
+    if ( !tile->flags.blocks_movement ) {
+        for ( Direction d = 0; d < NUM_DIRECTIONS; d++ ) {
+            Tile * adj = GetAdjacentTile(map, coord, d);
             if ( adj ) {
-                printf(" - setting adjacent tile at direction %d to vis, rev\n", d);
                 adj->flags.visible = true;
                 adj->flags.revealed = true;
             }
@@ -32,16 +29,15 @@ void SetTileVisible(map_t * map, tile_coord_t coord)
 
 
 /// Reveal and set tiles visible if LOS to player.
-void PlayerCastSight(game_t * game)
+void PlayerCastSight(Game * game)
 {
     box_t vis = GetVisibleRegion(game);
-    const actor_t * player = GetPlayer(game);
+    const Actor * player = GetPlayer(game);
 
-    tile_coord_t coord;
-    for ( coord.y = vis.min.y; coord.y <= vis.max.y; coord.y++ ) {
-        for ( coord.x = vis.min.x; coord.x <= vis.max.x; coord.x++ ) {
+    TileCoord coord;
+    for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
+        for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
             if ( LineOfSight(&game->map, player->tile, coord) ) {
-                printf("player can see (%d, %d)\n", coord.x, coord.y);
                 SetTileVisible(&game->map, coord);
             }
         }
@@ -49,9 +45,9 @@ void PlayerCastSight(game_t * game)
 }
 
 
-bool CollectItem(actor_t * player, actor_t * item_actor, item_t item)
+bool CollectItem(Actor * player, Actor * item_actor, Item item)
 {
-    inventory_t * inventory = &player->game->inventory;
+    Inventory * inventory = &player->game->inventory;
 
     if ( inventory->item_counts[item] < 8 ) {
         if ( InventoryIsEmtpy(inventory) ) {
@@ -67,9 +63,9 @@ bool CollectItem(actor_t * player, actor_t * item_actor, item_t item)
 }
 
 
-const actor_t * GetPlayerConst(const game_t * game)
+const Actor * GetPlayerConst(const Game * game)
 {
-    const actors_t * actors = &game->map.actors;
+    const Actors * actors = &game->map.actors;
 
     for ( int i = 0; i < actors->count; i++ ) {
         if ( actors->list[i].type == ACTOR_PLAYER ) {
@@ -81,9 +77,9 @@ const actor_t * GetPlayerConst(const game_t * game)
 }
 
 
-actor_t * GetPlayerNonConst(game_t * game)
+Actor * GetPlayerNonConst(Game * game)
 {
-    actors_t * actors = &game->map.actors;
+    Actors * actors = &game->map.actors;
 
     for ( int i = 0; i < actors->count; i++ ) {
         if ( actors->list[i].type == ACTOR_PLAYER ) {

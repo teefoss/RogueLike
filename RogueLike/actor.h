@@ -31,7 +31,7 @@ typedef enum {
     ACTOR_WELL,
 
     NUM_ACTOR_TYPES
-} actor_type_t;
+} ActorType;
 
 
 typedef struct actor_sprite {
@@ -41,39 +41,39 @@ typedef struct actor_sprite {
     u8 num_frames;
     u16 frame_msec;
     u8 draw_priority;
-} actor_sprite_t;
+} ActorSprite;
 
 
-typedef struct game game_t;
-typedef struct actor actor_t;
+typedef struct game Game;
+typedef struct actor Actor;
 
 struct actor {
-    game_t * game;
+    Game * game;
     u8 type;
 
     struct {
-        u8 directional      : 1; // Look at 'facing_left' for sprite flip.
-        u8 takes_damage     : 1; // Can be hurt by other actors.
-        u8 was_attacked     : 1;
-        u8 has_target       : 1;
-        u8 blocks_sight     : 1;
-        u8 no_collision     : 1;
-        u8 collectible      : 1; // Actors can walk through (no bump anim).
-        u8 floats           : 1; // Hovers in the air.
-        u8 facing_left      : 1;
-        u8 no_shadow        : 1;
-        u8 no_draw_offset   : 1;
-        u8 on_teleporter    : 1;
-        u8 remove           : 1; // Deleted
+        bool directional      : 1; // Look at 'facing_left' for sprite flip.
+        bool takes_damage     : 1; // Can be hurt by other actors.
+        bool was_attacked     : 1;
+        bool has_target       : 1;
+        bool blocks_sight     : 1;
+        bool no_collision     : 1;
+        bool collectible      : 1; // Actors can walk through (no bump anim).
+        bool floats           : 1; // Hovers in the air.
+        bool facing_left      : 1;
+        bool no_shadow        : 1;
+        bool no_draw_offset   : 1;
+        bool on_teleporter    : 1;
+        bool remove           : 1; // Deleted
     } flags;
 
-    tile_coord_t tile;
+    TileCoord tile;
 
     vec2_t offset_start;
     vec2_t offset_current;
 
     u8 frame;
-    actor_sprite_t * sprite;
+    ActorSprite * sprite;
 
 //    u8 num_frames; // TODO: in sprite_info
 //    u16 frame_msec; // TODO: in sprite_info
@@ -82,7 +82,7 @@ struct actor {
     u8 max_health;
     s8 health;
     u8 damage;
-    tile_coord_t target_tile;
+    TileCoord target_tile;
 
     // An actor's light propogates to surrounding tiles.
     u8 light;
@@ -90,24 +90,25 @@ struct actor {
 
     float hit_timer;
 
-    void (* animation)(actor_t *, float move_timer);
-    void (* contact)(actor_t * self, actor_t * other);
-    void (* contacted)(actor_t * self, actor_t * other); // When hit by something else.
-    void (* action)(actor_t *);
+    void (* animation)(Actor *, float move_timer);
+    void (* contact)(Actor * self, Actor * other);
+    void (* contacted)(Actor * self, Actor * other); // When hit by something else.
+    void (* action)(Actor *);
 };
 
 
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
-void CastLight(game_t * game, const actor_t * actor);
-void SpawnActor(game_t * game, actor_type_t type, tile_coord_t coord);
-void RenderActor(const actor_t * actor, int x, int y, int size, bool debug);
-void MoveActor(actor_t * actor, direction_t direction);
-bool TryMoveActor(actor_t * actor, direction_t direction);
-int DamageActor(actor_t * actor);
-actor_t * GetActorAtTile(actor_t * actors, int num_actors, tile_coord_t coord);
-const actor_t * GetPlayerReadOnly(const actor_t * actors, int num_actors);
-void UpdateActorFacing(actor_t * actor, int dx);
-void Teleport(actor_t * actor, tile_coord_t from);
+void CastLight(Game * game, const Actor * actor);
+void SpawnActor(Game * game, ActorType type, TileCoord coord);
+void RenderActor(const Actor * actor, int x, int y, int size, bool debug);
+void MoveActor(Actor * actor, Direction direction);
+bool TryMoveActor(Actor * actor, Direction direction);
+int DamageActor(Actor * actor);
+void KillActor(Actor * actor);
+Actor * GetActorAtTile(Actor * actors, int num_actors, TileCoord coord);
+const Actor * GetPlayerReadOnly(const Actor * actors, int num_actors);
+void UpdateActorFacing(Actor * actor, int dx);
+void Teleport(Actor * actor, TileCoord from);
 
 #endif /* actor_h */

@@ -23,11 +23,11 @@ typedef enum {
     SOUTH_WEST,
     SOUTH_EAST,
     NUM_DIRECTIONS,
-} direction_t;
+} Direction;
 
-int XDelta(direction_t direction);
-int YDelta(direction_t direction);
-direction_t GetDirection(int dx, int dy);
-tile_coord_t AdjacentTileCoord(tile_coord_t coord, direction_t direction);
+int XDelta(Direction direction);
+int YDelta(Direction direction);
+Direction GetDirection(int dx, int dy);
+TileCoord AdjacentTileCoord(TileCoord coord, Direction direction);
 
 #endif /* direction_h */

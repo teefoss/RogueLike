@@ -25,9 +25,9 @@ extern float max_frame_msec;
 extern bool show_debug_map;
 extern bool show_distances;
 
-bool TilesAreLitThatShouldntBe(map_t * map);
-void PrintTilesAreFucked(map_t * map, const char * string);
-void PrintTilesAreDarkThatShouldntBe(map_t * map, const char * string);
+bool TilesAreLitThatShouldntBe(Map * map);
+void PrintTilesAreFucked(Map * map, const char * string);
+void PrintTilesAreDarkThatShouldntBe(Map * map, const char * string);
 void DebugWaitForKeyPress(void);
 
 #endif /* debug_h */

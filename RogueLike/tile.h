@@ -8,7 +8,7 @@
 #ifndef tile_h
 #define tile_h
 
-#include "level.h"
+#include "area.h"
 
 #define MAX_LIGHT 255
 
@@ -23,10 +23,10 @@ typedef enum {
     TILE_TELEPORTER,
 
     NUM_TILE_TYPES,
-} tile_type_t;
+} TileType;
 
 
-typedef s8 tile_id_t;
+typedef s8 TileID;
 
 typedef struct {
     u8 type; // a tile_type_t
@@ -34,21 +34,22 @@ typedef struct {
     s8 room_num; // or -1 if not in a room.
 
     struct {
-        u8 blocking     : 1;
-        u8 player_only  : 1;
-        u8 visible      : 1;
-        u8 revealed     : 1;
-        u8 bright       : 1;
+        bool blocks_movement    : 1;
+        bool blocks_sight       : 1;
+        bool player_only        : 1;
+        bool visible            : 1;
+        bool revealed           : 1;
+        bool bright             : 1;
     } flags;
 
     u8 light; // Current light level.
     s16 distance; // For pathfinding. Updated via CalculateDistances()
-} tile_t;
+} Tile;
 
-tile_t CreateTile(tile_type_t type);
+Tile CreateTile(TileType type);
 
-void RenderTile(const tile_t * tile,
-                area_t area,
+void RenderTile(const Tile * tile,
+                Area area,
                 int signature,
                 int pixel_x,
                 int pixel_y,
@@ -56,6 +57,6 @@ void RenderTile(const tile_t * tile,
                 bool debug);
 
 //void DebugDrawTile(const tile_t * tile, int x, int y, int size);
-const char * TileName(tile_type_t type);
+const char * TileName(TileType type);
 
 #endif /* tile_h */

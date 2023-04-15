@@ -115,8 +115,6 @@ int RectDiagonalLength(int w, int h)
     return (int)sqrt(w * w + h * h);
 }
 
-typedef struct { int left, top, right, bottom; } box_t;
-
 box_t BoxFromRect(SDL_Rect rect)
 {
     return (box_t){ rect.x, rect.y, rect.x + rect.h, rect.y + rect.h };

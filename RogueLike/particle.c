@@ -8,7 +8,7 @@
 #include "particle.h"
 #include "video.h"
 
-void InitParticleArray(particle_array_t * array)
+void InitParticleArray(ParticleArray * array)
 {
     if ( array->buffer ) {
         free(array->buffer);
@@ -21,7 +21,7 @@ void InitParticleArray(particle_array_t * array)
 }
 
 
-void InsertParticle(particle_array_t * array, particle_t particle)
+void InsertParticle(ParticleArray * array, Particle particle)
 {
     int new_size = (array->num_particles + 1) * sizeof(particle);
 
@@ -34,10 +34,10 @@ void InsertParticle(particle_array_t * array, particle_t particle)
 }
 
 
-void UpdateParticles(particle_array_t * array, float dt)
+void UpdateParticles(ParticleArray * array, float dt)
 {
     for ( int i = array->num_particles - 1; i >= 0; i-- ) {
-        particle_t * p = array->buffer + i;
+        Particle * p = array->buffer + i;
 
         // Remove?
         if ( --p->lifespan == 0 ) {
@@ -50,12 +50,12 @@ void UpdateParticles(particle_array_t * array, float dt)
 }
 
 
-void RenderParticles(const particle_array_t * array, int draw_scale, vec2_t offset)
+void RenderParticles(const ParticleArray * array, int draw_scale, vec2_t offset)
 {
     SDL_Rect r = { .w = draw_scale, .h = draw_scale };
 
     for ( int i = 0; i < array->num_particles; i++ ) {
-        const particle_t * p = array->buffer + i;
+        const Particle * p = array->buffer + i;
 
         r.x = p->position.x * draw_scale - draw_scale / 2 - offset.x;
         r.y = p->position.y * draw_scale - draw_scale / 2 - offset.y;

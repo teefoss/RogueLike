@@ -10,13 +10,15 @@
 #ifndef coord_h
 #define coord_h
 
+#include "vector.h"
 #include "inttypes.h"
 #include <stdbool.h>
 
-typedef struct { s16 x, y; } tile_coord_t;
+typedef struct { s16 x, y; } TileCoord;
 
-tile_coord_t AddTileCoords(tile_coord_t a, tile_coord_t b);
-bool TileCoordsEqual(tile_coord_t a, tile_coord_t b);
-int TileDistance(tile_coord_t a, tile_coord_t b);
+TileCoord AddTileCoords(TileCoord a, TileCoord b);
+bool TileCoordsEqual(TileCoord a, TileCoord b);
+int TileDistance(TileCoord a, TileCoord b);
+vec2_t TileCoordToScaledWorldCoord(TileCoord tile_coord, vec2_t offset);
 
 #endif /* coord_h */

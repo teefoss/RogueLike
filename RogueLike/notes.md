@@ -2,19 +2,19 @@
 
 Actor animation during turn (walking)
 Log slide right on disappear
-Update game includes lighting etc?
 Sword/Shield sprite
-Debug Mouse click to teleport
 Remove actors struct?
+Refine forest gen -> more padding
+level fade in
 
 # BUGS
 
-Horizontal walkway reveal
 Mob spawns on exit tile
 Pillar button never spawned?
 - make exit pillars tiles, not actors
 - reexamine why pillar button should not be a tile
-Health bar wrong length
+teleporter, player light wrong
+
 
 # DESIGN
 

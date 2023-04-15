@@ -8,7 +8,7 @@
 #ifndef gen_h
 #define gen_h
 
-void GenerateForest(game_t * game);
-void GenerateDungeon(game_t * game, int width, int height);
+void GenerateForest(Game * game);
+void GenerateDungeon(Game * game, int width, int height);
 
 #endif /* gen_h */

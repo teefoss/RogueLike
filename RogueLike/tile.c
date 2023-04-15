@@ -79,31 +79,31 @@ static struct tile_info {
 };
 
 
-static tile_t tile_templates[] = {
+static Tile tile_templates[] = {
     [TILE_WALL] = {
-        .flags = { .blocking = true },
+        .flags = { .blocks_movement = true, .blocks_sight = true },
     },
     [TILE_DOOR] = {
-        .flags = { .blocking = true },
+        .flags = { .blocks_movement = true, .blocks_sight = true },
     },
     [TILE_EXIT] = {
         .flags = { .player_only = true },
     },
     [TILE_GOLD_DOOR] = {
-        .flags = { .blocking = true },
+        .flags = { .blocks_movement = true, .blocks_sight = true },
     },
     [TILE_TELEPORTER] = {
-        .flags = { .bright = true },
+        .flags = { .bright = true, .player_only = true },
     },
     [TILE_WATER] = {
-        .flags = { .blocking = true }
+        .flags = { .blocks_movement = true }
     },
 };
 
 
-tile_t CreateTile(tile_type_t type)
+Tile CreateTile(TileType type)
 {
-    tile_t tile = tile_templates[type];
+    Tile tile = tile_templates[type];
     tile.type = type;
     tile.variety = Random(0, 255);
 
@@ -111,7 +111,7 @@ tile_t CreateTile(tile_type_t type)
 }
 
 
-const char * TileName(tile_type_t type)
+const char * TileName(TileType type)
 {
     switch ( type ) {
             CASE_RETURN_STRING(TILE_FLOOR);
@@ -128,8 +128,8 @@ const char * TileName(tile_type_t type)
 
 
 /// - parameter debug: Ignore lighting and tile's revealed property.
-void RenderTile(const tile_t * tile,
-                area_t area,
+void RenderTile(const Tile * tile,
+                Area area,
                 int signature,
                 int pixel_x,
                 int pixel_y,
@@ -170,14 +170,14 @@ void RenderTile(const tile_t * tile,
         dst.h = render_size;
     }
 
-    switch ( (tile_type_t)tile->type ) {
+    switch ( (TileType)tile->type ) {
         case TILE_WALL:
             if ( area == AREA_DUNGEON ) {
                 src.x = 1 * TILE_SIZE;
                 src.y = 0 * TILE_SIZE;
                 V_DrawTexture(tiles, &src, &dst); // Blank it to start.
 
-                direction_t draw_order[NUM_DIRECTIONS] = {
+                Direction draw_order[NUM_DIRECTIONS] = {
                     NORTH,
                     NORTH_WEST,
                     NORTH_EAST,
@@ -190,7 +190,7 @@ void RenderTile(const tile_t * tile,
 
                 src.y = 32;
                 for ( int i = 0; i < NUM_DIRECTIONS; i++ ) {
-                    direction_t direction = draw_order[i];
+                    Direction direction = draw_order[i];
 
                     if ( signature & FLAG(direction) ) {
                         src.x = direction * TILE_SIZE;
@@ -225,7 +225,7 @@ void RenderTile(const tile_t * tile,
     V_DrawTexture(tiles, &src, &dst);
 
     // F1 - show tile distance to player
-    if ( !tile->flags.blocking ) {
+    if ( !tile->flags.blocks_movement ) {
         if ( show_distances ) {
             V_SetGray(255);
             V_PrintString(dst.x, dst.y, "%d", tile->distance);

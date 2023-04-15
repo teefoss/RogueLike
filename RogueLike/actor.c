@@ -25,7 +25,7 @@ enum {
 
 // Animated sprite frames are layed out horizontally.
 // `cell` is the first frame in an animation.
-actor_sprite_t sprite_info[NUM_ACTOR_TYPES] = {
+ActorSprite sprite_info[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
         .cell = { 0, 0 },
         .num_frames = 2,
@@ -96,18 +96,18 @@ actor_sprite_t sprite_info[NUM_ACTOR_TYPES] = {
 };
 
 
-void C_Player(actor_t * player, actor_t * hit);
-void C_Monster(actor_t * monster, actor_t * hit);
-void C_Spider(actor_t * spider, actor_t * hit);
-void C_Block(actor_t *, actor_t *);
+void C_Player(Actor * player, Actor * hit);
+void C_Monster(Actor * monster, Actor * hit);
+void C_Spider(Actor * spider, Actor * hit);
+void C_Block(Actor *, Actor *);
 
-void A_TargetAndChasePlayerIfVisible(actor_t *);
-void A_ChasePlayerIfVisible(actor_t *);
-void A_StupidChasePlayerIfVisible(actor_t * actor);
+void A_TargetAndChasePlayerIfVisible(Actor *);
+void A_ChasePlayerIfVisible(Actor *);
+void A_StupidChasePlayerIfVisible(Actor * actor);
 
 #define ITEM_FLAGS { .collectible = true, .no_collision = true }
 
-static actor_t templates[NUM_ACTOR_TYPES] = {
+static Actor templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
         .flags = { .directional = true, .takes_damage = true },
         .max_health = 10,
@@ -177,16 +177,16 @@ static actor_t templates[NUM_ACTOR_TYPES] = {
 };
 
 
-void SpawnActor(game_t * game, actor_type_t type, tile_coord_t coord)
+void SpawnActor(Game * game, ActorType type, TileCoord coord)
 {
-    actor_t actor = templates[type];
+    Actor actor = templates[type];
     actor.game = game;
     actor.type = type;
     actor.sprite = &sprite_info[type];
     actor.tile = coord;
     actor.health = actor.max_health;
 
-    actors_t * actors = &game->map.actors;
+    Actors * actors = &game->map.actors;
 
     if ( actors->count + 1 <= MAX_ACTORS ) {
         actors->list[actors->count++] = actor;
@@ -197,24 +197,38 @@ void SpawnActor(game_t * game, actor_type_t type, tile_coord_t coord)
 }
 
 
-void SpawnActorAtActor(actor_t * actor, actor_type_t type)
+void SpawnActorAtActor(Actor * actor, ActorType type)
 {
     SpawnActor(actor->game, type, actor->tile);
 }
 
 
-void KillActor(actor_t * actor)
+void SpawnParticlesAtActor(ParticleArray * array, Actor * actor, SDL_Color color)
+{
+    SDL_Point position = {
+        .x = actor->tile.x * TILE_SIZE,
+        .y = actor->tile.y * TILE_SIZE,
+    };
+
+    for ( int i = 0; i < 30; i++ ) {
+        Particle p;
+        p.position.x = Random(position.x, position.x + TILE_SIZE);
+        p.position.y = Random(position.y, position.y + TILE_SIZE);
+        p.velocity = RandomVelocity(10.0f, 20.0f);
+        p.color = color;
+        p.lifespan = Random(MS2TICKS(200, FPS), MS2TICKS(400, FPS));
+        InsertParticle(&actor->game->particles, p);
+    }
+}
+
+
+void KillActor(Actor * actor)
 {
     if ( actor->type != ACTOR_PLAYER ) {
         actor->flags.remove = true;
     } else {
         // TODO: player death
     }
-
-    SDL_Point position = {
-        .x = actor->tile.x * TILE_SIZE,
-        .y = actor->tile.y * TILE_SIZE,
-    };
 
     switch ( actor->type ) {
         case ACTOR_PLAYER:
@@ -225,29 +239,26 @@ void KillActor(actor_t * actor)
             } else {
                 SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
             }
+            SDL_Color green = { 0, 255, 0, 255 }; // TODO: Palette
+            SpawnParticlesAtActor(&actor->game->particles, actor, green);
+
             break;
         }
-        case ACTOR_SPIDER:
+        case ACTOR_SPIDER: {
             if ( Chance(0.2) ) {
                 SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
             }
-            for ( int i = 0; i < 30; i++ ) {
-                particle_t p;
-                p.position.x = Random(position.x, position.x + TILE_SIZE);
-                p.position.y = Random(position.y, position.y + TILE_SIZE);
-                p.velocity = RandomVelocity(10.0f, 20.0f);
-                p.color = (SDL_Color){ 0, 0, 0, 255 };
-                p.lifespan = Random(MS2TICKS(200, FPS), MS2TICKS(400, FPS));
-                InsertParticle(&actor->game->particles, p);
-            }
+            SDL_Color black = { 0, 0, 0, 255 }; // TODO: Palette
+            SpawnParticlesAtActor(&actor->game->particles, actor, black);
             break;
+        }
         default:
             break;
     }
 }
 
 
-int DamageActor(actor_t * actor)
+int DamageActor(Actor * actor)
 {
     actor->hit_timer = 1.0f;
     actor->flags.was_attacked = true;
@@ -260,7 +271,7 @@ int DamageActor(actor_t * actor)
 }
 
 
-actor_t * GetActorAtTile(actor_t * actors, int num_actors, tile_coord_t coord)
+Actor * GetActorAtTile(Actor * actors, int num_actors, TileCoord coord)
 {
     for ( int i = 0; i < num_actors; i++ ) {
         if (   actors[i].tile.x == coord.x
@@ -273,11 +284,11 @@ actor_t * GetActorAtTile(actor_t * actors, int num_actors, tile_coord_t coord)
 }
 
 
-void RenderActor(const actor_t * actor, int x, int y, int size, bool debug)
+void RenderActor(const Actor * actor, int x, int y, int size, bool debug)
 {
     SDL_Texture * actor_sheet = GetTexture("assets/actors.png");
 
-    tile_t * tile = GetTile(&actor->game->map, actor->tile);
+    Tile * tile = GetTile(&actor->game->map, actor->tile);
     if ( !debug ) {
         SDL_SetTextureColorMod(actor_sheet, tile->light, tile->light, tile->light);
     } else {
@@ -338,7 +349,7 @@ void RenderActor(const actor_t * actor, int x, int y, int size, bool debug)
 }
 
 
-void CastLight(game_t * game, const actor_t * actor)
+void CastLight(Game * game, const Actor * actor)
 {
     int r = actor->light_radius;
 
@@ -346,10 +357,10 @@ void CastLight(game_t * game, const actor_t * actor)
         return;
     }
 
-    tile_coord_t coord;
+    TileCoord coord;
     for ( coord.y = actor->tile.y - r; coord.y <= actor->tile.y + r; coord.y++ ) {
         for ( coord.x = actor->tile.x - r; coord.x <= actor->tile.x + r; coord.x++ ) {
-            tile_t * t = GetTile(&game->map, coord);
+            Tile * t = GetTile(&game->map, coord);
 
 //            if ( t && LineOfSight(&game->map, actor->tile, coord, false))
             if ( t && ManhattenPathsAreClear(&game->map,
@@ -368,7 +379,7 @@ void CastLight(game_t * game, const actor_t * actor)
     }
 }
 
-void MoveActor(actor_t * actor, direction_t direction)
+void MoveActor(Actor * actor, Direction direction)
 {
     actor->tile.x += XDelta(direction);
     actor->tile.y += YDelta(direction);
@@ -377,12 +388,12 @@ void MoveActor(actor_t * actor, direction_t direction)
 }
 
 
-bool TryMoveActor(actor_t * actor, direction_t direction)
+bool TryMoveActor(Actor * actor, Direction direction)
 {
-    tile_t * tile = GetAdjacentTile(&actor->game->map, actor->tile, direction);
-    tile_coord_t try_coord = AdjacentTileCoord(actor->tile, direction);
+    Tile * tile = GetAdjacentTile(&actor->game->map, actor->tile, direction);
+    TileCoord try_coord = AdjacentTileCoord(actor->tile, direction);
 
-    if ( tile->flags.blocking ) {
+    if ( tile->flags.blocks_movement ) {
         return false;
     }
 
@@ -393,11 +404,11 @@ bool TryMoveActor(actor_t * actor, direction_t direction)
 
     UpdateActorFacing(actor, XDelta(direction));
 
-    actors_t * actors = &actor->game->map.actors;
+    Actors * actors = &actor->game->map.actors;
 
     // Check if there's an actor at try_x, try_y
     for ( int i = 0; i < actors->count; i++ ) {
-        actor_t * hit = &actors->list[i];
+        Actor * hit = &actors->list[i];
 
         if ( hit != actor
             && hit->tile.x == try_coord.x
@@ -425,7 +436,7 @@ bool TryMoveActor(actor_t * actor, direction_t direction)
     return true;
 }
 
-void UpdateActorFacing(actor_t * actor, int dx)
+void UpdateActorFacing(Actor * actor, int dx)
 {
     if ( dx ) {
         actor->flags.facing_left = dx < 0;
@@ -433,17 +444,17 @@ void UpdateActorFacing(actor_t * actor, int dx)
 }
 
 
-void Teleport(actor_t * actor, tile_coord_t from)
+void Teleport(Actor * actor, TileCoord from)
 {
-    map_t * map = &actor->game->map;
+    Map * map = &actor->game->map;
 
     int min_distance = INT_MAX;
-    tile_coord_t to = actor->tile;
+    TileCoord to = actor->tile;
 
     // Find the nearest teleport.
     for ( int i = 0; i < map->width * map->height; i++ ) {
         if ( map->tiles[i].type == TILE_TELEPORTER ) {
-            tile_coord_t coord = GetCoordinate(map, i);
+            TileCoord coord = GetCoordinate(map, i);
 
             int distance = DISTANCE(coord.x, coord.y, from.x, from.y);
             if ( distance != 0 && distance < min_distance ) {
