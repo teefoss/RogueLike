@@ -14,21 +14,18 @@
 
 /// From tile `start`, find the adjacent tile with the smallest distance
 /// to target tile `end`.
-static Direction
-GetDirectionToTile(Map * map,
-                   TileCoord start,
-                   TileCoord end)
+static Direction GetDirectionToTile(World * world, TileCoord start, TileCoord end)
 {
-    CalculateDistances(map, end, 0);
+    CalculateDistances(&world->map, end, 0);
 
     Direction best_direction = NO_DIRECTION;
     int min_distance = INT_MAX;
 
     for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-        Tile * adj = GetAdjacentTile(map, start, d);
+        Tile * adj = GetAdjacentTile(&world->map, start, d);
         TileCoord tc = AdjacentTileCoord(start, d);
 
-        Actor * a = GetActorAtTile(map->actors.list, map->actors.count, tc);
+        Actor * a = GetActorAtTile(&world->actors, tc);
 
         // TODO: JT
         // Don't move there if:
@@ -53,8 +50,9 @@ GetDirectionToTile(Map * map,
 /// Actor targets player tile if visible. Take one step toward target, NSEW only.
 void A_TargetAndChasePlayerIfVisible(Actor * actor)
 {
-    Map * map = &actor->game->map;
-    Actor * player = GetPlayer(actor->game);
+    World * world = &actor->game->world;
+    Map * map = &world->map;
+    Actor * player = GetPlayer(&world->actors);
 
     if ( LineOfSight(map, actor->tile, player->tile) ) {
         actor->target_tile = player->tile;
@@ -62,7 +60,7 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
     }
 
     if ( actor->flags.has_target ) {
-        Direction d = GetDirectionToTile(map, actor->tile, actor->target_tile);
+        Direction d = GetDirectionToTile(world, actor->tile, actor->target_tile);
         TryMoveActor(actor, d);
 
         // Arrived at target?
@@ -75,11 +73,11 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
 
 void A_ChasePlayerIfVisible(Actor * actor)
 {
-    Map * map = &actor->game->map;
-    Actor * player = GetPlayer(actor->game);
+    World * world = &actor->game->world;
+    Actor * player = GetPlayer(&world->actors);
 
-    if ( LineOfSight(map, actor->tile, player->tile) ) {
-        Direction d = GetDirectionToTile(map, actor->tile, player->tile);
+    if ( LineOfSight(&world->map, actor->tile, player->tile) ) {
+        Direction d = GetDirectionToTile(world, actor->tile, player->tile);
         TryMoveActor(actor, d);
     }
 }
@@ -87,8 +85,8 @@ void A_ChasePlayerIfVisible(Actor * actor)
 
 void A_StupidChasePlayerIfVisible(Actor * actor)
 {
-    Map * map = &actor->game->map;
-    Actor * player = GetPlayer(actor->game);
+    Map * map = &actor->game->world.map;
+    Actor * player = GetPlayer(&actor->game->world.actors);
 
     if ( LineOfSight(map, actor->tile, player->tile) ) {
         int dx = SIGN(player->tile.x - actor->tile.x);

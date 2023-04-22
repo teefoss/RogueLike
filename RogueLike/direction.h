@@ -11,6 +11,7 @@
 #include "coord.h"
 
 #define NUM_CARDINAL_DIRECTIONS 4
+#define DIR_BIT(direction) (1 << direction)
 
 typedef enum {
     NO_DIRECTION = -1,

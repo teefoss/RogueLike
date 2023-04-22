@@ -11,6 +11,7 @@
 #include "sound.h"
 #include "game.h"
 #include "debug.h"
+#include "world.h"
 
 int main(void)
 {
@@ -42,8 +43,6 @@ int main(void)
 
     Game * game = InitGame();
 
-    PrintTilesAreDarkThatShouldntBe(&game->map, "done with InitGame");
-
     int old_time = SDL_GetTicks();
     const float target_dt = 1.0f / FPS;
 
@@ -65,8 +64,8 @@ int main(void)
     }
 
     FreeDistanceMapQueue();
-    free(game->map.tiles);
-    free(game->map.tile_ids);
+    free(game->world.map.tiles);
+    free(game->world.map.tile_ids);
     free(game);
 
     return 0;

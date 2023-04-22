@@ -94,7 +94,17 @@ Tile * GetAdjacentTile(Map * map, TileCoord coord, Direction direction)
 }
 
 
-Tile * GetTile(Map * map, TileCoord coord)
+Tile * GetTileNonConst(Map * map, TileCoord coord)
+{
+    if ( !IsInBounds(map, coord.x, coord.y) ) {
+        return NULL;
+    }
+
+    return &map->tiles[coord.y * map->width + coord.x];
+}
+
+
+const Tile * GetTileConst(const Map * map, TileCoord coord)
 {
     if ( !IsInBounds(map, coord.x, coord.y) ) {
         return NULL;
@@ -111,41 +121,22 @@ TileCoord GetCoordinate(const Map * map, int index)
 }
 
 
-/// - parameter pt: world scaled coordinates
-vec2_t GetRenderLocation(const Game * game, vec2_t pt)
-{
-    SDL_Rect viewport = GetLevelViewport(game);
-
-    int half_w = (viewport.w - SCALED(TILE_SIZE)) / 2;
-    int half_h = (viewport.h - SCALED(TILE_SIZE)) / 2;
-
-    vec2_t offset;
-    offset.x = pt.x - half_w;
-    offset.y = pt.y - half_h;
-
-    return offset;
-}
-
-
-int CompareActors(const void * a, const void * b) {
-    const Actor * actor1 = (const Actor *)a;
-    const Actor * actor2 = (const Actor *)b;
-
-    if (actor1->tile.y != actor2->tile.y) {
-        return actor1->tile.y - actor2->tile.y;
-    } else {
-        return actor1->sprite->draw_priority - actor2->sprite->draw_priority;
-    }
-}
-
-
 /// - parameter region: the rectangular area of the map to draw or NULL to draw
 /// entire map.
-void RenderTilesInRegion(const Game * game, const box_t * region, int tile_size, vec2_t offset, bool debug)
+void RenderTiles(const World * world, const Box * region, vec2_t offset, bool debug)
 {
-    box_t use;
+    const Map * map = &world->map;
+
+    int tile_size;
+    if ( debug ) {
+        tile_size = area_info[world->area].debug_map_tile_size;
+    } else {
+        tile_size = SCALED(TILE_SIZE);
+    }
+
+    Box use;
     if ( region == NULL ) {
-        use = (box_t){ 0, 0, game->map.width - 1, game->map.height - 1 };
+        use = (Box){ 0, 0, map->width - 1, map->height - 1 };
     } else {
         use = *region;
     }
@@ -153,81 +144,28 @@ void RenderTilesInRegion(const Game * game, const box_t * region, int tile_size,
     TileCoord coord;
     for ( coord.y = use.top; coord.y <= use.bottom; coord.y++ ) {
         for ( coord.x = use.left; coord.x <= use.right; coord.x++ ) {
-            const Tile * tile = GetTile((Map *)&game->map, coord);
+            const Tile * tile = GetTile((Map *)map, coord);
 
-            int signature = CalculateWallSignature(&game->map, coord, false);
+            int signature = CalculateWallSignature(map, coord, false);
 
             int pixel_x = coord.x * tile_size - offset.x;
             int pixel_y = coord.y * tile_size - offset.y;
 
             RenderTile(tile,
-                       game->area,
+                       world->area,
                        signature,
                        pixel_x,
                        pixel_y,
                        tile_size,
                        debug);
 
-            if ( show_debug_info && TileCoordsEqual(coord, game->mouse_tile) ) {
+            if ( show_debug_info && TileCoordsEqual(coord, world->mouse_tile) ) {
                 SDL_Rect highlight = { pixel_x, pixel_y, tile_size, tile_size };
                 V_SetRGB(255, 80, 80);
                 V_DrawRect(&highlight);
             }
         }
     }
-}
-
-
-void RenderMap(const Game * game)
-{
-    const SDL_Rect viewport = GetLevelViewport(game);
-    SDL_RenderSetViewport(renderer, &viewport);
-//    vec2_t offset = game->camera;
-    vec2_t offset = GetRenderLocation(game, game->camera);
-    const Actors * actors = &game->map.actors;
-
-    //
-    // Draw all tiles.
-    //
-
-    box_t vis_rect = GetVisibleRegion(game);
-    RenderTilesInRegion(game, &vis_rect, SCALED(TILE_SIZE), offset, false);
-
-    RenderParticles(&game->particles, DRAW_SCALE, offset);
-
-    //
-    // Draw all actors.
-    //
-
-    // Make a list of visible actors.
-    Actor visible_actors[MAX_ACTORS];
-    int num_visible_actors = 0;
-
-    for ( int i = 0; i < actors->count; i++ ) {
-        const Actor * actor = &actors->list[i];
-        const Tile * tile = GetTile((Map *)&game->map, actor->tile);
-
-        if ( (tile->flags.visible || area_info[game->area].reveal_all)
-            && actor->tile.x >= vis_rect.left
-            && actor->tile.x <= vis_rect.right
-            && actor->tile.y >= vis_rect.top
-            && actor->tile.y <= vis_rect.bottom )
-        {
-            visible_actors[num_visible_actors++] = *actor;
-        }
-    }
-
-    SDL_qsort(visible_actors, num_visible_actors, sizeof(Actor), CompareActors);
-
-    for ( int i = 0; i < num_visible_actors; i++ ) {
-        const Actor * a = &visible_actors[i];
-        int size = SCALED(TILE_SIZE);
-        int x = a->tile.x * size + a->offset_current.x - offset.x;
-        int y = a->tile.y * size + a->offset_current.y - offset.y;
-        RenderActor(a, x, y, size, false);
-    }
-
-    SDL_RenderSetViewport(renderer, NULL);
 }
 
 
@@ -276,13 +214,13 @@ static bool HLineIsClear(Map * map, int y, int x0, int x1)
 
     // Walk along the x axis.
     while ( x != x1 ) {
-        Tile * tile = GetTile(map, (TileCoord){ x, y });
+        Tile * tile = GetTile(map, ((TileCoord){ x, y }));
         
         if ( tile == NULL ) {
             return false;
         }
 
-        if ( tile->flags.blocks_movement ) {
+        if ( tile->flags.blocks_sight ) {
             return false;
         }
 
@@ -301,8 +239,8 @@ static bool VLineIsClear(Map * map, int x, int y0, int y1)
     int y = y0;
 
     while ( y != y1 ) {
-        Tile * tile = GetTile(map, (TileCoord){ x, y });
-        if ( tile->flags.blocks_movement ) {
+        Tile * tile = GetTile(map, ((TileCoord){ x, y }));
+        if ( tile->flags.blocks_sight ) {
             return false;
         }
 
@@ -345,26 +283,26 @@ bool ManhattenPathsAreClear(Map * map, int x0, int y0, int x1, int y1)
 /// Get the rectangular region around the player that is currently visible
 /// on screen.
 ///
-box_t GetVisibleRegion(const Game * game)
+Box GetVisibleRegion(const Map * map, const RenderInfo * render_info)
 {
-    SDL_Rect viewport = GetLevelViewport(game);
+    SDL_Rect viewport = GetLevelViewport(render_info);
 
     // Size in tiles.
     int w = viewport.w / SCALED(TILE_SIZE);
     int h = viewport.h / SCALED(TILE_SIZE);
 
     // Get the camera's tile
-    vec2_t camera_tile = { game->camera.x, game->camera.y };
+    vec2_t camera_tile = render_info->camera;
     camera_tile.x /= SCALED(TILE_SIZE);
     camera_tile.y /= SCALED(TILE_SIZE);
 
-    box_t region;
+    Box region;
     region.left = MAX(0, (camera_tile.x - w / 2) - 1);
     region.top = MAX(0, (camera_tile.y - h / 2) - 1);
 
     // Include a padding of +1 so tiles don't disappear when scrolling.
-    region.right = MIN((camera_tile.x + w / 2 + 1), game->map.width - 1);
-    region.bottom = MIN((camera_tile.y + h / 2 + 1), game->map.height - 1);
+    region.right = MIN((camera_tile.x + w / 2 + 1), map->width - 1);
+    region.bottom = MIN((camera_tile.y + h / 2 + 1), map->height - 1);
 
     return region;
 }
@@ -391,6 +329,24 @@ bool TileIsAdjacentTo(const Map * map,
     }
 
     return false;
+}
+
+// TODO: dungeon tiles not resetting
+void ResetTileVisibility(Map * map,
+                         TileCoord player_tile,
+                         const RenderInfo * render_info)
+{
+    Box vis = GetVisibleRegion(map, render_info);
+
+    TileCoord coord;
+    for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
+        for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
+//            if ( LineOfSight(map, player_tile, coord) ) {
+            Tile * tile = GetTile(map, coord);
+            tile->flags.visible = false;
+//            }
+        }
+    }
 }
 
 

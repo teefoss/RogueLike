@@ -6,6 +6,7 @@
 //
 
 #include "game.h"
+#include "tile.h"
 #include "mathlib.h"
 
 #define FOREST_SIZE 128
@@ -54,7 +55,10 @@ static TileCoord CreateTileAtRandomLocation(Map * map, TileType type)
 {
     int index = RandomIndex();
     TileCoord coord = tiles[index];
-    *GetTile(map, coord) = CreateTile(type);
+
+    Tile * tile = GetTile(map, coord);
+    *tile = CreateTile(type);
+    tile->flags.revealed = true;
     RemoveTile(index);
 
     return coord;
@@ -81,13 +85,14 @@ static void FloodFillGroundTiles_r(Map * map, TileCoord coord, int region)
 
 void GenerateForest(Game * game)
 {
-    game->area = AREA_FOREST;
+    World * world = &game->world;
+    world->area = AREA_FOREST;
 
     for ( int i = 0; i < NUM_STARS; i++ ) {
-        game->stars[i].pt.x = Random(0, GAME_WIDTH - 1);
-        game->stars[i].pt.y = Random(0, GAME_HEIGHT - 1);
+        world->stars[i].pt.x = Random(0, GAME_WIDTH - 1);
+        world->stars[i].pt.y = Random(0, GAME_HEIGHT - 1);
 
-        SDL_Color * c = &game->stars[i].color;
+        SDL_Color * c = &world->stars[i].color;
         int n = Random(0, 1000);
         if ( n == 1000 ) {
             *c = (SDL_Color){ 0, 248, 0, 255 };
@@ -98,7 +103,7 @@ void GenerateForest(Game * game)
         }
     }
 
-    Map * map = &game->map;
+    Map * map = &world->map;
 
     map->width = FOREST_SIZE;
     map->height = FOREST_SIZE;
@@ -115,7 +120,7 @@ void GenerateForest(Game * game)
         map->tiles[i] = CreateTile(TILE_WALL);
     }
 
-    map->actors.count = 0;
+    world->actors.count = 0;
 
     RandomizeNoise((u32)time(NULL));
 //    RandomizeNoise(0);
@@ -194,15 +199,15 @@ void GenerateForest(Game * game)
     // Spawn actor, spiders, and teleporter in second largest region.
     GetTilesInRegion(map, second_largest_region);
     SpawnActorAtRandomLocation(game, ACTOR_PLAYER);
-    CreateTileAtRandomLocation(&game->map, TILE_TELEPORTER);
+    CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
     for ( int i = 0; i < region_areas[second_largest_region] / 20; i++ ) {
         SpawnActorAtRandomLocation(game, ACTOR_SPIDER);
     }
 
     // Spawn second teleporter, spiders, and exit in largest region.
     GetTilesInRegion(map, largest_region);
-    CreateTileAtRandomLocation(&game->map, TILE_TELEPORTER);
-    TileCoord exit_coord = CreateTileAtRandomLocation(&game->map, TILE_EXIT);
+    CreateTileAtRandomLocation(map, TILE_TELEPORTER);
+    TileCoord exit_coord = CreateTileAtRandomLocation(map, TILE_EXIT);
     SpawnActor(game, ACTOR_WELL, exit_coord);
     for ( int i = 0; i < region_areas[largest_region] / 10; i++ ) {
         SpawnActorAtRandomLocation(game, ACTOR_SPIDER);

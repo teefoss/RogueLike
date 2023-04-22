@@ -150,13 +150,13 @@ void SoundAsync(unsigned frequency, unsigned milliseconds)
     PlayQueuedSoundAsync();
 }
 
-void StopSoundAsync()
+void StopSoundAsync(void)
 {
     SDL_ClearQueuedAudio(device);
     SDL_PauseAudioDevice(device, SDL_TRUE);
 }
 
-void Beep()
+void Beep(void)
 {
     S_Sound(800, 200);
 }

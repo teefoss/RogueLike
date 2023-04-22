@@ -8,6 +8,15 @@
 #ifndef actor_h
 #define actor_h
 
+#include "coord.h"
+#include "direction.h"
+#include "inventory.h"
+
+#include "inttypes.h"
+#include "vector.h"
+
+#include <stdbool.h>
+
 #define MAX_ACTORS (256 * 256)
 
 typedef enum {
@@ -45,6 +54,7 @@ typedef struct actor_sprite {
 
 
 typedef struct game Game;
+typedef struct world World;
 typedef struct actor Actor;
 
 struct actor {
@@ -97,16 +107,22 @@ struct actor {
 };
 
 
+typedef struct {
+    int count;
+    Actor list[MAX_ACTORS];
+} Actors;
+
+
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
-void CastLight(Game * game, const Actor * actor);
+void CastLight(World * world, const Actor * actor);
 void SpawnActor(Game * game, ActorType type, TileCoord coord);
-void RenderActor(const Actor * actor, int x, int y, int size, bool debug);
+void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int game_ticks);
 void MoveActor(Actor * actor, Direction direction);
 bool TryMoveActor(Actor * actor, Direction direction);
 int DamageActor(Actor * actor);
 void KillActor(Actor * actor);
-Actor * GetActorAtTile(Actor * actors, int num_actors, TileCoord coord);
+Actor * GetActorAtTile(Actors * actors, TileCoord coord);
 const Actor * GetPlayerReadOnly(const Actor * actors, int num_actors);
 void UpdateActorFacing(Actor * actor, int dx);
 void Teleport(Actor * actor, TileCoord from);

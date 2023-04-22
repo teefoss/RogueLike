@@ -87,7 +87,7 @@ static Tile tile_templates[] = {
         .flags = { .blocks_movement = true, .blocks_sight = true },
     },
     [TILE_EXIT] = {
-        .flags = { .player_only = true },
+        .flags = { .player_only = true, },
     },
     [TILE_GOLD_DOOR] = {
         .flags = { .blocks_movement = true, .blocks_sight = true },
@@ -192,7 +192,7 @@ void RenderTile(const Tile * tile,
                 for ( int i = 0; i < NUM_DIRECTIONS; i++ ) {
                     Direction direction = draw_order[i];
 
-                    if ( signature & FLAG(direction) ) {
+                    if ( signature & DIR_BIT(direction) ) {
                         src.x = direction * TILE_SIZE;
                         V_DrawTexture(tiles, &src, &dst);
                     }

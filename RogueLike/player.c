@@ -29,16 +29,18 @@ void SetTileVisible(Map * map, TileCoord coord)
 
 
 /// Reveal and set tiles visible if LOS to player.
-void PlayerCastSight(Game * game)
+void PlayerCastSight(World * world, const RenderInfo * render_info)
 {
-    box_t vis = GetVisibleRegion(game);
-    const Actor * player = GetPlayer(game);
+    Map * map = &world->map;
+    Box vis = GetVisibleRegion(map, render_info);
+
+    const Actor * player = GetPlayer(&world->actors);
 
     TileCoord coord;
     for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
         for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
-            if ( LineOfSight(&game->map, player->tile, coord) ) {
-                SetTileVisible(&game->map, coord);
+            if ( LineOfSight(map, player->tile, coord) ) {
+                SetTileVisible(map, coord);
             }
         }
     }
@@ -47,7 +49,7 @@ void PlayerCastSight(Game * game)
 
 bool CollectItem(Actor * player, Actor * item_actor, Item item)
 {
-    Inventory * inventory = &player->game->inventory;
+    Inventory * inventory = &player->game->player_info.inventory;
 
     if ( inventory->item_counts[item] < 8 ) {
         if ( InventoryIsEmtpy(inventory) ) {
@@ -62,30 +64,16 @@ bool CollectItem(Actor * player, Actor * item_actor, Item item)
     return false;
 }
 
+#define GET_PLAYER_FUNC_BODY \
+    for ( int i = 0; i < actors->count; i++ )           \
+        if ( actors->list[i].type == ACTOR_PLAYER )     \
+            return &actors->list[i];                    \
+    return NULL
 
-const Actor * GetPlayerConst(const Game * game)
-{
-    const Actors * actors = &game->map.actors;
-
-    for ( int i = 0; i < actors->count; i++ ) {
-        if ( actors->list[i].type == ACTOR_PLAYER ) {
-            return &actors->list[i];
-        }
-    }
-
-    return NULL;
+GET_PLAYER_CONST_FUNC_SIG {
+    GET_PLAYER_FUNC_BODY;
 }
 
-
-Actor * GetPlayerNonConst(Game * game)
-{
-    Actors * actors = &game->map.actors;
-
-    for ( int i = 0; i < actors->count; i++ ) {
-        if ( actors->list[i].type == ACTOR_PLAYER ) {
-            return &actors->list[i];
-        }
-    }
-
-    return NULL;
+GET_PLAYER_NONCONST_FUNC_SIG {
+    GET_PLAYER_FUNC_BODY;
 }

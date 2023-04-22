@@ -6,6 +6,7 @@
 //
 
 #include "game.h"
+#include "world.h"
 
 #include "mathlib.h"
 #include "texture.h"
@@ -186,10 +187,8 @@ void SpawnActor(Game * game, ActorType type, TileCoord coord)
     actor.tile = coord;
     actor.health = actor.max_health;
 
-    Actors * actors = &game->map.actors;
-
-    if ( actors->count + 1 <= MAX_ACTORS ) {
-        actors->list[actors->count++] = actor;
+    if ( game->world.actors.count + 1 <= MAX_ACTORS ) {
+        game->world.actors.list[game->world.actors.count++] = actor;
     } else {
         printf("ran out of room in actor array!\n");
         return;
@@ -217,7 +216,7 @@ void SpawnParticlesAtActor(ParticleArray * array, Actor * actor, SDL_Color color
         p.velocity = RandomVelocity(10.0f, 20.0f);
         p.color = color;
         p.lifespan = Random(MS2TICKS(200, FPS), MS2TICKS(400, FPS));
-        InsertParticle(&actor->game->particles, p);
+        InsertParticle(&actor->game->world.particles, p);
     }
 }
 
@@ -240,7 +239,7 @@ void KillActor(Actor * actor)
                 SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
             }
             SDL_Color green = { 0, 255, 0, 255 }; // TODO: Palette
-            SpawnParticlesAtActor(&actor->game->particles, actor, green);
+            SpawnParticlesAtActor(&actor->game->world.particles, actor, green);
 
             break;
         }
@@ -249,7 +248,7 @@ void KillActor(Actor * actor)
                 SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
             }
             SDL_Color black = { 0, 0, 0, 255 }; // TODO: Palette
-            SpawnParticlesAtActor(&actor->game->particles, actor, black);
+            SpawnParticlesAtActor(&actor->game->world.particles, actor, black);
             break;
         }
         default:
@@ -271,12 +270,12 @@ int DamageActor(Actor * actor)
 }
 
 
-Actor * GetActorAtTile(Actor * actors, int num_actors, TileCoord coord)
+Actor * GetActorAtTile(Actors * actors, TileCoord coord)
 {
-    for ( int i = 0; i < num_actors; i++ ) {
-        if (   actors[i].tile.x == coord.x
-            && actors[i].tile.y == coord.y ) {
-            return &actors[i];
+    for ( int i = 0; i < actors->count; i++ ) {
+        if (   actors->list[i].tile.x == coord.x
+            && actors->list[i].tile.y == coord.y ) {
+            return &actors->list[i];
         }
     }
 
@@ -284,11 +283,11 @@ Actor * GetActorAtTile(Actor * actors, int num_actors, TileCoord coord)
 }
 
 
-void RenderActor(const Actor * actor, int x, int y, int size, bool debug)
+void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int game_ticks)
 {
     SDL_Texture * actor_sheet = GetTexture("assets/actors.png");
 
-    Tile * tile = GetTile(&actor->game->map, actor->tile);
+    Tile * tile = GetTile(&actor->game->world.map, actor->tile);
     if ( !debug ) {
         SDL_SetTextureColorMod(actor_sheet, tile->light, tile->light, tile->light);
     } else {
@@ -334,7 +333,7 @@ void RenderActor(const Actor * actor, int x, int y, int size, bool debug)
     // y position tweaks
     // TODO: adjust for tall sprites
     if ( actor->flags.floats ) {
-        dst.y += (sinf(actor->game->ticks / 7) * SCALED(1)) - SCALED(6);
+        dst.y += (sinf(game_ticks / 7) * SCALED(1)) - SCALED(6);
     } else {
         if ( !debug ) {
             dst.y -= SCALED(3);
@@ -349,7 +348,7 @@ void RenderActor(const Actor * actor, int x, int y, int size, bool debug)
 }
 
 
-void CastLight(Game * game, const Actor * actor)
+void CastLight(World * world, const Actor * actor)
 {
     int r = actor->light_radius;
 
@@ -360,10 +359,10 @@ void CastLight(Game * game, const Actor * actor)
     TileCoord coord;
     for ( coord.y = actor->tile.y - r; coord.y <= actor->tile.y + r; coord.y++ ) {
         for ( coord.x = actor->tile.x - r; coord.x <= actor->tile.x + r; coord.x++ ) {
-            Tile * t = GetTile(&game->map, coord);
+            Tile * t = GetTile(&world->map, coord);
 
 //            if ( t && LineOfSight(&game->map, actor->tile, coord, false))
-            if ( t && ManhattenPathsAreClear(&game->map,
+            if ( t && ManhattenPathsAreClear(&world->map,
                                              actor->tile.x,
                                              actor->tile.y,
                                              coord.x,
@@ -390,7 +389,7 @@ void MoveActor(Actor * actor, Direction direction)
 
 bool TryMoveActor(Actor * actor, Direction direction)
 {
-    Tile * tile = GetAdjacentTile(&actor->game->map, actor->tile, direction);
+    Tile * tile = GetAdjacentTile(&actor->game->world.map, actor->tile, direction);
     TileCoord try_coord = AdjacentTileCoord(actor->tile, direction);
 
     if ( tile->flags.blocks_movement ) {
@@ -404,7 +403,7 @@ bool TryMoveActor(Actor * actor, Direction direction)
 
     UpdateActorFacing(actor, XDelta(direction));
 
-    Actors * actors = &actor->game->map.actors;
+    Actors * actors = &actor->game->world.actors;
 
     // Check if there's an actor at try_x, try_y
     for ( int i = 0; i < actors->count; i++ ) {
@@ -444,9 +443,10 @@ void UpdateActorFacing(Actor * actor, int dx)
 }
 
 
+// TODO: telefrag?
 void Teleport(Actor * actor, TileCoord from)
 {
-    Map * map = &actor->game->map;
+    Map * map = &actor->game->world.map;
 
     int min_distance = INT_MAX;
     TileCoord to = actor->tile;

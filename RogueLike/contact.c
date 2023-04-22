@@ -37,7 +37,7 @@ void C_Player(Actor * player, Actor * hit)
             break;
         case ACTOR_GOLD_KEY:
             strncpy(player->game->log, "Got the golden key!", sizeof(player->game->log));
-            player->game->has_gold_key = true;
+            player->game->player_info.has_gold_key = true;
             hit->flags.remove = true;
             S_Play("l32 t100 o1 a > a > a");
             break;
@@ -53,8 +53,8 @@ void C_Player(Actor * player, Actor * hit)
             S_Play("o3 t100 l32 f c b-");
             break;
         case ACTOR_BUTTON_UP:
-            for ( int i = 0; i < player->game->map.actors.count; i++ ) {
-                Actor * a = &player->game->map.actors.list[i];
+            for ( int i = 0; i < player->game->world.actors.count; i++ ) {
+                Actor * a = &player->game->world.actors.list[i];
                 if ( a->type == ACTOR_BLOCK_UP ) {
                     a->flags.remove = true;
                     SpawnActor(player->game, ACTOR_BLOCK_DOWN, a->tile);

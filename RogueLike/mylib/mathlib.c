@@ -115,9 +115,9 @@ int RectDiagonalLength(int w, int h)
     return (int)sqrt(w * w + h * h);
 }
 
-box_t BoxFromRect(SDL_Rect rect)
+Box BoxFromRect(SDL_Rect rect)
 {
-    return (box_t){ rect.x, rect.y, rect.x + rect.h, rect.y + rect.h };
+    return (Box){ rect.x, rect.y, rect.x + rect.h, rect.y + rect.h };
 }
 
 // https://noonat.github.io/intersect/

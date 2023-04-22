@@ -53,7 +53,7 @@ void DebugRenderTiles(const Map * map, Area area, int tile_size)
 {
     for ( int y = 0; y < map->height; y++ ) {
         for ( int x = 0; x < map->width; x++ ) {
-            Tile * tile = GetTile((Map *)map, (TileCoord){ x, y });
+            Tile * tile = GetTile((Map *)map, ((TileCoord){ x, y }));
             RenderTile(tile, area, 0, x * tile_size, y * tile_size, tile_size, true);
         }
     }
@@ -65,7 +65,9 @@ void RenderTilesWithDelay(Game * game)
     if ( show_map_gen ) {
         CheckForShowMapGenCancel();
         V_ClearRGB(0, 0, 0);
-        DebugRenderTiles(&game->map, game->area, area_info[game->area].debug_map_tile_size);
+        DebugRenderTiles(&game->world.map,
+                         game->world.area,
+                         area_info[game->world.area].debug_map_tile_size);
         V_Refresh();
         SDL_Delay(25);
     }
@@ -291,13 +293,14 @@ TileCoord GetRoomCenter(SDL_Rect room)
 /// Get a list of tiles in a room that are unoccupied by an actor and not
 /// adjacent to a door.
 ///
-static void GetValidRoomTiles(const Map * map, int room_num)
+static void GetValidRoomTiles(const World * world, int room_num)
 {
+    const Map * map = &world->map;
     bool * occupied = calloc(map->width * map->height, sizeof(*occupied));
 
-    for ( int i = 0; i < map->actors.count; i++ ) {
-        int x = map->actors.list[i].tile.x;
-        int y = map->actors.list[i].tile.y;
+    for ( int i = 0; i < world->actors.count; i++ ) {
+        int x = world->actors.list[i].tile.x;
+        int y = world->actors.list[i].tile.y;
         occupied[y * map->width + x] = true;
     }
 
@@ -546,24 +549,27 @@ void SpawnDoors(Map * map, TileCoord * potentials, int array_len)
 #endif
 }
 
+
 void SpawnPlayerAndStartTile(Game * game)
 {
-    TileCoord pt = GetRoomCenter(game->map.rooms[0]);
+    TileCoord pt = GetRoomCenter(game->world.map.rooms[0]);
     printf("player start: %d, %d\n", pt.x, pt.y);
 
     SpawnActor(game, ACTOR_PLAYER, pt);
-    *GetTile(&game->map, pt) = CreateTile(TILE_START);
+    *GetTile(&game->world.map, pt) = CreateTile(TILE_START);
 }
 
 
 void SpawnGoldKey(Game * game)
 {
-    Actor * player = GetPlayer(game);
-    GetReachableTiles(&game->map, player->tile, FLAG(TILE_DOOR));
+    Actor * player = GetPlayer(&game->world.actors);
+    Map * map = &game->world.map;
+
+    GetReachableTiles(map, player->tile, FLAG(TILE_DOOR));
 
     // Remove any points that are not in a room (-1) or are in the start room (0)
     for ( int i = _count - 1; i >= 0; i-- ) {
-        Tile * tile = GetTile(&game->map, _buffer[i]);
+        Tile * tile = GetTile(map, _buffer[i]);
         if ( tile->room_num <= 0 ) {
             BufferRemove(i);
         }
@@ -575,7 +581,7 @@ void SpawnGoldKey(Game * game)
         puts("Could not find spot for gold key!");
         // The start room's only door is to the exit room.
         // For now, just spawn the key in the start room (lame).
-        GetValidRoomTiles(&game->map, 0);
+        GetValidRoomTiles(&game->world, 0);
     }
 
     gold_key_tile_coord = _buffer[Random(0, _count - 1)];
@@ -583,8 +589,8 @@ void SpawnGoldKey(Game * game)
     SpawnActor(game, ACTOR_GOLD_KEY, gold_key_tile_coord);
 
     // Save the gold key's room number.
-    Tile * gold_key_tile = GetTile(&game->map, gold_key_tile_coord);
-    game->gold_key_room_num = gold_key_tile->room_num;
+    Tile * gold_key_tile = GetTile(map, gold_key_tile_coord);
+    map->gold_key_room_num = gold_key_tile->room_num;
 }
 
 
@@ -595,7 +601,7 @@ void SpawnGoldKey(Game * game)
 ///
 void SpawnExit(Game * game)
 {
-    Map * map = &game->map;
+    Map * map = &game->world.map;
 
     int exit_room = map->num_rooms - 1;
 
@@ -648,7 +654,7 @@ void SpawnExit(Game * game)
     // TODO: do this not dumb.
     for ( int y = rect.y; y <= rect.y + rect.h; y++ ) {
         for ( int x = rect.x; x <= rect.x + rect.w; x++ ) {
-            Tile * tile = GetTile(map, (TileCoord){ x, y });
+            Tile * tile = GetTile(map, ((TileCoord){ x, y }));
             if ( tile->type == TILE_DOOR ) {
                 *tile = CreateTile(TILE_GOLD_DOOR);
             }
@@ -672,9 +678,9 @@ void GenerateDungeon(Game * game, int width, int height)
         Error("Dugeon width and height must be odd");
     }
 
-    game->area = AREA_DUNGEON;
+    game->world.area = AREA_DUNGEON;
 
-    Map * map = &game->map;
+    Map * map = &game->world.map;
     map->width = width;
     map->height = height;
 
@@ -712,7 +718,7 @@ void GenerateDungeon(Game * game, int width, int height)
         Error("Could not allocate map tile id array");
     }
 
-    game->map.actors.count = 0;
+    game->world.actors.count = 0;
 
     InitTiles(map);
 
@@ -747,7 +753,7 @@ void GenerateDungeon(Game * game, int width, int height)
 
     // In each room...
     for ( int i = 0; i < map->num_rooms; i++ ) {
-        GetValidRoomTiles(&game->map, i);
+        GetValidRoomTiles(&game->world, i);
         float chance = 1.0f;
         int area = map->rooms[i].w * map->rooms[i].h;
         int max_monsters = area / 4;

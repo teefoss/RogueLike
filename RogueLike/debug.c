@@ -63,7 +63,7 @@ void PrintTilesAreDarkThatShouldntBe(Map * map, const char * string)
 {
     for ( int y = 0; y < map->height; y++ ) {
         for (int x = 0; x < map->width; x++ ) {
-            Tile * tile = GetTile(map, (TileCoord){ x, y });
+            Tile * tile = GetTile(map, ((TileCoord){ x, y }));
             if ( tile->flags.revealed && tile->light == 0 ) {
                 printf("%s: fucked\n", string);
                 return;
