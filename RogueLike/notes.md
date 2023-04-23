@@ -82,3 +82,13 @@ Will you be able to defeat the guardian and claim the ultimate treasure? Or will
 # Resources
 
 - https://www.redblobgames.com/maps/terrain-from-noise/
+
+
+
+# Other
+
+next game: 10 "worlds"
+- dark forest, two moons transit at different speed, occasionally lining up for
+extra brightness and total darkness, same gen as this rogue-like (clearings and lakes)
+- blizzard world
+- underground

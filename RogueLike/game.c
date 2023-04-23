@@ -13,6 +13,7 @@
 #include "debug.h"
 #include "icon.h"
 #include "gen.h"
+#include "menu.h"
 
 #include "mathlib.h"
 #include "sound.h"
@@ -64,7 +65,7 @@ void LoadLevel(Game * game, int level_num)
 
     switch ( level_num ) {
         case 1:
-            GenerateForest(game);
+            GenerateForest(game, (u32)time(NULL));
             break;
         default:
             // TODO: The Well
@@ -86,6 +87,129 @@ void LoadLevel(Game * game, int level_num)
 
     game->player_info.player_turns = INITIAL_TURNS;
     game->player_info.has_gold_key = false;
+}
+
+
+void NewGame(Game * game)
+{
+    LoadLevel(game, 1);
+    ChangeState(game, &level_idle);
+}
+
+
+int InventoryRenderX(Inventory * inventory)
+{
+    int max_width = 0;
+
+    if ( InventoryIsEmtpy(inventory) ) {
+        return GAME_WIDTH - (V_CharWidth() * strlen("Inventory") + HUD_MARGIN * 2);
+    }
+
+    for ( int i = 0; i < NUM_ITEMS; i++ ) {
+        if ( inventory->item_counts[i] == 0 ) {
+            continue;
+        }
+
+        max_width = MAX(max_width, HUD_MARGIN * 2 + ItemInfoWidth(i));
+    }
+
+    return GAME_WIDTH - max_width;
+}
+
+
+/// Do lighting, particles n stuff for level idle and turn.
+void UpdateLevel(Game * game, float dt)
+{
+    Actor * player = GetPlayer(&game->world.actors);
+    Actors * actors = &game->world.actors;
+    Map * map = &game->world.map;
+
+    // TODO: make int remove_indices[] and int num_to_remove
+    // If num_to_remove > 0, sort array decreasing
+    for ( int i = actors->count - 1; i >= 0; i-- ) {
+        Actor * actor = &actors->list[i];
+
+        if ( actor->flags.remove ) {
+            actors->list[i] = actors->list[--actors->count];
+        }
+    }
+
+    // Update Actors: run timers.
+    for ( int i = 0; i < actors->count; i++ ) {
+        Actor * actor = &actors->list[i];
+
+        if ( actor->hit_timer > 0.0f ) {
+            actor->hit_timer -= 5.0f * dt;
+        }
+    }
+
+    // Update camera.
+
+    vec2_t player_pt; // world scaled
+    player_pt.x = player->tile.x * SCALED(TILE_SIZE) + player->offset_current.x;
+    player_pt.y = player->tile.y * SCALED(TILE_SIZE) + player->offset_current.y;
+    game->render_info.camera = Vec2LerpEpsilon(game->render_info.camera,
+                                               player_pt,
+                                               0.2f,
+                                               1.0f);
+
+    // Update lighting based on new camera position.
+    Box vis = GetVisibleRegion(map, &game->render_info);
+    SetTileLight(&game->world, &game->render_info);
+
+    for ( int i = 0; i < game->world.actors.count; i++ ) {
+        Actor * actor = &game->world.actors.list[i];
+
+        if (   actor->tile.x >= vis.left
+            && actor->tile.x <= vis.right
+            && actor->tile.y >= vis.top
+            && actor->tile.y <= vis.bottom )
+        {
+            CastLight(&game->world, actor);
+        }
+    }
+
+    // Update inventory panel position
+    {
+        float target;
+        if ( game->inventory_open ) {
+            target = InventoryRenderX(&game->player_info.inventory);
+        } else {
+            target = GAME_WIDTH; // Closed
+        }
+
+        game->render_info.inventory_x = LerpEpsilon(game->render_info.inventory_x, target, 0.33f, 1.0f);
+    }
+
+    UpdateParticles(&game->world.particles, dt);
+
+    // Update mouse tile
+    {
+        vec2_t window_scale = GetWindowScale();
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+
+        // Adjust for window scale
+        vec2_t mouse;
+        mouse.x = (float)mx / window_scale.x;
+        mouse.y = (float)my / window_scale.y;
+
+        // Convert to tile and apply draw offset
+        if ( show_debug_map ) {
+            // (No draw offset)
+            mouse.x /= area_info[game->world.area].debug_map_tile_size;
+            mouse.y /= area_info[game->world.area].debug_map_tile_size;
+        } else {
+            vec2_t render_offset = GetRenderOffset(&game->render_info);
+            mouse.x += render_offset.x;
+            mouse.y += render_offset.y;
+            mouse.x /= SCALED(TILE_SIZE);
+            mouse.y /= SCALED(TILE_SIZE);
+        }
+
+        game->world.mouse_tile.x = mouse.x;
+        game->world.mouse_tile.y = mouse.y;
+    }
 }
 
 
@@ -291,12 +415,16 @@ void UseItem(Actor * player, PlayerInfo * info)
 
 bool LevelIdleProcessInput(Game * game, const SDL_Event * event)
 {
+    const u8 * keys = SDL_GetKeyboardState(NULL);
+
     switch ( event->type ) {
         case SDL_KEYDOWN:
 
-//            if ( event->key.repeat > 0 ) {
-//                return false;
-//            }
+            if ( !keys[SDL_SCANCODE_LSHIFT] && !keys[SDL_SCANCODE_RSHIFT] ) {
+                if ( event->key.repeat > 0 ) {
+                    return false;
+                }
+            }
 
             switch ( event->key.keysym.sym ) {
                 case SDLK_w:
@@ -349,6 +477,8 @@ void LevelIdleUpdate(Game * game, float dt)
             actor->frame = (actor->frame + 1) % actor->sprite->num_frames;
         }
     }
+
+    UpdateLevel(game, dt);
 }
 
 
@@ -383,6 +513,8 @@ void LevelTurnUpdate(Game * game, float dt)
             }
         }
     }
+
+    UpdateLevel(game, dt);
 }
 
 #pragma mark - RENDER
@@ -395,26 +527,6 @@ vec2_t GetWindowScale(void)
     vec2_t scale = { w / (float)GAME_WIDTH, h / (float)GAME_HEIGHT };
 
     return scale;
-}
-
-
-int InventoryRenderX(Inventory * inventory)
-{
-    int max_width = 0;
-
-    if ( InventoryIsEmtpy(inventory) ) {
-        return GAME_WIDTH - (V_CharWidth() * strlen("Inventory") + HUD_MARGIN * 2);
-    }
-
-    for ( int i = 0; i < NUM_ITEMS; i++ ) {
-        if ( inventory->item_counts[i] == 0 ) {
-            continue;
-        }
-
-        max_width = MAX(max_width, HUD_MARGIN * 2 + ItemInfoWidth(i));
-    }
-
-    return GAME_WIDTH - max_width;
 }
 
 
@@ -487,41 +599,6 @@ void RenderHUD(const Game * game, const Actor * player)
         Icon icon = i + 1 > player->health ? ICON_EMPTY_HEART : ICON_FULL_HEART;
         RenderIcon(icon, health_x + i * SCALED(ICON_SIZE), hud_y);
     }
-}
-
-
-void RenderMoon(int x, int y, int size)
-{
-    SDL_Rect moon1_rect = {
-        .x = x - size / 2,
-        .y = y - size / 2,
-        .w = size,
-        .h = size,
-    };
-
-    V_SetGray(248);
-    V_FillRect(&moon1_rect);
-}
-
-
-void RenderForestBackground(const Star * stars)
-{
-
-    for ( int i = 0; i < NUM_STARS; i++ ) {
-//        V_SetGray(232);
-        V_SetColor(stars[i].color);
-        SDL_Rect r = {
-            stars[i].pt.x,
-            stars[i].pt.y,
-            SCALED(1) / 2, // Half a pixel wide
-            SCALED(1) / 2
-        };
-        V_FillRect(&r);
-    }
-
-    int moom_size = SCALED(TILE_SIZE * 3);
-    RenderMoon(GAME_WIDTH * 0.66, GAME_HEIGHT * 0.66, moom_size);
-    RenderMoon(GAME_WIDTH * 0.33, GAME_HEIGHT * 0.33, moom_size * 0.66);
 }
 
 
@@ -624,14 +701,12 @@ void GamePlayRender(const Game * game)
             RenderActor(actor, x, y, size, true, game->ticks);
         }
     } else {
-        if ( world->area == AREA_FOREST ) {
-            RenderForestBackground(game->world.stars);
-        }
-
         RenderWorld(world, &game->render_info, game->ticks);
 
-        if ( !show_debug_info ) {
-            RenderHUD(game, GetPlayer(&world->actors));
+        if ( menu_state == MENU_NONE ) {
+            if ( !show_debug_info ) {
+                RenderHUD(game, GetPlayer(&world->actors));
+            }
         }
 
         if ( game->render_info.inventory_x != GAME_WIDTH ) {
@@ -642,6 +717,18 @@ void GamePlayRender(const Game * game)
     if ( show_debug_info ) {
         RenderDebugInfo(&game->world.map, GetPlayer(&world->actors), world->mouse_tile);
     }
+
+    // Darken world a bit so the menu is clear.
+    if ( menu_state != MENU_NONE ) {
+        V_SetRGBA(0, 0, 0, 160);
+        V_FillRect(NULL);
+    }
+}
+
+
+void TitleScreenRender(const Game * game)
+{
+    RenderWorld(&game->world, &game->render_info, game->ticks);
 }
 
 
@@ -676,124 +763,44 @@ Game * InitGame(void)
     game->world = InitWorld();
     game->state_stack_top = -1;
 
-    LoadLevel(game, 1);
-    PushState(game, &level_idle);
+    // Generate a forest as the title screen background.
+//    u32 seed = (u32)time(NULL);
+    u32 seed = 1682214124;
+    printf("title screen seed: %d\n", seed);
+    GenerateForest(game, seed);
 
-    return game;
-}
-
-
-void UpdateGame(Game * game, float dt)
-{
-    Actor * player = GetPlayer(&game->world.actors);
+    // Remove all non-tree actors.
     Actors * actors = &game->world.actors;
-    Map * map = &game->world.map;
-
-    UpdateState(game, dt);
-
-    // TODO: make int remove_indices[] and int num_to_remove
-    // If num_to_remove > 0, sort array decreasing
     for ( int i = actors->count - 1; i >= 0; i-- ) {
-        Actor * actor = &actors->list[i];
-
-        if ( actor->flags.remove ) {
+        if ( actors->list[i].type != ACTOR_TREE ) {
             actors->list[i] = actors->list[--actors->count];
         }
     }
 
-    // Update Actors: run timers.
-    for ( int i = 0; i < actors->count; i++ ) {
-        Actor * actor = &actors->list[i];
+    // Center camera in world.
+    TileCoord center = { game->world.map.width / 2, game->world.map.height / 2 };
+    game->render_info.camera = TileCoordToScaledWorldCoord(center, vec2_zero);
 
-        if ( actor->hit_timer > 0.0f ) {
-            actor->hit_timer -= 5.0f * dt;
-        }
-    }
+    PushState(game, &game_state_title);
+    PushState(game, &game_state_menu);
+    menu_state = MENU_MAIN;
 
-    // Update camera.
-
-    vec2_t player_pt; // world scaled
-    player_pt.x = player->tile.x * SCALED(TILE_SIZE) + player->offset_current.x;
-    player_pt.y = player->tile.y * SCALED(TILE_SIZE) + player->offset_current.y;
-    game->render_info.camera = Vec2LerpEpsilon(game->render_info.camera,
-                                               player_pt,
-                                               0.2f,
-                                               1.0f);
-
-    // Update lighting based on new camera position.
-    Box vis = GetVisibleRegion(map, &game->render_info);
-    SetTileLight(&game->world, &game->render_info);
-
-    for ( int i = 0; i < game->world.actors.count; i++ ) {
-        Actor * actor = &game->world.actors.list[i];
-
-        if (   actor->tile.x >= vis.left
-            && actor->tile.x <= vis.right
-            && actor->tile.y >= vis.top
-            && actor->tile.y <= vis.bottom )
-        {
-            CastLight(&game->world, actor);
-        }
-    }
-
-    // Update inventory panel position
-    {
-        float target;
-        if ( game->inventory_open ) {
-            target = InventoryRenderX(&game->player_info.inventory);
-        } else {
-            target = GAME_WIDTH; // Closed
-        }
-
-        game->render_info.inventory_x = LerpEpsilon(game->render_info.inventory_x, target, 0.33f, 1.0f);
-    }
-
-    UpdateParticles(&game->world.particles, dt);
-
-    // Update mouse tile
-#if 1 // TODO: fix, new camera stuff
-    {
-        vec2_t window_scale = GetWindowScale();
-        int mx, my;
-        SDL_GetMouseState(&mx, &my);
-
-        // Adjust for window scale
-        vec2_t mouse;
-        mouse.x = (float)mx / window_scale.x;
-        mouse.y = (float)my / window_scale.y;
-
-        // Convert to tile and apply draw offset
-        if ( show_debug_map ) {
-            // (No draw offset)
-            mouse.x /= area_info[game->world.area].debug_map_tile_size;
-            mouse.y /= area_info[game->world.area].debug_map_tile_size;
-        } else {
-            vec2_t render_offset = GetRenderOffset(&game->render_info);
-            mouse.x += render_offset.x;
-            mouse.y += render_offset.y;
-            mouse.x /= SCALED(TILE_SIZE);
-            mouse.y /= SCALED(TILE_SIZE);
-        }
-
-        game->world.mouse_tile.x = mouse.x;
-        game->world.mouse_tile.y = mouse.y;
-    }
-#endif
+    return game;
 }
+
 
 // TODO: profile function macro -> ms stored in debug.c global and displayed in debug screen
 void DoFrame(Game * game, float dt)
 {
     debug_row = 0;
 
-    const GameState ** state = &game->state_stack[game->state_stack_top];
-
     SDL_Event event;
     while ( SDL_PollEvent(&event) ) {
 
         // Let the current game state process this event first.
-        if (   (*state)->process_event
-            && (*state)->process_event(game, &event) )
+        const GameState * state = game->state_stack[game->state_stack_top];
+        if (   state->process_event
+            && state->process_event(game, &event) )
         {
             continue;
         }
@@ -810,6 +817,9 @@ void DoFrame(Game * game, float dt)
                         break;
                     case SDLK_TAB:
                         game->inventory_open = !game->inventory_open;
+                        break;
+                    case SDLK_ESCAPE:
+                        MenuToggle(game);
                         break;
                     case SDLK_F1:
                         show_debug_info = !show_debug_info;
@@ -842,7 +852,7 @@ void DoFrame(Game * game, float dt)
         }
     }
 
-    UpdateGame(game, dt);
+    UpdateState(game, dt);
 
     // TODO: move to area_info
     if ( game->world.area == AREA_FOREST ) {

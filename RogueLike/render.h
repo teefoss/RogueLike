@@ -24,6 +24,25 @@
 
 #define SCALED(size) (size * DRAW_SCALE)
 
+typedef enum {
+    GOLINE_DARK_PURPLE,
+    GOLINE_PURPLE,
+    GOLINE_RED,
+    GOLINE_ORANGE,
+    GOLINE_YELLOW,
+    GOLINE_LIGHT_GREEN,
+    GOLINE_DARK_GREEN,
+    GOLINE_DARK_BLUE,
+    GOLINE_BLACK,
+    GOLINE_BLUE,
+    GOLINE_LIGHT_BLUE,
+    GOLINE_CYAN,
+    GOLINE_WHITE,
+    GOLINE_LIGHT_GRAY,
+    GOLINE_BROWN,
+    GOLINE_DARK_GRAY
+} PaletteColor;
+
 typedef struct {
     vec2_t camera; // world focus point in scaled coordinates
     float inventory_x; // the left side of the inventory panel
@@ -34,5 +53,7 @@ vec2_t GetRenderLocation(const RenderInfo * render_info, vec2_t point);
 
 /// Get the render offset according to the current position of the camera.
 vec2_t GetRenderOffset(const RenderInfo * render_info);
+
+void SetColor(PaletteColor color);
 
 #endif /* render_h */

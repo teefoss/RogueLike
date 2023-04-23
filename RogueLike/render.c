@@ -7,6 +7,26 @@
 
 #include "render.h"
 #include "game.h"
+#include "video.h"
+
+static SDL_Color palette[] = {
+    { 67,   0, 103,    255 },
+    { 148,  33, 106,    255 },
+    { 255,   0,  77,    255 },
+    { 255, 132,  38,    255 },
+    { 255, 221,  52,    255 },
+    { 80, 225,  18,    255 },
+    { 63, 166, 111,    255 },
+    { 54,  89, 135,    255 },
+    { 0,   0,   0,    255 },
+    { 0,  51, 255,    255 },
+    { 41, 173, 255,    255 },
+    { 0, 255, 204,    255 },
+    { 255, 241, 232,    255 },
+    { 194, 195, 199,    255 },
+    { 171,  82,  54,    255 },
+    { 95,  87,  79,    255 },
+};
 
 /// Level area rect. Width and height are scaled.
 SDL_Rect GetLevelViewport(const RenderInfo * render_info)
@@ -37,4 +57,10 @@ vec2_t GetRenderLocation(const RenderInfo * render_info, vec2_t point)
 vec2_t GetRenderOffset(const RenderInfo * render_info)
 {
     return GetRenderLocation(render_info, render_info->camera);
+}
+
+
+void SetColor(PaletteColor color)
+{
+    V_SetColor(palette[color]);
 }

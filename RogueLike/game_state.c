@@ -7,6 +7,7 @@
 
 #include "game_state.h"
 #include "game.h"
+#include "menu.h"
 
 #include "genlib.h"
 
@@ -22,13 +23,14 @@ void GamePlayRender(const Game * game);
 void IntermissionRender(const Game * game);
 void IntermissionOnExit(Game * game);
 
+void TitleScreenRender(const Game * game);
+
 const GameState level_idle = {
         .process_event  = LevelIdleProcessInput,
         .update         = LevelIdleUpdate,
         .render         = GamePlayRender,
         .on_enter       = LevelIdleOnEnter,
         .on_exit        = NULL,
-        .duration_ticks = -1,
         .next_state     = NULL,
 };
 
@@ -38,7 +40,6 @@ const GameState level_turn = {
         .render         = GamePlayRender,
         .on_enter       = LevelTurnOnEnter,
         .on_exit        = NULL,
-        .duration_ticks = -1,
         .next_state     = &level_idle,
 };
 
@@ -48,8 +49,18 @@ const GameState intermission = {
         .render         = IntermissionRender,
         .on_enter       = NULL,
         .on_exit        = IntermissionOnExit,
+        .finite_duration = true,
         .duration_ticks = MS2TICKS(3000, FPS),
         .next_state     = &level_idle,
+};
+
+const GameState game_state_menu = {
+    .process_event = MenuProcessEvent,
+    .render = MenuRender,
+};
+
+const GameState game_state_title = {
+    .render = TitleScreenRender,
 };
 
 
@@ -62,12 +73,16 @@ const GameState * GetGameState(const Game * game)
 void PushState(Game * game, const GameState * new_state)
 {
     if ( game->state_stack_top + 1 >= MAX_GAME_STATES ) {
-        printf("Ran out of room in game state stack\n");
+        printf("Ran out of room in game state stack, "
+               "please increase MAX_GAME_STATES!\n");
         return;
     }
 
-    game->state_stack_top++;
-    ChangeState(game, new_state);
+    if ( new_state == NULL ) {
+        Error("tried to push NULL game state!");
+    }
+
+    game->state_stack[++game->state_stack_top] = new_state;
 }
 
 
@@ -78,8 +93,7 @@ void PopState(Game * game)
         return;
     }
 
-    game->state_stack_top--;
-    ChangeState(game, NULL);
+    --game->state_stack_top;
 }
 
 
@@ -98,7 +112,7 @@ void ChangeState(Game * game, const GameState * new_state)
             (*state)->on_enter(game);
         }
 
-        if ( (*state)->duration_ticks != -1 ) {
+        if ( (*state)->finite_duration ) {
             game->state_timer = (*state)->duration_ticks;
         }
     }
@@ -109,7 +123,7 @@ void UpdateState(Game * game, float dt)
 {
     const GameState * state = game->state_stack[game->state_stack_top];
 
-    if ( state->duration_ticks != -1 ) {
+    if ( state->finite_duration ) {
         // Run timer for finite length states
         if ( --game->state_timer <= 0 ) {
             ChangeState(game, state->next_state);

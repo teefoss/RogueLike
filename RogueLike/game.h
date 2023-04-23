@@ -62,6 +62,7 @@ bool InventoryIsEmtpy(const Inventory * inventory);
 Game * InitGame(void);
 void DoFrame(Game * game, float dt);
 vec2_t GetWindowScale(void);
+void NewGame(Game * game);
 
 
 #pragma mark - animation.c

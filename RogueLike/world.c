@@ -31,10 +31,49 @@ static int CompareActors(const void * a, const void * b) {
 }
 
 
+void RenderMoon(int x, int y, int size)
+{
+    SDL_Rect moon1_rect = {
+        .x = x - size / 2,
+        .y = y - size / 2,
+        .w = size,
+        .h = size,
+    };
+
+    V_SetGray(248);
+    V_FillRect(&moon1_rect);
+}
+
+
+void RenderForestBackground(const Star * stars)
+{
+
+    for ( int i = 0; i < NUM_STARS; i++ ) {
+//        V_SetGray(232);
+        V_SetColor(stars[i].color);
+        SDL_Rect r = {
+            stars[i].pt.x,
+            stars[i].pt.y,
+            SCALED(1) / 2, // Half a pixel wide
+            SCALED(1) / 2
+        };
+        V_FillRect(&r);
+    }
+
+    int moom_size = SCALED(TILE_SIZE * 3);
+    RenderMoon(GAME_WIDTH * 0.66, GAME_HEIGHT * 0.66, moom_size);
+    RenderMoon(GAME_WIDTH * 0.33, GAME_HEIGHT * 0.33, moom_size * 0.66);
+}
+
+
 void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
 {
     const SDL_Rect viewport = GetLevelViewport(render_info);
     SDL_RenderSetViewport(renderer, &viewport);
+
+    if ( world->area == AREA_FOREST ) {
+        RenderForestBackground(world->stars);
+    }
 
     vec2_t offset = GetRenderLocation(render_info, render_info->camera);
     Box vis_rect = GetVisibleRegion(&world->map, render_info);

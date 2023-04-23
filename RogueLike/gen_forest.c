@@ -14,6 +14,7 @@
 int tile_regions[FOREST_SIZE][FOREST_SIZE];
 int region_areas[FOREST_SIZE * FOREST_SIZE];
 
+static STORAGE(TileCoord, FOREST_SIZE * FOREST_SIZE) ground_coords;
 static int num_tiles;
 static TileCoord tiles[FOREST_SIZE * FOREST_SIZE];
 
@@ -45,9 +46,13 @@ static int RandomIndex(void)
 
 static void SpawnActorAtRandomLocation(Game * game, ActorType type)
 {
-    int index = RandomIndex();
-    SpawnActor(game, type, tiles[index]);
-    RemoveTile(index);
+    if ( num_tiles != 0 ) {
+        int index = RandomIndex();
+        SpawnActor(game, type, tiles[index]);
+        RemoveTile(index);
+    } else {
+        printf("%s: not tiles left!\n", __func__);
+    }
 }
 
 
@@ -72,6 +77,7 @@ static void FloodFillGroundTiles_r(Map * map, TileCoord coord, int region)
         printf("NULL tile\n");
         return;
     }
+
     if ( tile->type == TILE_FLOOR && tile_regions[coord.y][coord.x] == -1 ) {
         tile_regions[coord.y][coord.x] = region;
         region_areas[region]++;
@@ -83,7 +89,7 @@ static void FloodFillGroundTiles_r(Map * map, TileCoord coord, int region)
 }
 
 
-void GenerateForest(Game * game)
+void GenerateForest(Game * game, int seed)
 {
     World * world = &game->world;
     world->area = AREA_FOREST;
@@ -103,6 +109,8 @@ void GenerateForest(Game * game)
         }
     }
 
+    SDL_memset(region_areas, 0, sizeof(region_areas));
+
     Map * map = &world->map;
 
     map->width = FOREST_SIZE;
@@ -113,7 +121,6 @@ void GenerateForest(Game * game)
     if ( map->tiles ) {
         free(map->tiles);
     }
-
     map->tiles = calloc(map_size, sizeof(*map->tiles));
 
     for ( int i = 0; i < map_size; i++ ) {
@@ -122,9 +129,9 @@ void GenerateForest(Game * game)
 
     world->actors.count = 0;
 
-    RandomizeNoise((u32)time(NULL));
+    RandomizeNoise(seed);
 //    RandomizeNoise(0);
-    STORAGE(TileCoord, FOREST_SIZE * FOREST_SIZE) ground_coords = { 0 };
+    CLEAR(ground_coords);
 
     for ( int y = 0; y < FOREST_SIZE; y++ ) {
         for ( int x = 0; x < FOREST_SIZE; x++ ) {
@@ -168,7 +175,7 @@ void GenerateForest(Game * game)
                 APPEND(ground_coords, coord);
             }
 
-            tile_regions[y][x] = -1;
+            tile_regions[y][x] = -1; // Reset all tiles' region
             tile->flags.revealed = true;
         }
     }
@@ -183,12 +190,12 @@ void GenerateForest(Game * game)
         }
     }
 
-    printf("total regions: %d\n", region);
+//    printf("total regions: %d\n", region);
     int largest_region = -1;
     int second_largest_region = -1;
 
     for ( int i = 0; i <= region; i++ ) {
-        printf("region %d area: %d\n", i, region_areas[i]);
+//        printf("region %d area: %d\n", i, region_areas[i]);
         if ( region_areas[i] > region_areas[largest_region] ) {
             largest_region = i;
         } else if ( region_areas[i] > region_areas[second_largest_region] ) {

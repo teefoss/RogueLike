@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		6009752D29EC6D14002DF6AD /* game_state.c in Sources */ = {isa = PBXBuildFile; fileRef = 6009752C29EC6D14002DF6AD /* game_state.c */; };
+		600D4C2E29F480990013244B /* menu.c in Sources */ = {isa = PBXBuildFile; fileRef = 600D4C2D29F480990013244B /* menu.c */; };
 		601121372915ED80004A0AF3 /* gen_dungeon.c in Sources */ = {isa = PBXBuildFile; fileRef = 601121362915ED80004A0AF3 /* gen_dungeon.c */; };
 		6011213B2915EF8A004A0AF3 /* map.c in Sources */ = {isa = PBXBuildFile; fileRef = 6011213A2915EF8A004A0AF3 /* map.c */; };
 		6011213D2915F06B004A0AF3 /* debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 6011213C2915F06B004A0AF3 /* debug.c */; };
@@ -57,6 +58,8 @@
 /* Begin PBXFileReference section */
 		6009752B29EC6D14002DF6AD /* game_state.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = game_state.h; sourceTree = "<group>"; };
 		6009752C29EC6D14002DF6AD /* game_state.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = game_state.c; sourceTree = "<group>"; };
+		600D4C2C29F480990013244B /* menu.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = menu.h; sourceTree = "<group>"; };
+		600D4C2D29F480990013244B /* menu.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = menu.c; sourceTree = "<group>"; };
 		601121362915ED80004A0AF3 /* gen_dungeon.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gen_dungeon.c; sourceTree = "<group>"; };
 		6011213A2915EF8A004A0AF3 /* map.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = map.c; sourceTree = "<group>"; };
 		6011213C2915F06B004A0AF3 /* debug.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = debug.c; sourceTree = "<group>"; };
@@ -187,6 +190,8 @@
 				60F0A71129D291330022A995 /* main.c */,
 				60577A3A29EA3CA800BF0AD8 /* map.h */,
 				6011213A2915EF8A004A0AF3 /* map.c */,
+				600D4C2C29F480990013244B /* menu.h */,
+				600D4C2D29F480990013244B /* menu.c */,
 				60EB154B29E0624100DBCED8 /* particle.h */,
 				60EB154C29E0624100DBCED8 /* particle.c */,
 				608E80BD2937A05F0060A04D /* player.c */,
@@ -321,6 +326,7 @@
 				60637F5929136DAD00352516 /* vector.c in Sources */,
 				6009752D29EC6D14002DF6AD /* game_state.c in Sources */,
 				607AFE6229EAF26B0007D55E /* render.c in Sources */,
+				600D4C2E29F480990013244B /* menu.c in Sources */,
 				60637F5829136DAD00352516 /* stack.c in Sources */,
 				60577A3D29EA48B400BF0AD8 /* world.c in Sources */,
 				60F0A71229D291330022A995 /* main.c in Sources */,

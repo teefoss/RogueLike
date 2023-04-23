@@ -23,9 +23,10 @@ typedef struct game_state {
     void (* on_enter)(Game *);
     void (* on_exit)(Game *);
 
-    int duration_ticks; // -1 indicates indefinite length.
+    bool finite_duration;
+    int duration_ticks;
 
-    // If state has a finite length, next_state must not be NULL.
+    // If state has a finite duration, next_state must not be NULL.
     const struct game_state * next_state;
 } GameState;
 
@@ -33,7 +34,8 @@ typedef struct game_state {
 extern const GameState level_idle;
 extern const GameState level_turn;
 extern const GameState intermission;
-
+extern const GameState game_state_menu;
+extern const GameState game_state_title;
 
 const GameState * GetGameState(const Game * game);
 void PushState(Game * game, const GameState * new_state);

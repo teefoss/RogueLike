@@ -35,6 +35,7 @@ int main(void)
 
     V_InitVideo(&info);
 
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_RenderSetLogicalSize(renderer, GAME_WIDTH, GAME_HEIGHT);
     V_SetFont(FONT_4X6);
     V_SetTextScale(DRAW_SCALE, DRAW_SCALE);
