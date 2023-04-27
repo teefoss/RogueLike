@@ -57,11 +57,19 @@ void SetTileLight(World * world, const RenderInfo * render_info)
 }
 
 
-void LoadLevel(Game * game, int level_num)
+void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 {
     World * world = &game->world;
 
     game->level = level_num;
+
+    ActorsStats saved_player_stats = { 0 };
+    if ( persist_player_stats ) {
+        Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
+        if ( player ) {
+            saved_player_stats = player->stats;
+        }
+    }
 
     switch ( level_num ) {
         case 1:
@@ -74,8 +82,13 @@ void LoadLevel(Game * game, int level_num)
     }
 
     // Focus camera on player.
-    Actor * player = GetPlayer(&game->world.actors);
+    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
     game->render_info.camera = TileCoordToScaledWorldCoord(player->tile, vec2_zero);
+
+    // Carry over player's stats from the previous level.
+    if ( persist_player_stats ) {
+        player->stats = saved_player_stats;
+    }
 
     // Initial lighting.
     PlayerCastSight(world, &game->render_info);
@@ -90,38 +103,51 @@ void LoadLevel(Game * game, int level_num)
 }
 
 
+void ChangeStateWithFade(FadeState * fade_state, Fade type, float seconds,
+                         const GameState * game_state)
+{
+    fade_state->type = type;
+    fade_state->timer = 0.0f;
+    fade_state->duration_sec = seconds;
+    fade_state->post_fade_game_state = game_state;
+}
+
+
 void NewGame(Game * game)
 {
-    LoadLevel(game, 1);
-    ChangeState(game, &level_idle);
+    LoadLevel(game, 1, false);
+    game->player_info.inventory.item_counts[0] = 1;
+    game->player_info.inventory.item_counts[1] = 2;
+    ChangeStateWithFade(&game->fade_state, FADE_IN, 2.0f, &level_idle);
 }
 
 
 int InventoryRenderX(Inventory * inventory)
 {
-    int max_width = 0;
+//    int max_width = 0;
+//
+//    if ( InventoryIsEmtpy(inventory) ) {
+//        return GAME_WIDTH - (V_CharWidth() * strlen("Inventory") + HUD_MARGIN * 2);
+//    }
+//
+//    for ( int i = 0; i < NUM_ITEMS; i++ ) {
+//        if ( inventory->item_counts[i] == 0 ) {
+//            continue;
+//        }
+//
+//        max_width = MAX(max_width, HUD_MARGIN * 2 + ItemInfoWidth(i));
+//    }
 
-    if ( InventoryIsEmtpy(inventory) ) {
-        return GAME_WIDTH - (V_CharWidth() * strlen("Inventory") + HUD_MARGIN * 2);
-    }
-
-    for ( int i = 0; i < NUM_ITEMS; i++ ) {
-        if ( inventory->item_counts[i] == 0 ) {
-            continue;
-        }
-
-        max_width = MAX(max_width, HUD_MARGIN * 2 + ItemInfoWidth(i));
-    }
-
-    return GAME_WIDTH - max_width;
+    return GAME_WIDTH - InventoryWidth();
 }
 
 
 /// Do lighting, particles n stuff for level idle and turn.
 void UpdateLevel(Game * game, float dt)
 {
-    Actor * player = GetPlayer(&game->world.actors);
     Actors * actors = &game->world.actors;
+    Actor * player = FindActor(actors, ACTOR_PLAYER);
+
     Map * map = &game->world.map;
 
     // TODO: make int remove_indices[] and int num_to_remove
@@ -232,7 +258,7 @@ bool DoIntermissionInput(Game * game, const SDL_Event * event)
 
 void IntermissionOnExit(Game * game)
 {
-    GenerateDungeon(game, 31, 31);
+    LoadLevel(game, game->level, true);
     game->player_info.player_turns = INITIAL_TURNS;
     PlayerCastSight(&game->world, &game->render_info);
 }
@@ -244,7 +270,7 @@ void IntermissionOnExit(Game * game)
 
 void LevelIdleOnEnter(Game * game)
 {
-    Actor * player = GetPlayer(&game->world.actors);
+    Actor * player = FindActor(&game->world.actors, ACTOR_PLAYER);
     Tile * player_tile = GetTile(&game->world.map, player->tile);
 
     // Check if the player has moved onto a tile that requires action:
@@ -256,8 +282,8 @@ void LevelIdleOnEnter(Game * game)
             player->flags.on_teleporter = false;
             break;
         case TILE_EXIT:
-            ChangeState(game, &intermission);
-            LoadLevel(game, game->level + 1);
+            ++game->level;
+            ChangeStateWithFade(&game->fade_state, FADE_OUT, 0.25f, &intermission);
             break;
         default:
             break;
@@ -265,11 +291,21 @@ void LevelIdleOnEnter(Game * game)
 }
 
 
-void MovePlayer(Game * game, Direction direction)
+void TryMovePlayer(Actor * player, Map * map, Direction direction, int * turns)
+{
+    if ( TryMoveActor(player, direction) ) {
+        CalculateDistances(map, player->tile, 0);
+    }
+
+    (*turns)--;
+}
+
+
+void StartTurn(Game * game, Direction direction)
 {
     World * world = &game->world;
     Map * map = &world->map;
-    Actor * player = GetPlayer(&world->actors);
+    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
     PlayerInfo * player_info = &game->player_info;
 
     game->log[0] = '\0'; // Clear the log.
@@ -283,11 +319,30 @@ void MovePlayer(Game * game, Direction direction)
 
         case TILE_WALL:
             SetUpBumpAnimation(player, direction);
-            S_Play("l32o0de-");
+            S_Play(SOUND_BUMP);
 
             // TODO: Game design: Hitting a wall still causes monsters to update?
             // --turns
             break;
+
+        case TILE_BUTTON_NOT_PRESSED: {
+            Actor * pillars[2] = { NULL };
+            FindActors(&world->actors, ACTOR_PILLAR, pillars);
+
+            // Lower pillars.
+            for ( int i = 0; i < 2; i++ ) {
+                pillars[i]->flags.remove = true;
+                Tile * pillar_tile = GetTile(map, pillars[i]->tile);
+                *pillar_tile = CreateTile(TILE_BUTTON_PRESSED);
+            }
+
+            // Press the button.
+            S_Play("l32 o1 b- c");
+            *tile = CreateTile(TILE_BUTTON_PRESSED);
+
+            TryMovePlayer(player, map, direction, &player_info->player_turns);
+            break;
+        }
 
         case TILE_DOOR:
             SetUpBumpAnimation(player, direction);
@@ -308,12 +363,11 @@ void MovePlayer(Game * game, Direction direction)
 
         case TILE_TELEPORTER:
             player->flags.on_teleporter = true;
-        case TILE_START: // Really just a floor.
+
+        case TILE_BUTTON_PRESSED:
+        case TILE_START:
         case TILE_FLOOR:
-            if ( TryMoveActor(player, direction) ) {
-                CalculateDistances(map, player->tile, 0);
-            }
-            player_info->player_turns--;
+            TryMovePlayer(player, map, direction, &player_info->player_turns);
             break;
 
         case TILE_EXIT:
@@ -325,6 +379,8 @@ void MovePlayer(Game * game, Direction direction)
     }
 
     UpdateActorFacing(player, XDelta(direction));
+
+    ResetTileVisibility(&world->map, player->tile, &game->render_info);
     PlayerCastSight(world, &game->render_info);
 
     ChangeState(game, &level_turn);
@@ -348,38 +404,9 @@ void MovePlayer(Game * game, Direction direction)
     }
 }
 
-bool InventoryIsEmtpy(const Inventory * inventory)
-{
-    for ( int i = 0; i < NUM_ITEMS; i++ ) {
-        if ( inventory->item_counts[i] > 0 ) {
-            return false;
-        }
-    }
 
-    return true;
-}
-
-void ChangeInventorySelection(Inventory * inventory, int direction)
-{
-    if ( InventoryIsEmtpy(inventory) ) {
-        return;
-    }
-
-    do {
-        inventory->selected_item += direction;
-
-        // Clamp
-        if ( inventory->selected_item < 0 ) {
-            inventory->selected_item = NUM_ITEMS - 1;
-        } else if ( inventory->selected_item == NUM_ITEMS ) {
-            inventory->selected_item = 0;
-        }
-
-        // Scroll past any items the player doesn't have.
-    } while ( inventory->item_counts[inventory->selected_item] == 0 );
-}
-
-void UseItem(Actor * player, PlayerInfo * info)
+// TODO: change to Actor to ActorStats
+void UseItem(ActorsStats * stats, PlayerInfo * info)
 {
     Inventory * inventory = &info->inventory;
 
@@ -393,8 +420,8 @@ void UseItem(Actor * player, PlayerInfo * info)
 
     switch ( inventory->selected_item ) {
         case ITEM_HEALTH:
-            if ( player->health < player->max_health ) {
-                player->health++;
+            if ( stats->health < stats->max_health ) {
+                stats->health++;
             }
             S_Play("l32 o3 d+ < g+ b e");
             break;
@@ -402,57 +429,61 @@ void UseItem(Actor * player, PlayerInfo * info)
             info->player_turns++;
             S_Play("l32 o3 f+ < b a");
             break;
+        case ITEM_STRENGTH:
+            info->strength_buff = 1;
+            S_Play("l32 t100 o1 e a f b- f+ b");
+            break;
         default:
             break;
-    }
-
-    // Change selection if used the last of this item.
-    if ( inventory->item_counts[inventory->selected_item] == 0 ) {
-        ChangeInventorySelection(inventory, 1);
     }
 }
 
 
 bool LevelIdleProcessInput(Game * game, const SDL_Event * event)
 {
-    const u8 * keys = SDL_GetKeyboardState(NULL);
+    Inventory * inv = &game->player_info.inventory;
 
     switch ( event->type ) {
         case SDL_KEYDOWN:
 
-            if ( !keys[SDL_SCANCODE_LSHIFT] && !keys[SDL_SCANCODE_RSHIFT] ) {
-                if ( event->key.repeat > 0 ) {
-                    return false;
-                }
-            }
-
             switch ( event->key.keysym.sym ) {
                 case SDLK_w:
-                    MovePlayer(game, NORTH);
+                    StartTurn(game, NORTH);
                     return true;
                 case SDLK_s:
-                    MovePlayer(game, SOUTH);
+                    StartTurn(game, SOUTH);
                     return true;
                 case SDLK_a:
-                    MovePlayer(game, WEST);
+                    StartTurn(game, WEST);
                     return true;
                 case SDLK_d:
-                    MovePlayer(game, EAST);
+                    StartTurn(game, EAST);
                     return true;
                 case SDLK_UP:
                     if ( game->inventory_open ) {
-                        ChangeInventorySelection(&game->player_info.inventory, +1);
+                        ChangeInventorySelection(inv, NORTH);
                     }
                     return true;
                 case SDLK_DOWN:
                     if ( game->inventory_open ) {
-                        ChangeInventorySelection(&game->player_info.inventory, -1);
+                        ChangeInventorySelection(inv, SOUTH);
+                    }
+                    return true;
+                case SDLK_LEFT:
+                    if ( game->inventory_open ) {
+                        ChangeInventorySelection(inv, WEST);
+                    }
+                    return true;
+                case SDLK_RIGHT:
+                    if ( game->inventory_open ) {
+                        ChangeInventorySelection(inv, EAST);
                     }
                     return true;
                 case SDLK_RETURN:
                     if ( game->inventory_open ) {
-                        Actor * player = GetPlayer(&game->world.actors);
-                        UseItem(player, &game->player_info);
+                        Actor * player = FindActor(&game->world.actors,
+                                                   ACTOR_PLAYER);
+                        UseItem(&player->stats, &game->player_info);
                     }
                     return true;
                 default:
@@ -530,6 +561,7 @@ vec2_t GetWindowScale(void)
 }
 
 
+// TODO: param player stats only?
 void RenderHUD(const Game * game, const Actor * player)
 {
     const int margin = HUD_MARGIN;
@@ -585,7 +617,8 @@ void RenderHUD(const Game * game, const Actor * player)
     hud_y -= char_h;
     int attack_x = V_PrintString(hud_x, hud_y, "Attack ");
 
-    for ( int i = 0; i < player->damage; i++  ) {
+    int total_damage = player->stats.damage + game->player_info.strength_buff;
+    for ( int i = 0; i < total_damage; i++  ) {
         RenderIcon(ICON_DAMAGE, attack_x + i * SCALED(ICON_SIZE), hud_y);
     }
 
@@ -595,62 +628,23 @@ void RenderHUD(const Game * game, const Actor * player)
 
     int health_x = V_PrintString(hud_x, hud_y, "Health ");
 
-    for ( int i = 0; i < player->max_health; i++ ) {
-        Icon icon = i + 1 > player->health ? ICON_EMPTY_HEART : ICON_FULL_HEART;
+    for ( int i = 0; i < player->stats.max_health; i++ ) {
+        Icon icon = i + 1 > player->stats.health ? ICON_EMPTY_HEART : ICON_FULL_HEART;
         RenderIcon(icon, health_x + i * SCALED(ICON_SIZE), hud_y);
     }
 }
 
 
-// TODO: params render_info, inventory only
-void RenderInventory(const Game * game)
-{
-    SDL_Rect inventory_panel = {
-        .x = game->render_info.inventory_x,
-        .y = 0,
-        .w = GAME_WIDTH - game->render_info.inventory_x,
-        .h = GAME_HEIGHT
-    };
-
-    V_SetGray(16);
-    V_FillRect(&inventory_panel);
-    V_SetGray(32);
-    V_DrawVLine(game->render_info.inventory_x, 0, GAME_HEIGHT);
-
-    inventory_panel.x += HUD_MARGIN;
-    inventory_panel.y += HUD_MARGIN;
-    inventory_panel.w -= HUD_MARGIN;
-    inventory_panel.h -= HUD_MARGIN;
-    SDL_RenderSetViewport(renderer, &inventory_panel);
-
-    V_SetRGB(255, 255, 255);
-    int row = 0;
-    int char_h = V_CharHeight();
-
-    V_PrintString(0, row++ * char_h, "Inventory");
-    row++;
-
-    const Inventory * in = &game->player_info.inventory;
-    for ( int i = 0; i < NUM_ITEMS; i++ ) {
-        if ( in->item_counts[i] ) {
-            bool selected = in->selected_item == i;
-            RenderItemInfo(i, in->item_counts[i], 0, row++ * char_h, selected);
-        }
-    }
-
-    SDL_RenderSetViewport(renderer, NULL);
-}
-
-
 #define BOOL_STR(bool_var) bool_var ? "yes" : "no"
 
+// TODO: param player stats only?
 void RenderDebugInfo(const Map * map, const Actor * player, TileCoord mouse_tile)
 {
     DEBUG_PRINT("Frame time: %.1f (max: %.1f)",
                 frame_msec * 1000.0f,
                 max_frame_msec * 1000.0f);
     DEBUG_PRINT(" ");
-    DEBUG_PRINT("Player health: %d", player->health);
+    DEBUG_PRINT("Player health: %d", player->stats.health);
     DEBUG_PRINT(" ");
 
     Tile * hover = GetTile((Map *)map, mouse_tile);
@@ -705,17 +699,19 @@ void GamePlayRender(const Game * game)
 
         if ( menu_state == MENU_NONE ) {
             if ( !show_debug_info ) {
-                RenderHUD(game, GetPlayer(&world->actors));
+                RenderHUD(game, FindActorConst(&world->actors, ACTOR_PLAYER));
             }
         }
 
         if ( game->render_info.inventory_x != GAME_WIDTH ) {
-            RenderInventory(game);
+            RenderInventory(&game->player_info.inventory, &game->render_info);
         }
     }
 
     if ( show_debug_info ) {
-        RenderDebugInfo(&game->world.map, GetPlayer(&world->actors), world->mouse_tile);
+        RenderDebugInfo(&game->world.map,
+                        FindActorConst(&world->actors, ACTOR_PLAYER),
+                        world->mouse_tile);
     }
 
     // Darken world a bit so the menu is clear.
@@ -732,6 +728,13 @@ void TitleScreenRender(const Game * game)
 }
 
 
+void TitleScreenOnEnter(Game * game)
+{
+    menu_state = MENU_MAIN;
+    PushState(game, &game_state_menu);
+}
+
+
 void IntermissionRender(const Game * game)
 {
     const char * level_string = "Level %d";
@@ -743,6 +746,25 @@ void IntermissionRender(const Game * game)
     int x = (GAME_WIDTH - width) / 2;
     int y = (GAME_HEIGHT - V_CharHeight()) / 2;
     V_PrintString(x, y, level_string, game->level);
+}
+
+
+/// Render a transparent rectangle over everything if fading in/out.
+void DoFade(FadeState * fade_state)
+{
+    if ( fade_state->type != FADE_NONE ) {
+
+        u8 alpha = 0;
+
+        if ( fade_state->type == FADE_IN ) {
+            alpha = (1.0f - fade_state->timer) * 255.0f;
+        } else if ( fade_state->type == FADE_OUT ) {
+            alpha = fade_state->timer * 255.0f;
+        }
+
+        V_SetRGBA(0, 0, 0, alpha);
+        V_FillRect(NULL);
+    }
 }
 
 
@@ -769,6 +791,11 @@ Game * InitGame(void)
     printf("title screen seed: %d\n", seed);
     GenerateForest(game, seed);
 
+    for ( int i = 0; i < game->world.map.width * game->world.map.height; i++ ) {
+        Tile * tile = &game->world.map.tiles[i];
+        tile->light = area_info[game->world.area].revealed_light;
+    }
+
     // Remove all non-tree actors.
     Actors * actors = &game->world.actors;
     for ( int i = actors->count - 1; i >= 0; i-- ) {
@@ -781,9 +808,10 @@ Game * InitGame(void)
     TileCoord center = { game->world.map.width / 2, game->world.map.height / 2 };
     game->render_info.camera = TileCoordToScaledWorldCoord(center, vec2_zero);
 
+    // Just make sure there's a state on the stack to begin.
     PushState(game, &game_state_title);
-    PushState(game, &game_state_menu);
-    menu_state = MENU_MAIN;
+
+    ChangeStateWithFade(&game->fade_state, FADE_IN, 0.25f, &game_state_title);
 
     return game;
 }
@@ -797,12 +825,14 @@ void DoFrame(Game * game, float dt)
     SDL_Event event;
     while ( SDL_PollEvent(&event) ) {
 
-        // Let the current game state process this event first.
-        const GameState * state = game->state_stack[game->state_stack_top];
-        if (   state->process_event
-            && state->process_event(game, &event) )
-        {
-            continue;
+        // Let the current game state process this event first, if not doing
+        // a fade in/out transition.
+        if ( game->fade_state.type == FADE_NONE ) {
+            const GameState * state = game->state_stack[game->state_stack_top];
+
+            if ( state->process_event && state->process_event(game, &event) ) {
+                continue;
+            }
         }
 
         // State didn't process this event. Handle some universal events:
@@ -831,6 +861,12 @@ void DoFrame(Game * game, float dt)
                     case SDLK_F3:
                         show_distances = !show_distances;
                         break;
+                    case SDLK_LEFTBRACKET:
+                        LoadLevel(game, game->level - 1, false);
+                        break;
+                    case SDLK_RIGHTBRACKET:
+                        LoadLevel(game, game->level + 1, false);
+                        break;
                     default:
                         break;
                 }
@@ -839,7 +875,8 @@ void DoFrame(Game * game, float dt)
                 switch ( event.button.button ) {
                     case SDL_BUTTON_LEFT:
                         if ( event.button.clicks == 2 && show_debug_info ) {
-                            Actor * player = GetPlayer(&game->world.actors);
+                            Actor * player = FindActor(&game->world.actors,
+                                                       ACTOR_PLAYER);
                             player->tile = game->world.mouse_tile;
                         }
                         break;
@@ -867,6 +904,8 @@ void DoFrame(Game * game, float dt)
             s->render(game);
         }
     }
+
+    DoFade(&game->fade_state);
 
     V_Refresh();
 

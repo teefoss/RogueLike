@@ -11,30 +11,44 @@
 void C_Player(Actor * player, Actor * hit)
 {
     if ( hit->flags.takes_damage ) {
-        if ( DamageActor(hit) == 0 ) {
+        int damage = player->stats.damage;
+        damage += player->game->player_info.strength_buff;
+
+        if ( DamageActor(hit, damage) <= 0 ) {
             S_Play("t160 l32 o3 e c+ c < a-");
         } else {
             S_Play("t160 l32 o3 e c+ c");
         }
     }
 
+    // Collect inventory items
+    if ( hit->flags.collectible ) {
+        if ( AddToInventory(player, hit, hit->item) ) {
+
+            char * log = player->game->log;
+            size_t log_size = sizeof(player->game->log);
+
+            switch ( hit->item ) {
+                case ITEM_HEALTH:
+                    strncpy(log, "Picked up a Health Potion!", log_size);
+                    S_Play("l32 o2 e b g+ > d+");
+                    break;
+                case ITEM_TURN:
+                    strncpy(log, "Picked up a Turn Potion!", log_size);
+                    S_Play("l32 o2 a b > f+");
+                    break;
+                case ITEM_STRENGTH:
+                    strncpy(log, "Picked up a Strength Potion!", log_size);
+                    S_Play("l32 t100 o1 c e g+ c+ f a d f+ b-");
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    // Bump into other things
     switch ( hit->type ) {
-        case ACTOR_ITEM_HEALTH:
-            if ( CollectItem(player, hit, ITEM_HEALTH) ) {
-                strncpy(player->game->log,
-                        "Picked up a Health Potion!",
-                        sizeof(player->game->log));
-                S_Play("l32 o2 e b g+ > d+");
-            }
-            break;
-        case ACTOR_ITEM_TURN:
-            if ( CollectItem(player, hit, ITEM_TURN) ) {
-                strncpy(player->game->log,
-                        "Picked up a Turn Potion!",
-                        sizeof(player->game->log));
-                S_Play("l32 o2 a b > f+");
-            }
-            break;
         case ACTOR_GOLD_KEY:
             strncpy(player->game->log, "Got the golden key!", sizeof(player->game->log));
             player->game->player_info.has_gold_key = true;
@@ -52,17 +66,8 @@ void C_Player(Actor * player, Actor * hit)
             hit->flags.remove = true;
             S_Play("o3 t100 l32 f c b-");
             break;
-        case ACTOR_BUTTON_UP:
-            for ( int i = 0; i < player->game->world.actors.count; i++ ) {
-                Actor * a = &player->game->world.actors.list[i];
-                if ( a->type == ACTOR_BLOCK_UP ) {
-                    a->flags.remove = true;
-                    SpawnActor(player->game, ACTOR_BLOCK_DOWN, a->tile);
-                }
-            }
-            hit->flags.remove = true;
-            SpawnActor(player->game, ACTOR_BUTTON_DOWN, hit->tile);
-            S_Play("o1 t90 l32 a c+");
+        case ACTOR_PILLAR:
+            S_Play(SOUND_BUMP);
             break;
         default:
             break;
@@ -74,7 +79,7 @@ void C_Monster(Actor * monster, Actor * hit)
 {
     // Monsters can damage other monsters, but not of the same type
     if ( hit->flags.takes_damage && monster->type != hit->type ) {
-        DamageActor(hit);
+        DamageActor(hit, monster->stats.damage);
         S_Play("o3 l32 b c < c+");
     }
 }
@@ -83,10 +88,11 @@ void C_Monster(Actor * monster, Actor * hit)
 void C_Spider(Actor * spider, Actor * hit)
 {
     if ( hit->flags.takes_damage ) {
-        DamageActor(hit);
+        DamageActor(hit, spider->stats.damage);
         S_Play("o4 l32 f b c+");
     }
 }
+
 
 void C_Block(Actor * block, Actor * pusher)
 {

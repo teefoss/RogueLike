@@ -52,7 +52,7 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
 {
     World * world = &actor->game->world;
     Map * map = &world->map;
-    Actor * player = GetPlayer(&world->actors);
+    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
 
     if ( LineOfSight(map, actor->tile, player->tile) ) {
         actor->target_tile = player->tile;
@@ -74,7 +74,7 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
 void A_ChasePlayerIfVisible(Actor * actor)
 {
     World * world = &actor->game->world;
-    Actor * player = GetPlayer(&world->actors);
+    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
 
     if ( LineOfSight(&world->map, actor->tile, player->tile) ) {
         Direction d = GetDirectionToTile(world, actor->tile, player->tile);
@@ -85,10 +85,10 @@ void A_ChasePlayerIfVisible(Actor * actor)
 
 void A_StupidChasePlayerIfVisible(Actor * actor)
 {
-    Map * map = &actor->game->world.map;
-    Actor * player = GetPlayer(&actor->game->world.actors);
+    World * world = &actor->game->world;
+    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
 
-    if ( LineOfSight(map, actor->tile, player->tile) ) {
+    if ( LineOfSight(&world->map, actor->tile, player->tile) ) {
         int dx = SIGN(player->tile.x - actor->tile.x);
         int dy = SIGN(player->tile.y - actor->tile.y);
         Direction d = GetDirection(dx, dy);

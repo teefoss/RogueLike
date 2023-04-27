@@ -22,7 +22,7 @@
 #define ICON_SIZE 6
 #define DEBUG_TILE_SIZE 16
 
-#define SCALED(size) (size * DRAW_SCALE)
+#define SCALED(size) ((size) * DRAW_SCALE)
 
 typedef enum {
     GOLINE_DARK_PURPLE,
@@ -47,6 +47,8 @@ typedef struct {
     vec2_t camera; // world focus point in scaled coordinates
     float inventory_x; // the left side of the inventory panel
 } RenderInfo;
+
+extern const SDL_Color palette[];
 
 SDL_Rect GetLevelViewport(const RenderInfo * render_info);
 vec2_t GetRenderLocation(const RenderInfo * render_info, vec2_t point);

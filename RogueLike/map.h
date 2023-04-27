@@ -39,6 +39,11 @@ void FreeDistanceMapQueue(void);
 bool TileIsAdjacentTo(const Map * map, TileCoord coord, TileType type, int num_directions);
 void RenderTiles(const World * world, const Box * region, vec2_t offset, bool debug);
 
+void ResetTileVisibility(Map * map,
+                         TileCoord player_tile,
+                         const RenderInfo * render_info);
+
+
 #define GetTile(map, coord) _Generic((map), \
     const Map *: GetTileConst,              \
     Map *: GetTileNonConst                  \

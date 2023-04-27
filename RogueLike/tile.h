@@ -21,6 +21,8 @@ typedef enum {
     TILE_START, // Just a floor with a symbol, to mark player's start tile
     TILE_WATER,
     TILE_TELEPORTER,
+    TILE_BUTTON_NOT_PRESSED,
+    TILE_BUTTON_PRESSED,
 
     NUM_TILE_TYPES,
 } TileType;

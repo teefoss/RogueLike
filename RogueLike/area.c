@@ -19,7 +19,7 @@ const AreaInfo area_info[NUM_AREAS] = {
     },
     [AREA_DUNGEON] = {
         .unrevealed_light = 0,
-        .revealed_light = 20,
+        .revealed_light = 10, // was 20
         .visible_light = 80,
         .debug_map_tile_size = 16,
         .reveal_all = false,

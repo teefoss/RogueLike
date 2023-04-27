@@ -3,17 +3,41 @@
 Actor animation during turn (walking)
 Log slide right on disappear
 Sword/Shield sprite
-Remove actors struct?
 Refine forest gen -> more padding
 level fade in
+little indicator when mobs drop items (ooh!) - rectangular shrinking ring?
+damage indicators
+alert indicators
+put row/col numbers in sprite sheets
+line of sight does expand on floors for mob LOS
+Selected item stays, even when ran out
+Selected item indicator when inventory closed.
+INVENTORY:
+    Make inventory panel 'float' above level (a small margin)
+    inventory is only as tall as items held?
+    Move inventory counts over 1 scaled pixel
+    Reduce space between cols?
+
+
 
 # BUGS
 
+teleporter, don't reactivate if hitting mob while standing on it.
+title screen render mod
+tab open inventory on title screen
+
+
+# Keep an eye on...
+
+- Pillar button never spawned?
+
+
+
+# Fixed/Complete
+
+- make exit pillars tiles, not actors (no, they are taller than a tile can be)
 Mob spawns on exit tile
-Pillar button never spawned?
-- make exit pillars tiles, not actors
-- reexamine why pillar button should not be a tile
-teleporter, player light wrong
+
 
 
 # DESIGN

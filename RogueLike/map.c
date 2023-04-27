@@ -401,12 +401,15 @@ void CalculateDistances(Map * map, TileCoord coord, int ignore_flags)
         for ( c.x = 0; c.x < map->width; c.x++ ) {
             Tile * tile = GetTile(map, c);
 
-            if ( (ignore_flags & FLAG(tile->type)) || !tile->flags.blocks_movement ) {
-                queue_size++;
+            // TODO: the queue was occasionally the wrong size (too small)
+//            if ( (ignore_flags & FLAG(tile->type)) || !tile->flags.blocks_movement ) {
+//                queue_size++;
                 tile->distance = -1;
-            }
+//            }
         }
     }
+
+    queue_size = map->width * map->height;
 
     FreeDistanceMapQueue();
     queue = calloc(queue_size, sizeof(*queue));

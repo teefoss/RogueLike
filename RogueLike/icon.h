@@ -21,6 +21,7 @@ typedef enum {
     ICON_GOLD_KEY,
     ICON_HEALTH_POTION,
     ICON_TURN_POTION,
+    ICON_STRENGTH_POTION,
     NUM_ICONS,
 } Icon;
 

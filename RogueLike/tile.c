@@ -76,10 +76,16 @@ static struct tile_info {
             .sprite_cell = { 1, 8 },
         },
     },
+    [TILE_BUTTON_NOT_PRESSED] = {
+        [AREA_DUNGEON] = { .sprite_cell = { 6, 3 }, }
+    },
+    [TILE_BUTTON_PRESSED] = {
+        [AREA_DUNGEON] = { .sprite_cell = { 5, 3 }, }
+    },
 };
 
 
-static Tile tile_templates[] = {
+static Tile tile_templates[NUM_TILE_TYPES] = {
     [TILE_WALL] = {
         .flags = { .blocks_movement = true, .blocks_sight = true },
     },
@@ -97,6 +103,9 @@ static Tile tile_templates[] = {
     },
     [TILE_WATER] = {
         .flags = { .blocks_movement = true }
+    },
+    [TILE_BUTTON_NOT_PRESSED] = {
+        .flags = { .blocks_movement = true, .player_only = true },
     },
 };
 
@@ -123,6 +132,8 @@ const char * TileName(TileType type)
             CASE_RETURN_STRING(TILE_WATER);
             CASE_RETURN_STRING(TILE_TELEPORTER);
             CASE_RETURN_STRING(NUM_TILE_TYPES);
+            CASE_RETURN_STRING(TILE_BUTTON_NOT_PRESSED);
+            CASE_RETURN_STRING(TILE_BUTTON_PRESSED);
     }
 }
 

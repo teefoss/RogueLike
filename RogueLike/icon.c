@@ -21,6 +21,7 @@ static struct {
     [ICON_GOLD_KEY]         = { 5, 0 },
     [ICON_HEALTH_POTION]    = { 0, 1 },
     [ICON_TURN_POTION]      = { 1, 1 },
+    [ICON_STRENGTH_POTION]  = { 5, 1 },
 };
 
 static SDL_Rect src = { .w = ICON_SIZE, .h = ICON_SIZE };

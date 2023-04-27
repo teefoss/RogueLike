@@ -8,6 +8,7 @@
 #include "item.h"
 #include "video.h"
 #include "game.h"
+#include "loot.h"
 
 static const struct {
     const char * name;
@@ -21,23 +22,11 @@ static const struct {
         .name = "Turn Potion",
         .icon = ICON_TURN_POTION,
     },
+    [ITEM_STRENGTH] = {
+        .name = "Strength Potion",
+        .icon = ICON_STRENGTH_POTION,
+    },
 };
-
-
-void RenderItemInfo(Item item, int count, int x, int y, bool is_selected)
-{
-    V_SetRGB(255, 255, 255);
-    int x1 = V_PrintString(x, y, "%d", count);
-
-    x1 += SCALED(1);
-    RenderIcon(item_info[item].icon, x1, y);
-
-    x1 += SCALED(ICON_SIZE);
-    if ( is_selected ) {
-        V_SetRGB(255, 255, 0);
-    }
-    V_PrintString(x1, y, "%s", item_info[item].name);
-}
 
 
 int ItemInfoWidth(Item item)
@@ -48,4 +37,16 @@ int ItemInfoWidth(Item item)
     width += strlen(item_info[item].name) * V_CharWidth(); // name
 
     return width;
+}
+
+
+const char * ItemName(Item item)
+{
+    return item_info[item].name;
+}
+
+
+Icon ItemIcon(Item item)
+{
+    return item_info[item].icon;
 }

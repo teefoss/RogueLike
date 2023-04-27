@@ -195,10 +195,12 @@ void GenerateForest(Game * game, int seed)
     int second_largest_region = -1;
 
     for ( int i = 0; i <= region; i++ ) {
-//        printf("region %d area: %d\n", i, region_areas[i]);
-        if ( region_areas[i] > region_areas[largest_region] ) {
+        if ( largest_region == -1
+            || region_areas[i] > region_areas[largest_region] )
+        {
             largest_region = i;
-        } else if ( region_areas[i] > region_areas[second_largest_region] ) {
+        } else if ( second_largest_region == -1
+                   || region_areas[i] > region_areas[second_largest_region] ) {
             second_largest_region = i;
         }
     }

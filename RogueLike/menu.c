@@ -66,7 +66,7 @@ static void MainRender(const Game * game)
 }
 
 
-void MainMenuAction(Game * game)
+static void MainMenuAction(Game * game)
 {
     switch ( main_cursor ) {
         case MAIN_NEW_GAME:

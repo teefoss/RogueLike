@@ -7,6 +7,8 @@
 
 #include "game.h"
 #include "world.h"
+#include "render.h"
+#include "loot.h"
 
 #include "mathlib.h"
 #include "texture.h"
@@ -58,6 +60,10 @@ ActorSprite sprite_info[NUM_ACTOR_TYPES] = {
         .cell = { 1, 1 },
         .draw_priority = DRAW_PRIORITY_ITEM,
     },
+    [ACTOR_ITEM_STRENGTH] = {
+        .cell = { 3, 1 },
+        .draw_priority = DRAW_PRIORITY_ITEM,
+    },
     [ACTOR_GOLD_KEY] = {
         .cell = { 2, 1 },
         .draw_priority = DRAW_PRIORITY_KEY,
@@ -74,17 +80,8 @@ ActorSprite sprite_info[NUM_ACTOR_TYPES] = {
     [ACTOR_OPEN_CHEST] = {
         .cell = { 1, 3 }
     },
-    [ACTOR_BLOCK_UP] = {
+    [ACTOR_PILLAR] = {
         .cell = { 0, 6 }
-    },
-    [ACTOR_BLOCK_DOWN] = {
-        .cell = { 1, 6 }
-    },
-    [ACTOR_BUTTON_UP] = {
-        .cell = { 2, 6 }
-    },
-    [ACTOR_BUTTON_DOWN] = {
-        .cell = { 1, 6 }
     },
     [ACTOR_TREE] = {
         .cell = { 0, 7 }
@@ -110,72 +107,85 @@ void A_StupidChasePlayerIfVisible(Actor * actor);
 
 static Actor templates[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
+        .name = "Player",
         .flags = { .directional = true, .takes_damage = true },
-        .max_health = 10,
+        .stats.max_health = 10,
+        .stats.damage = 1,
         .light = 255,
         .light_radius = 3,
         .contact = C_Player,
-        .damage = 1,
     },
     [ACTOR_TORCH] = {
+        .name = "Torch",
         .light = 255,
         .light_radius = 2,
     },
     [ACTOR_BLOB] = {
-        .flags = { .takes_damage = true },
-        .max_health = 2,
+        .name = "Blob",
+        .flags = { .takes_damage = true, .drops_loot = true },
+        .stats.max_health = 2,
+        .stats.damage = 1,
         .action = A_TargetAndChasePlayerIfVisible,
         .contact = C_Monster,
         .light_radius = 1,
         .light = 160,
-        .damage = 1,
     },
     [ACTOR_SPIDER] = {
-        .flags = { .takes_damage = true },
-        .max_health = 1,
+        .name = "Spider",
+        .flags = { .takes_damage = true, .drops_loot = true },
+        .stats.max_health = 1,
+        .stats.damage = 1,
         .action = A_StupidChasePlayerIfVisible,
         .contact = C_Spider,
-        .damage = 1,
     },
     [ACTOR_ITEM_HEALTH] = {
+        .name = "Health Potion",
+        .item = ITEM_HEALTH,
         .flags = ITEM_FLAGS,
     },
     [ACTOR_ITEM_TURN] = {
+        .name = "Turn Potion",
+        .item = ITEM_TURN,
+        .flags = ITEM_FLAGS,
+    },
+    [ACTOR_ITEM_STRENGTH] = {
+        .name = "Strength Potion",
+        .item = ITEM_STRENGTH,
         .flags = ITEM_FLAGS,
     },
     [ACTOR_GOLD_KEY] = {
+        .name = "Gold Key",
         .flags = ITEM_FLAGS,
     },
     [ACTOR_BLOCK] = {
+        .name = "Block",
         .contacted = C_Block,
     },
     [ACTOR_OPEN_CHEST] = {
+        .name = "Chest",
         .flags = { .no_collision = true }
     },
-    [ACTOR_BLOCK_UP] = {
+    [ACTOR_PILLAR] = {
+        .name = "Pillar",
         .flags = { .no_shadow = true },
     },
-    [ACTOR_BLOCK_DOWN] = {
-        .flags = { .no_collision = true, .no_shadow = true }
-    },
-    [ACTOR_BUTTON_UP] = {
-        .flags = {
-            .no_draw_offset = true,
-            .no_shadow = true,
-            .no_collision = true,
-        },
-    },
-    [ACTOR_BUTTON_DOWN] = {
-        .flags = {
-            .no_collision = true,
-            .no_shadow = true,
-            .no_draw_offset = true,
-        },
-    },
     [ACTOR_WELL] = {
+        .name = "Well",
         .flags = { .no_shadow = true, .no_draw_offset = true },
     }
 };
+
+
+const char * ActorName(ActorType type)
+{
+    const char * name = templates[type].name;
+
+    if ( name == NULL ) {
+        return "[This actor has no name!]";
+    }
+
+    return name;
+}
 
 
 void SpawnActor(Game * game, ActorType type, TileCoord coord)
@@ -185,7 +195,7 @@ void SpawnActor(Game * game, ActorType type, TileCoord coord)
     actor.type = type;
     actor.sprite = &sprite_info[type];
     actor.tile = coord;
-    actor.health = actor.max_health;
+    actor.stats.health = actor.stats.max_health;
 
     if ( game->world.actors.count + 1 <= MAX_ACTORS ) {
         game->world.actors.list[game->world.actors.count++] = actor;
@@ -193,12 +203,6 @@ void SpawnActor(Game * game, ActorType type, TileCoord coord)
         printf("ran out of room in actor array!\n");
         return;
     }
-}
-
-
-void SpawnActorAtActor(Actor * actor, ActorType type)
-{
-    SpawnActor(actor->game, type, actor->tile);
 }
 
 
@@ -229,26 +233,22 @@ void KillActor(Actor * actor)
         // TODO: player death
     }
 
-    switch ( actor->type ) {
-        case ACTOR_PLAYER:
-            break;
-        case ACTOR_BLOB: {
-            if ( Chance(0.5) ) {
-                SpawnActorAtActor(actor, ACTOR_ITEM_HEALTH);
-            } else {
-                SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
-            }
-            SDL_Color green = { 0, 255, 0, 255 }; // TODO: Palette
-            SpawnParticlesAtActor(&actor->game->world.particles, actor, green);
+    if ( actor->flags.drops_loot ) {
+        ActorType loot = SelectLoot(actor->type);
 
-            break;
+        if ( loot != ACTOR_NONE ) {
+            SpawnActor(actor->game, loot, actor->tile);
         }
+    }
+
+    ParticleArray * particles = &actor->game->world.particles;
+
+    switch ( actor->type ) {
+        case ACTOR_BLOB:
+            SpawnParticlesAtActor(particles, actor, palette[GOLINE_DARK_GREEN]);
+            break;
         case ACTOR_SPIDER: {
-            if ( Chance(0.2) ) {
-                SpawnActorAtActor(actor, ACTOR_ITEM_TURN);
-            }
-            SDL_Color black = { 0, 0, 0, 255 }; // TODO: Palette
-            SpawnParticlesAtActor(&actor->game->world.particles, actor, black);
+            SpawnParticlesAtActor(particles, actor, palette[GOLINE_BLACK]);
             break;
         }
         default:
@@ -257,29 +257,17 @@ void KillActor(Actor * actor)
 }
 
 
-int DamageActor(Actor * actor)
+int DamageActor(Actor * actor, int damage)
 {
     actor->hit_timer = 1.0f;
     actor->flags.was_attacked = true;
 
-    if ( --actor->health == 0 ) {
+    actor->stats.health -= damage;
+    if ( actor->stats.health <= 0 ) {
         KillActor(actor);
     }
 
-    return actor->health;
-}
-
-
-Actor * GetActorAtTile(Actors * actors, TileCoord coord)
-{
-    for ( int i = 0; i < actors->count; i++ ) {
-        if (   actors->list[i].tile.x == coord.x
-            && actors->list[i].tile.y == coord.y ) {
-            return &actors->list[i];
-        }
-    }
-
-    return NULL;
+    return actor->stats.health;
 }
 
 
@@ -362,6 +350,11 @@ void CastLight(World * world, const Actor * actor)
             Tile * t = GetTile(&world->map, coord);
 
 //            if ( t && LineOfSight(&game->map, actor->tile, coord, false))
+
+            if ( !t || !t->flags.visible ) {
+                continue;
+            }
+
             if ( t && ManhattenPathsAreClear(&world->map,
                                              actor->tile.x,
                                              actor->tile.y,

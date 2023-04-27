@@ -34,7 +34,7 @@ void PlayerCastSight(World * world, const RenderInfo * render_info)
     Map * map = &world->map;
     Box vis = GetVisibleRegion(map, render_info);
 
-    const Actor * player = GetPlayer(&world->actors);
+    const Actor * player = FindActorConst(&world->actors, ACTOR_PLAYER);
 
     TileCoord coord;
     for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
@@ -47,7 +47,7 @@ void PlayerCastSight(World * world, const RenderInfo * render_info)
 }
 
 
-bool CollectItem(Actor * player, Actor * item_actor, Item item)
+bool AddToInventory(Actor * player, Actor * item_actor, Item item)
 {
     Inventory * inventory = &player->game->player_info.inventory;
 
@@ -62,18 +62,4 @@ bool CollectItem(Actor * player, Actor * item_actor, Item item)
     }
 
     return false;
-}
-
-#define GET_PLAYER_FUNC_BODY \
-    for ( int i = 0; i < actors->count; i++ )           \
-        if ( actors->list[i].type == ACTOR_PLAYER )     \
-            return &actors->list[i];                    \
-    return NULL
-
-GET_PLAYER_CONST_FUNC_SIG {
-    GET_PLAYER_FUNC_BODY;
-}
-
-GET_PLAYER_NONCONST_FUNC_SIG {
-    GET_PLAYER_FUNC_BODY;
 }

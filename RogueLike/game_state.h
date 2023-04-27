@@ -13,6 +13,12 @@
 
 #define MAX_GAME_STATES 10
 
+typedef enum {
+    FADE_NONE,
+    FADE_IN,
+    FADE_OUT
+} Fade;
+
 typedef struct game Game;
 
 typedef struct game_state {
@@ -30,7 +36,7 @@ typedef struct game_state {
     const struct game_state * next_state;
 } GameState;
 
-
+extern const GameState blank;
 extern const GameState level_idle;
 extern const GameState level_turn;
 extern const GameState intermission;

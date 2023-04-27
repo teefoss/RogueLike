@@ -12,31 +12,37 @@
 
 const int debug_tile_size = 16;
 
-TileCoord * _buffer;
+static TileCoord * _buffer;
 static int _count;
 
 
-void BufferClear(void)
+static void BufferClear(void)
 {
     _count = 0;
 }
 
 
-void BufferAppend(TileCoord coord)
+static void BufferAppend(TileCoord coord)
 {
     _buffer[_count++] = coord;
 }
 
 
-void BufferRemove(int index)
+static void BufferRemove(int index)
 {
     _buffer[index] = _buffer[--_count];
 }
 
 
-TileCoord BufferRandom(void)
+//static TileCoord BufferRandom(void)
+//{
+//    return _buffer[Random(0, _count - 1)];
+//}
+
+
+static int RandomIndex(void)
 {
-    return _buffer[Random(0, _count - 1)];
+    return Random(0, _count - 1);
 }
 
 
@@ -313,10 +319,18 @@ static void GetValidRoomTiles(const World * world, int room_num)
 
             bool valid = true;
 
+            // Is it a floor tile?
+            const Tile * tile = GetTile(map, coord);
+            if ( tile->type != TILE_FLOOR ) {
+                valid = false;
+            }
+
+            // Actor there already?
             if ( occupied[coord.y * map->width + coord.x] ) {
                 valid = false;
             }
 
+            // Adjacent to door?
             for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
                 const Tile * t = GetAdjacentTile((Map *)map, coord, d);
 
@@ -484,6 +498,7 @@ int ConnectRegions(Map * map, TileCoord * potential_door_locations, int num_regi
     return num_potential_door_locations;
 }
 
+
 void EliminateDeadEnds(Map * map)
 {
     int num_deadends = 0;
@@ -562,7 +577,7 @@ void SpawnPlayerAndStartTile(Game * game)
 
 void SpawnGoldKey(Game * game)
 {
-    Actor * player = GetPlayer(&game->world.actors);
+    Actor * player = FindActor(&game->world.actors, ACTOR_PLAYER);
     Map * map = &game->world.map;
 
     GetReachableTiles(map, player->tile, FLAG(TILE_DOOR));
@@ -633,12 +648,12 @@ void SpawnExit(Game * game)
 
     *GetTile(map, exit_coord) = CreateTile(TILE_EXIT);
 
-    // Spawn blocks
+    // Spawn blocks adjacent to exit stairs.
     for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
         Tile * adjacent = GetAdjacentTile(map, exit_coord, d);
         TileCoord coord = AdjacentTileCoord(exit_coord, d);
         if ( adjacent->type == TILE_FLOOR ) {
-            SpawnActor(game, ACTOR_BLOCK_UP, coord);
+            SpawnActor(game, ACTOR_PILLAR, coord);
         }
     }
 
@@ -759,7 +774,11 @@ void GenerateDungeon(Game * game, int width, int height)
         int max_monsters = area / 4;
 
         if ( button_room_num == i ) {
-            SpawnActor(game, ACTOR_BUTTON_UP, BufferRandom());
+//            SpawnActor(game, ACTOR_BUTTON_UP, BufferRandom());
+            int index = RandomIndex();
+            Tile * tile = GetTile(map, _buffer[index]);
+            *tile = CreateTile(TILE_BUTTON_NOT_PRESSED);
+            BufferRemove(index);
         }
 
         for ( int j = 0; j < 4; j++ ) {

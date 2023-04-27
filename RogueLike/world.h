@@ -12,6 +12,7 @@
 #include "map.h"
 #include "particle.h"
 #include "render.h"
+#include "actors.h"
 
 #define NUM_STARS 5000
 

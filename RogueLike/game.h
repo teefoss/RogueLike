@@ -32,11 +32,22 @@
 
 #define FLAG(x) (1 << x)
 
+#define SOUND_BUMP "l32o0de-"
+
 typedef struct {
     Inventory inventory;
     bool has_gold_key;
     int player_turns;
+    int strength_buff;
 } PlayerInfo;
+
+
+typedef struct {
+    Fade type;
+    float timer; // State fade in/out
+    float duration_sec;
+    const GameState * post_fade_game_state;
+} FadeState;
 
 
 struct game {
@@ -54,6 +65,8 @@ struct game {
     int state_timer;
     int state_stack_top;
     const GameState * state_stack[MAX_GAME_STATES];
+
+    FadeState fade_state;
 
     World world;
 };
@@ -83,21 +96,9 @@ void CheckForShowMapGenCancel(void);
 
 #pragma mark - player.c
 
-#define GetPlayer(game) _Generic((game),    \
-    const Actors *: GetPlayerConst,         \
-    Actors *: GetPlayerNonConst             \
-)(game)
-
-#define GET_PLAYER_CONST_FUNC_SIG \
-    const Actor * GetPlayerConst(const Actors * actors)
-#define GET_PLAYER_NONCONST_FUNC_SIG \
-    Actor * GetPlayerNonConst(Actors * actors)
-
-GET_PLAYER_CONST_FUNC_SIG;
-GET_PLAYER_NONCONST_FUNC_SIG;
 
 void PlayerCastSight(World * world, const RenderInfo * render_info);
-bool CollectItem(Actor * player, Actor * item_actor, Item item);
+bool AddToInventory(Actor * player, Actor * item_actor, Item item);
 
 
 #endif /* main_h */
