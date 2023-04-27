@@ -7,7 +7,7 @@
 #define __VIDEO_H__
 
 #include "genlib.h"
-#include "inttypes.h"
+#include "shorttypes.h"
 
 #include <SDL.h>
 

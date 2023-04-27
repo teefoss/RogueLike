@@ -9,7 +9,7 @@
 #define particle_h
 
 #include "vector.h"
-#include "inttypes.h"
+#include "shorttypes.h"
 #include <SDL.h>
 
 typedef struct {

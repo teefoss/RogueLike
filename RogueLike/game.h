@@ -9,7 +9,7 @@
 #define main_h
 
 #include "vector.h"
-#include "inttypes.h"
+#include "shorttypes.h"
 #include "coord.h"
 #include "direction.h"
 #include "tile.h"

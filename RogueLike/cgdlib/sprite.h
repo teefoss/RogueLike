@@ -2,7 +2,7 @@
 #define SPRITE_H
 
 #include "genlib.h"
-#include "inttypes.h"
+#include "shorttypes.h"
 #include "vector.h"
 
 #include <stdbool.h>

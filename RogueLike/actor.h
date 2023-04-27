@@ -12,7 +12,7 @@
 #include "direction.h"
 #include "inventory.h"
 
-#include "inttypes.h"
+#include "shorttypes.h"
 #include "vector.h"
 
 #include <stdbool.h>

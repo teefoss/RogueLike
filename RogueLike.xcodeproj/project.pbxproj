@@ -87,7 +87,7 @@
 		60637F3D29136DAC00352516 /* array.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = array.c; sourceTree = "<group>"; };
 		60637F3E29136DAC00352516 /* video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = video.c; sourceTree = "<group>"; };
 		60637F3F29136DAC00352516 /* stack.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stack.c; sourceTree = "<group>"; };
-		60637F4029136DAC00352516 /* inttypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = inttypes.h; sourceTree = "<group>"; };
+		60637F4029136DAC00352516 /* shorttypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = shorttypes.h; sourceTree = "<group>"; };
 		60637F4129136DAC00352516 /* vector.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vector.c; sourceTree = "<group>"; };
 		60637F4229136DAC00352516 /* mathlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mathlib.h; sourceTree = "<group>"; };
 		60637F4329136DAC00352516 /* texture.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = texture.c; sourceTree = "<group>"; };
@@ -176,7 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				6011213E2915FDD3004A0AF3 /* assets */,
-				60637F3829136DAC00352516 /* mylib */,
+				60637F3829136DAC00352516 /* cgdlib */,
 				60FF54B329DB3CF5002F3C5C /* area.h */,
 				60FF54B429DB3CF5002F3C5C /* area.c */,
 				60558AAB291B08F400814C16 /* action.c */,
@@ -227,7 +227,7 @@
 			path = RogueLike;
 			sourceTree = "<group>";
 		};
-		60637F3829136DAC00352516 /* mylib */ = {
+		60637F3829136DAC00352516 /* cgdlib */ = {
 			isa = PBXGroup;
 			children = (
 				60637F4D29136DAC00352516 /* fonts */,
@@ -237,7 +237,7 @@
 				60637F3A29136DAC00352516 /* genlib.c */,
 				60637F3B29136DAC00352516 /* input.h */,
 				60637F4629136DAC00352516 /* input.c */,
-				60637F4029136DAC00352516 /* inttypes.h */,
+				60637F4029136DAC00352516 /* shorttypes.h */,
 				60637F4529136DAC00352516 /* list.h */,
 				60637F3C29136DAC00352516 /* list.c */,
 				60637F4229136DAC00352516 /* mathlib.h */,
@@ -255,7 +255,7 @@
 				60637F4A29136DAC00352516 /* video.h */,
 				60637F3E29136DAC00352516 /* video.c */,
 			);
-			path = mylib;
+			path = cgdlib;
 			sourceTree = "<group>";
 		};
 		60637F4D29136DAC00352516 /* fonts */ = {

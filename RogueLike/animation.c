@@ -6,7 +6,7 @@
 //
 
 #include "game.h"
-#include "mylib/mathlib.h"
+#include "mathlib.h"
 
 /// Move actor from offset start to end
 void AnimateActorMove(Actor * actor, float move_timer)

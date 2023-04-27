@@ -11,7 +11,7 @@
 #define coord_h
 
 #include "vector.h"
-#include "inttypes.h"
+#include "shorttypes.h"
 #include <stdbool.h>
 
 typedef struct { s16 x, y; } TileCoord;

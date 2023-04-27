@@ -5,8 +5,8 @@
 //  Created by Thomas Foster on 10/22/22.
 //
 
-#ifndef inttypes_h
-#define inttypes_h
+#ifndef shorttypes_h
+#define shorttypes_h
 
 #include <stdint.h>
 
@@ -24,4 +24,4 @@ typedef uint16_t    u16;
 typedef uint32_t    u32;
 typedef uint64_t    u64;
 
-#endif /* inttypes_h */
+#endif /* shorttypes_h */

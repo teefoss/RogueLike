@@ -8,7 +8,7 @@
 #ifndef icon_h
 #define icon_h
 
-#include "inttypes.h"
+#include "shorttypes.h"
 
 #define ICON_SIZE 6
 

@@ -8,7 +8,7 @@
 #ifndef level_h
 #define level_h
 
-#include "inttypes.h"
+#include "shorttypes.h"
 #include <stdbool.h>
 
 typedef enum {

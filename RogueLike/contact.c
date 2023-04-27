@@ -6,7 +6,7 @@
 //
 
 #include "game.h"
-#include "mylib/sound.h"
+#include "sound.h"
 
 void C_Player(Actor * player, Actor * hit)
 {
