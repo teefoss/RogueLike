@@ -34,19 +34,22 @@
 
 #define SOUND_BUMP "l32o0de-"
 
+#define STEPS_PER_FUEL_UNIT 20
+#define MAX_FUEL (STEPS_PER_FUEL_UNIT * 10)
+
 typedef struct {
     Inventory inventory;
     bool has_gold_key;
     int player_turns;
     int strength_buff;
+    int fuel;
 } PlayerInfo;
 
 
 typedef struct {
     Fade type;
-    float timer; // State fade in/out
+    float timer;
     float duration_sec;
-    const GameState * post_fade_game_state;
 } FadeState;
 
 
@@ -67,8 +70,8 @@ struct game {
     const GameState * state_stack[MAX_GAME_STATES];
 
     // Used when changing states. The new state is stored here while a
-    // fade out happens. At end of the fade, state is changed to `new_state`.
-    const GameState * new_state;
+    // fade out happens. At end of the fade, game state is changed this.
+    const GameState * post_fade_state;
 
     FadeState fade_state;
 

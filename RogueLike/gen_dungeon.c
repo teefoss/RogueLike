@@ -680,9 +680,13 @@ void SpawnExit(Game * game)
 
 void SpawnActorAtRandomPointInBuffer(Game * game, ActorType type)
 {
-    int i = Random(0, _count - 1);
-    SpawnActor(game, type, _buffer[i]);
-    BufferRemove(i);
+    if ( _count > 0 ) {
+        int i = Random(0, _count - 1);
+        SpawnActor(game, type, _buffer[i]);
+        BufferRemove(i);
+    } else {
+        printf("no room to spawn %s!", ActorName(type));
+    }
 }
 
 

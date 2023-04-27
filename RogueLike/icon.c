@@ -13,8 +13,8 @@
 static struct {
     u8 x, y;
 } info[NUM_ICONS] = {
-    [ICON_FULL_HEART]       = { 0, 0 },
-    [ICON_EMPTY_HEART]      = { 1, 0 },
+    [ICON_HEART_FULL]       = { 0, 0 },
+    [ICON_HEART_EMPTY]      = { 1, 0 },
     [ICON_TURN]             = { 2, 0 },
     [ICON_DOWN_ARROW]       = { 3, 0 },
     [ICON_DAMAGE]           = { 4, 0 },
@@ -22,6 +22,8 @@ static struct {
     [ICON_HEALTH_POTION]    = { 0, 1 },
     [ICON_TURN_POTION]      = { 1, 1 },
     [ICON_STRENGTH_POTION]  = { 5, 1 },
+    [ICON_FUEL_FULL]        = { 6, 0 },
+    [ICON_FUEL_EMPTY]       = { 7, 0 },
 };
 
 static SDL_Rect src = { .w = ICON_SIZE, .h = ICON_SIZE };

@@ -13,6 +13,17 @@
 		6011213B2915EF8A004A0AF3 /* map.c in Sources */ = {isa = PBXBuildFile; fileRef = 6011213A2915EF8A004A0AF3 /* map.c */; };
 		6011213D2915F06B004A0AF3 /* debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 6011213C2915F06B004A0AF3 /* debug.c */; };
 		6011214029189F4B004A0AF3 /* actor.c in Sources */ = {isa = PBXBuildFile; fileRef = 6011213F29189F4B004A0AF3 /* actor.c */; };
+		60373EE929FAB6B5001CCE44 /* sprite.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ECD29FAB6B5001CCE44 /* sprite.c */; };
+		60373EEA29FAB6B5001CCE44 /* genlib.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ECE29FAB6B5001CCE44 /* genlib.c */; };
+		60373EEB29FAB6B5001CCE44 /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ED029FAB6B5001CCE44 /* list.c */; };
+		60373EEC29FAB6B5001CCE44 /* array.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ED129FAB6B5001CCE44 /* array.c */; };
+		60373EED29FAB6B5001CCE44 /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ED229FAB6B5001CCE44 /* video.c */; };
+		60373EEE29FAB6B5001CCE44 /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ED329FAB6B5001CCE44 /* stack.c */; };
+		60373EEF29FAB6B5001CCE44 /* vector.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ED429FAB6B5001CCE44 /* vector.c */; };
+		60373EF029FAB6B5001CCE44 /* texture.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ED629FAB6B5001CCE44 /* texture.c */; };
+		60373EF129FAB6B5001CCE44 /* input.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373ED929FAB6B5001CCE44 /* input.c */; };
+		60373EF229FAB6B5001CCE44 /* sound.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373EDB29FAB6B5001CCE44 /* sound.c */; };
+		60373EF329FAB6B5001CCE44 /* mathlib.c in Sources */ = {isa = PBXBuildFile; fileRef = 60373EE029FAB6B5001CCE44 /* mathlib.c */; };
 		6041A51429F71C4E002E2E92 /* actors.c in Sources */ = {isa = PBXBuildFile; fileRef = 6041A51329F71C4E002E2E92 /* actors.c */; };
 		6041A51729F8AB26002E2E92 /* blob.c in Sources */ = {isa = PBXBuildFile; fileRef = 6041A51629F8AB26002E2E92 /* blob.c */; };
 		6041A51A29F94CAD002E2E92 /* loot.c in Sources */ = {isa = PBXBuildFile; fileRef = 6041A51929F94CAD002E2E92 /* loot.c */; };
@@ -57,6 +68,34 @@
 		6011213C2915F06B004A0AF3 /* debug.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = debug.c; sourceTree = "<group>"; };
 		6011213E2915FDD3004A0AF3 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = "<group>"; };
 		6011213F29189F4B004A0AF3 /* actor.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = actor.c; sourceTree = "<group>"; };
+		60373ECC29FAB6B5001CCE44 /* sound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sound.h; sourceTree = "<group>"; };
+		60373ECD29FAB6B5001CCE44 /* sprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sprite.c; sourceTree = "<group>"; };
+		60373ECE29FAB6B5001CCE44 /* genlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = genlib.c; sourceTree = "<group>"; };
+		60373ECF29FAB6B5001CCE44 /* input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input.h; sourceTree = "<group>"; };
+		60373ED029FAB6B5001CCE44 /* list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = list.c; sourceTree = "<group>"; };
+		60373ED129FAB6B5001CCE44 /* array.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = array.c; sourceTree = "<group>"; };
+		60373ED229FAB6B5001CCE44 /* video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = video.c; sourceTree = "<group>"; };
+		60373ED329FAB6B5001CCE44 /* stack.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stack.c; sourceTree = "<group>"; };
+		60373ED429FAB6B5001CCE44 /* vector.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vector.c; sourceTree = "<group>"; };
+		60373ED529FAB6B5001CCE44 /* mathlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mathlib.h; sourceTree = "<group>"; };
+		60373ED629FAB6B5001CCE44 /* texture.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = texture.c; sourceTree = "<group>"; };
+		60373ED729FAB6B5001CCE44 /* genlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = genlib.h; sourceTree = "<group>"; };
+		60373ED829FAB6B5001CCE44 /* list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = list.h; sourceTree = "<group>"; };
+		60373ED929FAB6B5001CCE44 /* input.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = input.c; sourceTree = "<group>"; };
+		60373EDA29FAB6B5001CCE44 /* sprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sprite.h; sourceTree = "<group>"; };
+		60373EDB29FAB6B5001CCE44 /* sound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sound.c; sourceTree = "<group>"; };
+		60373EDC29FAB6B5001CCE44 /* array.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = array.h; sourceTree = "<group>"; };
+		60373EDD29FAB6B5001CCE44 /* stack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stack.h; sourceTree = "<group>"; };
+		60373EDE29FAB6B5001CCE44 /* video.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = video.h; sourceTree = "<group>"; };
+		60373EDF29FAB6B5001CCE44 /* texture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = texture.h; sourceTree = "<group>"; };
+		60373EE029FAB6B5001CCE44 /* mathlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mathlib.c; sourceTree = "<group>"; };
+		60373EE229FAB6B5001CCE44 /* font_4x6.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = font_4x6.h; sourceTree = "<group>"; };
+		60373EE329FAB6B5001CCE44 /* atari_4x8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = atari_4x8.h; sourceTree = "<group>"; };
+		60373EE429FAB6B5001CCE44 /* cp437_8x8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cp437_8x8.h; sourceTree = "<group>"; };
+		60373EE529FAB6B5001CCE44 /* nes_16x16.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nes_16x16.h; sourceTree = "<group>"; };
+		60373EE629FAB6B5001CCE44 /* cp437_8x16.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cp437_8x16.h; sourceTree = "<group>"; };
+		60373EE729FAB6B5001CCE44 /* vector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vector.h; sourceTree = "<group>"; };
+		60373EE829FAB6B5001CCE44 /* shorttypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = shorttypes.h; sourceTree = "<group>"; };
 		6041A51229F71C4E002E2E92 /* actors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = actors.h; sourceTree = "<group>"; };
 		6041A51329F71C4E002E2E92 /* actors.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = actors.c; sourceTree = "<group>"; };
 		6041A51629F8AB26002E2E92 /* blob.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = blob.c; sourceTree = "<group>"; };
@@ -109,6 +148,49 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		60373ECB29FAB6B5001CCE44 /* cgdlib */ = {
+			isa = PBXGroup;
+			children = (
+				60373ECC29FAB6B5001CCE44 /* sound.h */,
+				60373ECD29FAB6B5001CCE44 /* sprite.c */,
+				60373ECE29FAB6B5001CCE44 /* genlib.c */,
+				60373ECF29FAB6B5001CCE44 /* input.h */,
+				60373ED029FAB6B5001CCE44 /* list.c */,
+				60373ED129FAB6B5001CCE44 /* array.c */,
+				60373ED229FAB6B5001CCE44 /* video.c */,
+				60373ED329FAB6B5001CCE44 /* stack.c */,
+				60373ED429FAB6B5001CCE44 /* vector.c */,
+				60373ED529FAB6B5001CCE44 /* mathlib.h */,
+				60373ED629FAB6B5001CCE44 /* texture.c */,
+				60373ED729FAB6B5001CCE44 /* genlib.h */,
+				60373ED829FAB6B5001CCE44 /* list.h */,
+				60373ED929FAB6B5001CCE44 /* input.c */,
+				60373EDA29FAB6B5001CCE44 /* sprite.h */,
+				60373EDB29FAB6B5001CCE44 /* sound.c */,
+				60373EDC29FAB6B5001CCE44 /* array.h */,
+				60373EDD29FAB6B5001CCE44 /* stack.h */,
+				60373EDE29FAB6B5001CCE44 /* video.h */,
+				60373EDF29FAB6B5001CCE44 /* texture.h */,
+				60373EE029FAB6B5001CCE44 /* mathlib.c */,
+				60373EE129FAB6B5001CCE44 /* fonts */,
+				60373EE729FAB6B5001CCE44 /* vector.h */,
+				60373EE829FAB6B5001CCE44 /* shorttypes.h */,
+			);
+			path = cgdlib;
+			sourceTree = "<group>";
+		};
+		60373EE129FAB6B5001CCE44 /* fonts */ = {
+			isa = PBXGroup;
+			children = (
+				60373EE229FAB6B5001CCE44 /* font_4x6.h */,
+				60373EE329FAB6B5001CCE44 /* atari_4x8.h */,
+				60373EE429FAB6B5001CCE44 /* cp437_8x8.h */,
+				60373EE529FAB6B5001CCE44 /* nes_16x16.h */,
+				60373EE629FAB6B5001CCE44 /* cp437_8x16.h */,
+			);
+			path = fonts;
+			sourceTree = "<group>";
+		};
 		6041A51529F8AAF3002E2E92 /* mobs */ = {
 			isa = PBXGroup;
 			children = (
@@ -136,6 +218,7 @@
 		60637F2B29136A4200352516 /* RogueLike */ = {
 			isa = PBXGroup;
 			children = (
+				60373ECB29FAB6B5001CCE44 /* cgdlib */,
 				6011213E2915FDD3004A0AF3 /* assets */,
 				60FF54B329DB3CF5002F3C5C /* area.h */,
 				60FF54B429DB3CF5002F3C5C /* area.c */,
@@ -246,30 +329,41 @@
 			files = (
 				60E8548E29D5DF9700C606D7 /* item.c in Sources */,
 				601121372915ED80004A0AF3 /* gen_dungeon.c in Sources */,
+				60373EEA29FAB6B5001CCE44 /* genlib.c in Sources */,
+				60373EF029FAB6B5001CCE44 /* texture.c in Sources */,
 				608E80BC29354A830060A04D /* animation.c in Sources */,
 				607E792529D8C112006FA184 /* gen_forest.c in Sources */,
+				60373EF329FAB6B5001CCE44 /* mathlib.c in Sources */,
+				60373EEF29FAB6B5001CCE44 /* vector.c in Sources */,
 				60558AAC291B08F400814C16 /* action.c in Sources */,
 				60558AAA291AF9CC00814C16 /* contact.c in Sources */,
 				60FF54B529DB3CF5002F3C5C /* area.c in Sources */,
 				607AFE6529EB10D20007D55E /* inventory.c in Sources */,
+				60373EEC29FAB6B5001CCE44 /* array.c in Sources */,
 				6011214029189F4B004A0AF3 /* actor.c in Sources */,
 				60EB154D29E0624100DBCED8 /* particle.c in Sources */,
 				60637F2D29136A4200352516 /* game.c in Sources */,
 				6011213D2915F06B004A0AF3 /* debug.c in Sources */,
+				60373EEE29FAB6B5001CCE44 /* stack.c in Sources */,
 				6009752D29EC6D14002DF6AD /* game_state.c in Sources */,
 				607AFE6229EAF26B0007D55E /* render.c in Sources */,
+				60373EE929FAB6B5001CCE44 /* sprite.c in Sources */,
 				6041A51A29F94CAD002E2E92 /* loot.c in Sources */,
 				600D4C2E29F480990013244B /* menu.c in Sources */,
+				60373EF129FAB6B5001CCE44 /* input.c in Sources */,
 				6041A51729F8AB26002E2E92 /* blob.c in Sources */,
 				60577A3D29EA48B400BF0AD8 /* world.c in Sources */,
 				60F0A71229D291330022A995 /* main.c in Sources */,
 				60FBE3E02947CC1D007C3862 /* tile.c in Sources */,
 				6011213B2915EF8A004A0AF3 /* map.c in Sources */,
 				6041A51429F71C4E002E2E92 /* actors.c in Sources */,
+				60373EED29FAB6B5001CCE44 /* video.c in Sources */,
 				60E8548A29D4F1D500C606D7 /* icon.c in Sources */,
 				608E80BE2937A05F0060A04D /* player.c in Sources */,
 				60F0A71029D2325A0022A995 /* direction.c in Sources */,
+				60373EF229FAB6B5001CCE44 /* sound.c in Sources */,
 				60F0A70D29D20CAF0022A995 /* coord.c in Sources */,
+				60373EEB29FAB6B5001CCE44 /* list.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

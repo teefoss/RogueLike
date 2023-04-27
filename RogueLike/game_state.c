@@ -21,6 +21,7 @@ void LevelTurnOnEnter(Game * game);
 void GamePlayRender(const Game * game);
 
 void IntermissionRender(const Game * game);
+void IntermissionOnEnter(Game * game);
 void IntermissionOnExit(Game * game);
 
 void TitleScreenOnEnter(Game * game);
@@ -52,7 +53,7 @@ const GameState intermission = {
         .process_event  = NULL,
         .update         = NULL,
         .render         = IntermissionRender,
-        .on_enter       = NULL,
+        .on_enter       = IntermissionOnEnter,
         .on_exit        = IntermissionOnExit,
         .finite_duration = true,
         .duration_ticks = MS2TICKS(3000, FPS),
@@ -103,13 +104,32 @@ void PopState(Game * game)
 }
 
 
-void ChangeState(Game * game, const GameState * new_state)
+void FadeOutAndChangeState(Game * game,
+                           const GameState * new_state,
+                           float fade_duration_sec)
 {
+    game->post_fade_state = new_state;
 
+    game->fade_state.type = FADE_OUT;
+    game->fade_state.duration_sec = fade_duration_sec;
+    game->fade_state.timer = 0.0f;
 }
 
 
-void CompleteChangeState(Game * game, const GameState * new_state)
+void ChangeStateAndFadeIn(Game * game,
+                          const GameState * new_state,
+                          float fade_duration_sec)
+{
+    ChangeState(game, new_state);
+    game->post_fade_state = NULL;
+
+    game->fade_state.type = FADE_IN;
+    game->fade_state.duration_sec = fade_duration_sec;
+    game->fade_state.timer = 0.0f;
+}
+
+
+void ChangeState(Game * game, const GameState * new_state)
 {
     const GameState ** state = &game->state_stack[game->state_stack_top];
 
@@ -135,6 +155,7 @@ void UpdateState(Game * game, float dt)
 {
     const GameState * state = game->state_stack[game->state_stack_top];
 
+    // Either do a fade or run the state timer
     if ( game->fade_state.type != FADE_NONE ) {
         FadeState * fs = &game->fade_state;
 
@@ -143,22 +164,21 @@ void UpdateState(Game * game, float dt)
 
         if ( fs->timer >= 1.0f ) {
             fs->type = FADE_NONE;
-            if ( fs->post_fade_game_state ) {
-                ChangeState(game, fs->post_fade_game_state);
-                fs->post_fade_game_state = NULL;
+            fs->timer = 0.0f;
+            if ( game->post_fade_state ) {
+                ChangeState(game, game->post_fade_state);
+                game->post_fade_state = NULL;
             }
         }
-    } else {
-        if ( state->finite_duration ) {
-            // Run timer for finite length states.
+    } else if ( state->finite_duration ) {
+        // Run timer for finite length states.
 
-            if ( --game->state_timer <= 0 ) {
-                ChangeState(game, state->next_state); // TODO: fade?
-            }
+        if ( --game->state_timer <= 0 ) {
+            ChangeState(game, state->next_state);
         }
+    }
 
-        if ( state->update ) {
-            state->update(game, dt);
-        }
+    if ( state->update ) {
+        state->update(game, dt);
     }
 }

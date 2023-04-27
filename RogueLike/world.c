@@ -68,6 +68,13 @@ void RenderForestBackground(const Star * stars)
 
 void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
 {
+    // TODO: move to area_info
+    if ( world->area == AREA_FOREST ) {
+        V_ClearRGB(0, 0, 64);
+    } else {
+        V_ClearRGB(0, 0, 0);
+    }
+
     const SDL_Rect viewport = GetLevelViewport(render_info);
     SDL_RenderSetViewport(renderer, &viewport);
 

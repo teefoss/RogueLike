@@ -47,6 +47,12 @@ const GameState * GetGameState(const Game * game);
 void PushState(Game * game, const GameState * new_state);
 void PopState(Game * game);
 void ChangeState(Game * game, const GameState * new_state);
+void ChangeStateAndFadeIn(Game * game,
+                          const GameState * new_state,
+                          float fade_duration_sec);
+void FadeOutAndChangeState(Game * game,
+                           const GameState * new_state,
+                           float fade_duration_sec);
 void UpdateState(Game * game, float dt);
 
 #endif /* game_state_h */

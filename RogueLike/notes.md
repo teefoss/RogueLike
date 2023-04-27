@@ -25,7 +25,9 @@ INVENTORY:
 teleporter, don't reactivate if hitting mob while standing on it.
 title screen render mod
 tab open inventory on title screen
-
+don't drink po if full
+blob 'stutter'
+key got placed in exit room!
 
 # Keep an eye on...
 

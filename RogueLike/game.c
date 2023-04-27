@@ -103,13 +103,21 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 }
 
 
-void ChangeStateWithFade(FadeState * fade_state, Fade type, float seconds,
-                         const GameState * game_state)
+//void ChangeStateWithFade(FadeState * fade_state, Fade type, float seconds,
+//                         const GameState * game_state)
+//{
+//    fade_state->type = type;
+//    fade_state->timer = 0.0f;
+//    fade_state->duration_sec = seconds;
+//    fade_state->post_fade_game_state = game_state;
+//}
+
+
+void StartFadeIn(FadeState * fade_state, float seconds)
 {
-    fade_state->type = type;
+    fade_state->type = FADE_IN;
     fade_state->timer = 0.0f;
     fade_state->duration_sec = seconds;
-    fade_state->post_fade_game_state = game_state;
 }
 
 
@@ -118,7 +126,9 @@ void NewGame(Game * game)
     LoadLevel(game, 1, false);
     game->player_info.inventory.item_counts[0] = 1;
     game->player_info.inventory.item_counts[1] = 2;
-    ChangeStateWithFade(&game->fade_state, FADE_IN, 2.0f, &level_idle);
+    game->player_info.fuel = STEPS_PER_FUEL_UNIT * 3;
+
+    ChangeStateAndFadeIn(game, &level_idle, 2.0f);
 }
 
 
@@ -256,13 +266,20 @@ bool DoIntermissionInput(Game * game, const SDL_Event * event)
 }
 
 
+void IntermissionOnEnter(Game * game)
+{
+    StartFadeIn(&game->fade_state, 2.0f);
+}
+
+
 void IntermissionOnExit(Game * game)
 {
     LoadLevel(game, game->level, true);
     game->player_info.player_turns = INITIAL_TURNS;
     PlayerCastSight(&game->world, &game->render_info);
-}
 
+    StartFadeIn(&game->fade_state, 1.0f);
+}
 
 
 #pragma mark - LEVEL IDLE STATE
@@ -283,7 +300,7 @@ void LevelIdleOnEnter(Game * game)
             break;
         case TILE_EXIT:
             ++game->level;
-            ChangeStateWithFade(&game->fade_state, FADE_OUT, 0.25f, &intermission);
+            FadeOutAndChangeState(game, &intermission, 0.25f);
             break;
         default:
             break;
@@ -561,7 +578,7 @@ vec2_t GetWindowScale(void)
 }
 
 
-// TODO: param player stats only?
+// TODO: param player stats only? This all needs a massive clean up
 void RenderHUD(const Game * game, const Actor * player)
 {
     const int margin = HUD_MARGIN;
@@ -629,8 +646,21 @@ void RenderHUD(const Game * game, const Actor * player)
     int health_x = V_PrintString(hud_x, hud_y, "Health ");
 
     for ( int i = 0; i < player->stats.max_health; i++ ) {
-        Icon icon = i + 1 > player->stats.health ? ICON_EMPTY_HEART : ICON_FULL_HEART;
+        Icon icon = i + 1 > player->stats.health ? ICON_HEART_EMPTY : ICON_HEART_FULL;
         RenderIcon(icon, health_x + i * SCALED(ICON_SIZE), hud_y);
+    }
+
+    // Fuel
+
+    hud_y -= char_h;
+
+    int fuel_x = V_PrintString(hud_x, hud_y, " Torch ");
+
+    int num_icons = game->player_info.fuel / STEPS_PER_FUEL_UNIT;
+    int max_icons = MAX_FUEL / STEPS_PER_FUEL_UNIT;
+    for ( int i = 0; i < max_icons; i++ ) {
+        Icon icon = i + 1 > num_icons ? ICON_FUEL_EMPTY : ICON_FUEL_FULL;
+        RenderIcon(icon, fuel_x + i * SCALED(ICON_SIZE), hud_y);
     }
 }
 
@@ -750,21 +780,18 @@ void IntermissionRender(const Game * game)
 
 
 /// Render a transparent rectangle over everything if fading in/out.
-void DoFade(FadeState * fade_state)
+void RenderFade(FadeState * fade_state)
 {
-    if ( fade_state->type != FADE_NONE ) {
+    u8 alpha = 0;
 
-        u8 alpha = 0;
-
-        if ( fade_state->type == FADE_IN ) {
-            alpha = (1.0f - fade_state->timer) * 255.0f;
-        } else if ( fade_state->type == FADE_OUT ) {
-            alpha = fade_state->timer * 255.0f;
-        }
-
-        V_SetRGBA(0, 0, 0, alpha);
-        V_FillRect(NULL);
+    if ( fade_state->type == FADE_IN ) {
+        alpha = (1.0f - fade_state->timer) * 255.0f;
+    } else if ( fade_state->type == FADE_OUT ) {
+        alpha = fade_state->timer * 255.0f;
     }
+
+    V_SetRGBA(0, 0, 0, alpha);
+    V_FillRect(NULL);
 }
 
 
@@ -811,7 +838,8 @@ Game * InitGame(void)
     // Just make sure there's a state on the stack to begin.
     PushState(game, &game_state_title);
 
-    ChangeStateWithFade(&game->fade_state, FADE_IN, 0.25f, &game_state_title);
+//    ChangeStateWithFade(&game->fade_state, FADE_IN, 0.25f, &game_state_title);
+    ChangeStateAndFadeIn(game, &game_state_title, 1.0f);
 
     return game;
 }
@@ -891,12 +919,7 @@ void DoFrame(Game * game, float dt)
 
     UpdateState(game, dt);
 
-    // TODO: move to area_info
-    if ( game->world.area == AREA_FOREST ) {
-        V_ClearRGB(0, 0, 64);
-    } else {
-        V_ClearRGB(0, 0, 0);
-    }
+    V_ClearRGB(0, 0, 0);
 
     for ( int i = 0; i <= game->state_stack_top; i++ ) {
         const GameState * s = game->state_stack[i];
@@ -905,7 +928,9 @@ void DoFrame(Game * game, float dt)
         }
     }
 
-    DoFade(&game->fade_state);
+    if ( game->fade_state.type != FADE_NONE ) {
+        RenderFade(&game->fade_state);
+    }
 
     V_Refresh();
 
