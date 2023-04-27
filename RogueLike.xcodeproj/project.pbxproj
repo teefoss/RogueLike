@@ -57,7 +57,6 @@
 		6011213C2915F06B004A0AF3 /* debug.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = debug.c; sourceTree = "<group>"; };
 		6011213E2915FDD3004A0AF3 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = "<group>"; };
 		6011213F29189F4B004A0AF3 /* actor.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = actor.c; sourceTree = "<group>"; };
-		6040A26529FAA5E200F625C7 /* cgdlib */ = {isa = PBXFileReference; lastKnownFileType = folder; path = cgdlib; sourceTree = "<group>"; };
 		6041A51229F71C4E002E2E92 /* actors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = actors.h; sourceTree = "<group>"; };
 		6041A51329F71C4E002E2E92 /* actors.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = actors.c; sourceTree = "<group>"; };
 		6041A51629F8AB26002E2E92 /* blob.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = blob.c; sourceTree = "<group>"; };
@@ -137,7 +136,6 @@
 		60637F2B29136A4200352516 /* RogueLike */ = {
 			isa = PBXGroup;
 			children = (
-				6040A26529FAA5E200F625C7 /* cgdlib */,
 				6011213E2915FDD3004A0AF3 /* assets */,
 				60FF54B329DB3CF5002F3C5C /* area.h */,
 				60FF54B429DB3CF5002F3C5C /* area.c */,
