@@ -105,6 +105,12 @@ void PopState(Game * game)
 
 void ChangeState(Game * game, const GameState * new_state)
 {
+
+}
+
+
+void CompleteChangeState(Game * game, const GameState * new_state)
+{
     const GameState ** state = &game->state_stack[game->state_stack_top];
 
     if ( *state && (*state)->on_exit ) {

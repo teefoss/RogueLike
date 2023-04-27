@@ -66,6 +66,10 @@ struct game {
     int state_stack_top;
     const GameState * state_stack[MAX_GAME_STATES];
 
+    // Used when changing states. The new state is stored here while a
+    // fade out happens. At end of the fade, state is changed to `new_state`.
+    const GameState * new_state;
+
     FadeState fade_state;
 
     World world;
