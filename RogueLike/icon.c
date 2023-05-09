@@ -24,6 +24,10 @@ static struct {
     [ICON_STRENGTH_POTION]  = { 5, 1 },
     [ICON_FUEL_FULL]        = { 6, 0 },
     [ICON_FUEL_EMPTY]       = { 7, 0 },
+    [ICON_FUEL_BURN]        = { 8, 0 },
+    [ICON_FUEL_DYING]       = { 9, 0 },
+    [ICON_FUEL_SMALL]       = { 6, 1 },
+    [ICON_FUEL_BIG]         = { 7, 1 },
 };
 
 static SDL_Rect src = { .w = ICON_SIZE, .h = ICON_SIZE };

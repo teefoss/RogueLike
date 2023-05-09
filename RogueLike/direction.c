@@ -7,9 +7,6 @@
 
 #include "direction.h"
 
-//const int x_deltas[NUM_DIRECTIONS] = { 0, -1, 1, 0, -1, 1, -1, 1 };
-//const int y_deltas[NUM_DIRECTIONS] = { -1, 0, 0, 1, -1, -1, 1, 1 };
-
 static const TileCoord deltas[NUM_DIRECTIONS] = {
     [NORTH] = { 0, -1 },
     [EAST] = { 1, 0 },
@@ -38,6 +35,22 @@ int YDelta(Direction direction)
         return 0;
     } else {
         return deltas[direction].y;
+    }
+}
+
+
+Direction OppositeDirection(Direction direction)
+{
+    switch ( direction ) {
+        case NORTH:         return SOUTH;
+        case WEST:          return EAST;
+        case EAST:          return WEST;
+        case SOUTH:         return NORTH;
+        case NORTH_WEST:    return SOUTH_EAST;
+        case NORTH_EAST:    return SOUTH_WEST;
+        case SOUTH_WEST:    return NORTH_EAST;
+        case SOUTH_EAST:    return NORTH_WEST;
+        default:            return NO_DIRECTION;
     }
 }
 

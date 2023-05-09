@@ -9,6 +9,14 @@
 #include "coord.h"
 #include "mathlib.h"
 
+bool TileInBox(TileCoord coord, Box box)
+{
+    return  coord.x >= box.left
+    &&      coord.x <= box.right
+    &&      coord.y >= box.top
+    &&      coord.y <= box.bottom;
+}
+
 
 TileCoord AddTileCoords(TileCoord a, TileCoord b)
 {

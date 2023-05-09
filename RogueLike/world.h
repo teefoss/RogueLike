@@ -22,9 +22,9 @@ typedef struct {
 } Star;
 
 typedef struct world {
-    Area area;
+    Area area; // TODO: just make a pointer to &area_info[x]
     Map map;
-    Actors actors;
+    ActorList actor_list;
 
     ParticleArray particles;
     Star stars[NUM_STARS];

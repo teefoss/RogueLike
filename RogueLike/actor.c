@@ -52,6 +52,12 @@ ActorSprite sprite_info[NUM_ACTOR_TYPES] = {
         .frame_msec = 100,
         .draw_priority = DRAW_PRIORITY_MONSTER,
     },
+    [ACTOR_SUPER_SPIDER] = {
+        .cell = { 4, 6 },
+        .num_frames = 4,
+        .frame_msec = 100,
+        .draw_priority = DRAW_PRIORITY_MONSTER,
+    },
     [ACTOR_ITEM_HEALTH] = {
         .cell = { 0, 1 },
         .draw_priority = DRAW_PRIORITY_ITEM,
@@ -62,6 +68,14 @@ ActorSprite sprite_info[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_ITEM_STRENGTH] = {
         .cell = { 3, 1 },
+        .draw_priority = DRAW_PRIORITY_ITEM,
+    },
+    [ACTOR_ITEM_FUEL_SMALL] = {
+        .cell = { 4, 1 },
+        .draw_priority = DRAW_PRIORITY_ITEM,
+    },
+    [ACTOR_ITEM_FUEL_BIG] = {
+        .cell = { 5, 1 },
         .draw_priority = DRAW_PRIORITY_ITEM,
     },
     [ACTOR_GOLD_KEY] = {
@@ -102,6 +116,7 @@ void C_Block(Actor *, Actor *);
 void A_TargetAndChasePlayerIfVisible(Actor *);
 void A_ChasePlayerIfVisible(Actor *);
 void A_StupidChasePlayerIfVisible(Actor * actor);
+void A_SpiderChase(Actor * spider);
 
 #define ITEM_FLAGS { .collectible = true, .no_collision = true }
 
@@ -132,10 +147,18 @@ static Actor templates[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_SPIDER] = {
         .name = "Spider",
-        .flags = { .takes_damage = true, .drops_loot = true },
+        .flags = { .takes_damage = true },
         .stats.max_health = 1,
         .stats.damage = 1,
-        .action = A_StupidChasePlayerIfVisible,
+        .action = A_SpiderChase,
+        .contact = C_Spider,
+    },
+    [ACTOR_SUPER_SPIDER] = {
+        .name = "Super Spider",
+        .flags = { .takes_damage = true, .drops_loot = true },
+        .stats.max_health = 2,
+        .stats.damage = 2,
+        .action = A_SpiderChase,
         .contact = C_Spider,
     },
     [ACTOR_ITEM_HEALTH] = {
@@ -151,6 +174,16 @@ static Actor templates[NUM_ACTOR_TYPES] = {
     [ACTOR_ITEM_STRENGTH] = {
         .name = "Strength Potion",
         .item = ITEM_STRENGTH,
+        .flags = ITEM_FLAGS,
+    },
+    [ACTOR_ITEM_FUEL_SMALL] = {
+        .name = "Small Lamp Fuel",
+        .item = ITEM_FUEL_SMALL,
+        .flags = ITEM_FLAGS,
+    },
+    [ACTOR_ITEM_FUEL_BIG] = {
+        .name = "Large Lamp Fuel",
+        .item = ITEM_FUEL_BIG,
         .flags = ITEM_FLAGS,
     },
     [ACTOR_GOLD_KEY] = {
@@ -190,19 +223,34 @@ const char * ActorName(ActorType type)
 
 void SpawnActor(Game * game, ActorType type, TileCoord coord)
 {
-    Actor actor = templates[type];
-    actor.game = game;
-    actor.type = type;
-    actor.sprite = &sprite_info[type];
-    actor.tile = coord;
-    actor.stats.health = actor.stats.max_health;
+    Actor * actor = calloc(1, sizeof(*actor));
+    if ( actor == NULL ) {
+        Error("Could not allocate Actor");
+    }
 
+    *actor = templates[type];
+    actor->game = game;
+    actor->type = type;
+    actor->sprite = &sprite_info[type];
+    actor->tile = coord;
+    actor->stats.health = actor->stats.max_health;
+
+    AppendActor(&game->world.actor_list, actor);
+    // Push to start of actor list.
+//    actor->next = game->world.actor_list;
+//    if ( game->world.actor_list != NULL ) {
+//        game->world.actor_list->prev = actor;
+//    }
+//    game->world.actor_list = actor;
+
+#if 0
     if ( game->world.actors.count + 1 <= MAX_ACTORS ) {
         game->world.actors.list[game->world.actors.count++] = actor;
     } else {
         printf("ran out of room in actor array!\n");
         return;
     }
+#endif
 }
 
 
@@ -396,11 +444,8 @@ bool TryMoveActor(Actor * actor, Direction direction)
 
     UpdateActorFacing(actor, XDelta(direction));
 
-    Actors * actors = &actor->game->world.actors;
-
     // Check if there's an actor at try_x, try_y
-    for ( int i = 0; i < actors->count; i++ ) {
-        Actor * hit = &actors->list[i];
+    FOR_EACH_ACTOR(hit, actor->game->world.actor_list) {
 
         if ( hit != actor
             && hit->tile.x == try_coord.x

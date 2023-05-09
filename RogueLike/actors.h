@@ -11,14 +11,10 @@
 #include "actor.h"
 #include "tile.h"
 
-typedef struct actors {
-    int count;
-    Actor list[MAX_ACTORS];
-} Actors;
-
-Actor * GetActorAtTile(Actors * actors, TileCoord coord);
-Actor * FindActor(Actors * actors, ActorType type);
-const Actor * FindActorConst(const Actors * actors, ActorType type);
-int FindActors(Actors * actors, ActorType type, Actor * out[]);
+Actor * GetActorAtTile(const ActorList * actor_list, TileCoord coord);
+Actor * FindActor(const ActorList * actor_list, ActorType type);
+const Actor * FindActorConst(const ActorList * actor_list, ActorType type);
+int FindActors(const ActorList * actor_list, ActorType type, Actor * out[]);
+void DebugPrintActorList(const ActorList * list);
 
 #endif /* actors_h */

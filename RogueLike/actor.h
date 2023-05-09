@@ -17,7 +17,14 @@
 
 #include <stdbool.h>
 
-#define MAX_ACTORS (256 * 256)
+#define MAX_ACTORS (128 * 128)
+
+#define FOR_EACH_ACTOR(it, list) \
+    for (  Actor * it = list.head; it != NULL; it = it->next )
+
+#define FOR_EACH_ACTOR_CONST(it, list) \
+    for ( const Actor * it = list.head; it != NULL; it = it->next )
+
 
 typedef enum {
     ACTOR_NONE = -1,
@@ -25,6 +32,7 @@ typedef enum {
     ACTOR_TORCH,
     ACTOR_BLOB,
     ACTOR_SPIDER,
+    ACTOR_SUPER_SPIDER,
     ACTOR_ITEM_HEALTH,
     ACTOR_ITEM_TURN,
     ACTOR_ITEM_STRENGTH,
@@ -37,6 +45,8 @@ typedef enum {
     ACTOR_PILLAR,
     ACTOR_TREE,
     ACTOR_WELL,
+    ACTOR_ITEM_FUEL_SMALL,
+    ACTOR_ITEM_FUEL_BIG,
 
     NUM_ACTOR_TYPES
 } ActorType;
@@ -58,9 +68,18 @@ typedef struct {
     u8 damage;
 } ActorsStats;
 
+
 typedef struct game Game;
 typedef struct world World;
 typedef struct actor Actor;
+
+
+typedef struct {
+    int count;
+    Actor * head;
+    Actor * tail;
+} ActorList;
+
 
 struct actor {
     Game * game;
@@ -103,6 +122,9 @@ struct actor {
     void (* contact)(Actor * self, Actor * other);
     void (* contacted)(Actor * self, Actor * other); // When hit by something else.
     void (* action)(Actor *);
+
+    Actor * prev;
+    Actor * next;
 };
 
 
@@ -118,5 +140,9 @@ void KillActor(Actor * actor);
 void UpdateActorFacing(Actor * actor, int dx);
 void Teleport(Actor * actor, TileCoord from);
 const char * ActorName(ActorType type);
+
+void RemoveActor(ActorList * list, Actor * actor);
+void RemoveAllActors(ActorList * list);
+void AppendActor(ActorList * list, Actor * actor);
 
 #endif /* actor_h */

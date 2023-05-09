@@ -41,6 +41,14 @@ void C_Player(Actor * player, Actor * hit)
                     strncpy(log, "Picked up a Strength Potion!", log_size);
                     S_Play("l32 t100 o1 c e g+ c+ f a d f+ b-");
                     break;
+                case ITEM_FUEL_SMALL:
+                    strncpy(log, "Picked up Small Lamp Fuel!", log_size);
+                    S_Play("o3 l16 t160 e- b");
+                    break;
+                case ITEM_FUEL_BIG:
+                    strncpy(log, "Picked up Large Lamp Fuel!", log_size);
+                    S_Play("o2 l16 t160 e- b");
+                    break;
                 default:
                     break;
             }

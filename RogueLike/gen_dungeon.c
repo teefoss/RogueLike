@@ -304,9 +304,9 @@ static void GetValidRoomTiles(const World * world, int room_num)
     const Map * map = &world->map;
     bool * occupied = calloc(map->width * map->height, sizeof(*occupied));
 
-    for ( int i = 0; i < world->actors.count; i++ ) {
-        int x = world->actors.list[i].tile.x;
-        int y = world->actors.list[i].tile.y;
+    FOR_EACH_ACTOR_CONST(actor, world->actor_list) {
+        int x = actor->tile.x;
+        int y = actor->tile.y;
         occupied[y * map->width + x] = true;
     }
 
@@ -577,7 +577,7 @@ void SpawnPlayerAndStartTile(Game * game)
 
 void SpawnGoldKey(Game * game)
 {
-    Actor * player = FindActor(&game->world.actors, ACTOR_PLAYER);
+    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
     Map * map = &game->world.map;
 
     GetReachableTiles(map, player->tile, FLAG(TILE_DOOR));
@@ -737,7 +737,7 @@ void GenerateDungeon(Game * game, int width, int height)
         Error("Could not allocate map tile id array");
     }
 
-    game->world.actors.count = 0;
+    RemoveAllActors(&game->world.actor_list);
 
     InitTiles(map);
 

@@ -8,7 +8,7 @@
 #include "game.h"
 
 
-void SetTileVisible(Map * map, TileCoord coord)
+void RevealTile(Map * map, TileCoord coord)
 {
     Tile * tile = GetTile(map, coord);
 
@@ -34,13 +34,13 @@ void PlayerCastSight(World * world, const RenderInfo * render_info)
     Map * map = &world->map;
     Box vis = GetVisibleRegion(map, render_info);
 
-    const Actor * player = FindActorConst(&world->actors, ACTOR_PLAYER);
+    const Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
 
     TileCoord coord;
     for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
         for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
             if ( LineOfSight(map, player->tile, coord) ) {
-                SetTileVisible(map, coord);
+                RevealTile(map, coord);
             }
         }
     }

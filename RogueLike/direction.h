@@ -30,5 +30,6 @@ int XDelta(Direction direction);
 int YDelta(Direction direction);
 Direction GetDirection(int dx, int dy);
 TileCoord AdjacentTileCoord(TileCoord coord, Direction direction);
+Direction OppositeDirection(Direction direction);
 
 #endif /* direction_h */

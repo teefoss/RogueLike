@@ -34,15 +34,17 @@
 
 #define SOUND_BUMP "l32o0de-"
 
-#define STEPS_PER_FUEL_UNIT 20
-#define MAX_FUEL (STEPS_PER_FUEL_UNIT * 10)
+#define MAX_FUEL 10
+#define FUEL_STEPS 20
 
 typedef struct {
     Inventory inventory;
     bool has_gold_key;
-    int player_turns;
+    int turns;
     int strength_buff;
+
     int fuel;
+    int fuel_steps; // Every FUEL_STEPS steps, exhaust one fuel unit.
 } PlayerInfo;
 
 
@@ -76,6 +78,9 @@ struct game {
     FadeState fade_state;
 
     World world;
+
+    // DEBUG
+    int forest_size;
 };
 
 bool InventoryIsEmtpy(const Inventory * inventory);

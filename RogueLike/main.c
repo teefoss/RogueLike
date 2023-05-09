@@ -42,6 +42,11 @@ int main(void)
 
     S_InitSound();
 
+    printf("size of Game: %zu bytes\n", sizeof(Game));
+    printf("size of World: %zu bytes\n", sizeof(World));
+    printf("size of Map: %zu bytes\n", sizeof(Map));
+    printf("size of Actor: %zu bytes\n", sizeof(Actor));
+
     Game * game = InitGame();
 
     int old_time = SDL_GetTicks();

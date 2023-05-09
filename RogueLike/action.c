@@ -8,13 +8,14 @@
 #include "game.h"
 #include "actor.h"
 
+
 #include "mathlib.h"
 
 #include <limits.h>
 
 /// From tile `start`, find the adjacent tile with the smallest distance
 /// to target tile `end`.
-static Direction GetDirectionToTile(World * world, TileCoord start, TileCoord end)
+static Direction PathFindToTile(World * world, TileCoord start, TileCoord end)
 {
     CalculateDistances(&world->map, end, 0);
 
@@ -25,7 +26,7 @@ static Direction GetDirectionToTile(World * world, TileCoord start, TileCoord en
         Tile * adj = GetAdjacentTile(&world->map, start, d);
         TileCoord tc = AdjacentTileCoord(start, d);
 
-        Actor * a = GetActorAtTile(&world->actors, tc);
+        Actor * a = GetActorAtTile(&world->actor_list, tc);
 
         // TODO: JT
         // Don't move there if:
@@ -52,7 +53,7 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
 {
     World * world = &actor->game->world;
     Map * map = &world->map;
-    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
 
     if ( LineOfSight(map, actor->tile, player->tile) ) {
         actor->target_tile = player->tile;
@@ -60,7 +61,7 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
     }
 
     if ( actor->flags.has_target ) {
-        Direction d = GetDirectionToTile(world, actor->tile, actor->target_tile);
+        Direction d = PathFindToTile(world, actor->tile, actor->target_tile);
         TryMoveActor(actor, d);
 
         // Arrived at target?
@@ -74,10 +75,10 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
 void A_ChasePlayerIfVisible(Actor * actor)
 {
     World * world = &actor->game->world;
-    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
 
     if ( LineOfSight(&world->map, actor->tile, player->tile) ) {
-        Direction d = GetDirectionToTile(world, actor->tile, player->tile);
+        Direction d = PathFindToTile(world, actor->tile, player->tile);
         TryMoveActor(actor, d);
     }
 }
@@ -86,12 +87,33 @@ void A_ChasePlayerIfVisible(Actor * actor)
 void A_StupidChasePlayerIfVisible(Actor * actor)
 {
     World * world = &actor->game->world;
-    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
 
     if ( LineOfSight(&world->map, actor->tile, player->tile) ) {
         int dx = SIGN(player->tile.x - actor->tile.x);
         int dy = SIGN(player->tile.y - actor->tile.y);
         Direction d = GetDirection(dx, dy);
         TryMoveActor(actor, d);
+    }
+}
+
+
+void A_SpiderChase(Actor * spider)
+{
+    World * world = &spider->game->world;
+    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+
+    if ( LineOfSight(&world->map, spider->tile, player->tile) ) {
+        int dx = SIGN(player->tile.x - spider->tile.x);
+        int dy = SIGN(player->tile.y - spider->tile.y);
+        Direction d = GetDirection(dx, dy);
+
+        Tile * tile = GetAdjacentTile(&world->map, spider->tile, d);
+        if ( tile->light <= area_info[world->area].revealed_light
+            || spider->type == ACTOR_SUPER_SPIDER ) {
+            TryMoveActor(spider, d);
+        } else {
+            TryMoveActor(spider, OppositeDirection(d));
+        }
     }
 }

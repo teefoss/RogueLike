@@ -12,7 +12,8 @@
 
 World InitWorld(void)
 {
-    World world;
+    World world = { 0 };
+
     InitParticleArray(&world.particles);
 
     return world;
@@ -20,13 +21,13 @@ World InitWorld(void)
 
 
 static int CompareActors(const void * a, const void * b) {
-    const Actor * actor1 = (const Actor *)a;
-    const Actor * actor2 = (const Actor *)b;
+    const Actor ** actor1 = (const Actor **)a;
+    const Actor ** actor2 = (const Actor **)b;
 
-    if (actor1->tile.y != actor2->tile.y) {
-        return actor1->tile.y - actor2->tile.y;
+    if ((*actor1)->tile.y != (*actor2)->tile.y) {
+        return (*actor1)->tile.y - (*actor2)->tile.y;
     } else {
-        return actor1->sprite->draw_priority - actor2->sprite->draw_priority;
+        return (*actor1)->sprite->draw_priority - (*actor2)->sprite->draw_priority;
     }
 }
 
@@ -90,30 +91,46 @@ void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
 
     // Make a list of visible actors.
 
-    Actor visible_actors[MAX_ACTORS];
+    // Include a padding since the camera may be mid-tile. For the y,
+    // include extra padding in case there are tall actors visible
+    static const Actor ** visible_actors = NULL;
+    static int capacity = 0;
     int num_visible_actors = 0;
 
-    const Actors * actors = &world->actors;
-    for ( int i = 0; i < actors->count; i++ ) {
-        const Actor * actor = &actors->list[i];
-        const Tile * tile = GetTile((Map *)&world->map, actor->tile);
+    int w = (vis_rect.right - vis_rect.left) + 1;
+    int h = (vis_rect.bottom - vis_rect.top) + 1;
+    int area = w * h;
 
-        if ( (tile->flags.visible || area_info[world->area].reveal_all )
-            && actor->tile.x >= vis_rect.left
-            && actor->tile.x <= vis_rect.right
-            && actor->tile.y >= vis_rect.top
-            && actor->tile.y <= vis_rect.bottom )
-        {
-            visible_actors[num_visible_actors++] = *actor;
+    if ( area > capacity ) {
+        printf("area %d is greater than capacity %d, resizing\n", area, capacity);
+        size_t new_size = area * sizeof(Actor *);
+        if ( capacity == 0 ) {
+            visible_actors = malloc(new_size);
+        } else {
+            visible_actors = realloc(visible_actors, new_size);
+        }
+
+        if ( visible_actors == NULL ) {
+            Error("could not malloc visible actor array");
+        }
+
+        capacity = area;
+    }
+
+    FOR_EACH_ACTOR_CONST(actor, world->actor_list) {
+        const Tile * tile = GetTile(&world->map, actor->tile);
+
+        if ( tile->flags.visible && TileInBox(actor->tile, vis_rect) ) {
+            visible_actors[num_visible_actors++] = actor;
         }
     }
 
-    SDL_qsort(visible_actors, num_visible_actors, sizeof(Actor), CompareActors);
+    SDL_qsort(visible_actors, num_visible_actors, sizeof(Actor *), CompareActors);
 
     // Draw actors.
 
     for ( int i = 0; i < num_visible_actors; i++ ) {
-        const Actor * a = &visible_actors[i];
+        const Actor * a = visible_actors[i];
         int size = SCALED(TILE_SIZE);
         int x = a->tile.x * size + a->offset_current.x - offset.x;
         int y = a->tile.y * size + a->offset_current.y - offset.y;

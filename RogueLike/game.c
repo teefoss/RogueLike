@@ -43,6 +43,7 @@ void SetTileLight(World * world, const RenderInfo * render_info)
                 tile->light = 255;
             } else if ( info->reveal_all ) {
                 tile->light = info->visible_light;
+                tile->flags.visible = true;
             } else {
                 if ( tile->flags.visible ) {
                     tile->light = info->visible_light;
@@ -65,7 +66,7 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 
     ActorsStats saved_player_stats = { 0 };
     if ( persist_player_stats ) {
-        Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
+        Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
         if ( player ) {
             saved_player_stats = player->stats;
         }
@@ -73,7 +74,7 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 
     switch ( level_num ) {
         case 1:
-            GenerateForest(game, (u32)time(NULL));
+            GenerateForest(game, (u32)time(NULL), game->forest_size, game->forest_size);
             break;
         default:
             // TODO: The Well
@@ -82,7 +83,7 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
     }
 
     // Focus camera on player.
-    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
     game->render_info.camera = TileCoordToScaledWorldCoord(player->tile, vec2_zero);
 
     // Carry over player's stats from the previous level.
@@ -94,11 +95,11 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
     PlayerCastSight(world, &game->render_info);
     SetTileLight(&game->world, &game->render_info);
 
-    for ( int i = 0; i < world->actors.count; i++ ) {
-        CastLight(world, &world->actors.list[i]);
+    FOR_EACH_ACTOR(actor, world->actor_list) {
+        CastLight(world, actor);
     }
 
-    game->player_info.player_turns = INITIAL_TURNS;
+    game->player_info.turns = INITIAL_TURNS;
     game->player_info.has_gold_key = false;
 }
 
@@ -126,7 +127,9 @@ void NewGame(Game * game)
     LoadLevel(game, 1, false);
     game->player_info.inventory.item_counts[0] = 1;
     game->player_info.inventory.item_counts[1] = 2;
-    game->player_info.fuel = STEPS_PER_FUEL_UNIT * 3;
+
+    game->player_info.fuel = 3;
+    game->player_info.fuel_steps = FUEL_STEPS;
 
     ChangeStateAndFadeIn(game, &level_idle, 2.0f);
 }
@@ -152,28 +155,31 @@ int InventoryRenderX(Inventory * inventory)
 }
 
 
+static void SpawnTreesInArea(Game * game, const Box * box)
+{
+    TileCoord coord;
+    for ( coord.y = box->top; coord.y <= box->bottom; coord.y++ ) {
+        for ( coord.x = box->left; coord.x <= box->right; coord.x++ ) {
+            Tile * tile = GetTile(&game->world.map, coord);
+
+            if ( tile->type == TILE_WALL && !tile->flags.tree_present ) {
+                SpawnActor(game, ACTOR_TREE, coord);
+                tile->flags.tree_present = true;
+            }
+        }
+    }
+}
+
+
 /// Do lighting, particles n stuff for level idle and turn.
 void UpdateLevel(Game * game, float dt)
 {
-    Actors * actors = &game->world.actors;
-    Actor * player = FindActor(actors, ACTOR_PLAYER);
+    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
 
     Map * map = &game->world.map;
 
-    // TODO: make int remove_indices[] and int num_to_remove
-    // If num_to_remove > 0, sort array decreasing
-    for ( int i = actors->count - 1; i >= 0; i-- ) {
-        Actor * actor = &actors->list[i];
-
-        if ( actor->flags.remove ) {
-            actors->list[i] = actors->list[--actors->count];
-        }
-    }
-
     // Update Actors: run timers.
-    for ( int i = 0; i < actors->count; i++ ) {
-        Actor * actor = &actors->list[i];
-
+    FOR_EACH_ACTOR(actor, game->world.actor_list) {
         if ( actor->hit_timer > 0.0f ) {
             actor->hit_timer -= 5.0f * dt;
         }
@@ -193,16 +199,36 @@ void UpdateLevel(Game * game, float dt)
     Box vis = GetVisibleRegion(map, &game->render_info);
     SetTileLight(&game->world, &game->render_info);
 
-    for ( int i = 0; i < game->world.actors.count; i++ ) {
-        Actor * actor = &game->world.actors.list[i];
+    // Update actor lighting etc.
+    Actor * actor = game->world.actor_list.head;
+    while ( actor ) {
 
-        if (   actor->tile.x >= vis.left
-            && actor->tile.x <= vis.right
-            && actor->tile.y >= vis.top
-            && actor->tile.y <= vis.bottom )
-        {
-            CastLight(&game->world, actor);
+        Tile * tile = GetTile(&game->world.map, actor->tile);
+        Actor * temp = actor;
+
+        if ( TileInBox(actor->tile, vis) ) {
+            if (    actor->type != ACTOR_PLAYER
+                || (actor->type == ACTOR_PLAYER && game->player_info.fuel) )
+            {
+                CastLight(&game->world, actor);
+            }
+        } else {
+            // Non-visible actors:
+            if ( game->world.area == AREA_FOREST && actor->type == ACTOR_TREE ) {
+                // This tree is no longer visible, despawn it.
+                actor->flags.remove = true;
+                tile->flags.tree_present = false;
+            }
         }
+
+        actor = actor->next;
+        if ( temp->flags.remove ) {
+            RemoveActor(&game->world.actor_list, temp);
+        }
+    }
+
+    if ( game->world.area == AREA_FOREST ) {
+        SpawnTreesInArea(game, &vis);
     }
 
     // Update inventory panel position
@@ -275,7 +301,7 @@ void IntermissionOnEnter(Game * game)
 void IntermissionOnExit(Game * game)
 {
     LoadLevel(game, game->level, true);
-    game->player_info.player_turns = INITIAL_TURNS;
+    game->player_info.turns = INITIAL_TURNS;
     PlayerCastSight(&game->world, &game->render_info);
 
     StartFadeIn(&game->fade_state, 1.0f);
@@ -287,7 +313,7 @@ void IntermissionOnExit(Game * game)
 
 void LevelIdleOnEnter(Game * game)
 {
-    Actor * player = FindActor(&game->world.actors, ACTOR_PLAYER);
+    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
     Tile * player_tile = GetTile(&game->world.map, player->tile);
 
     // Check if the player has moved onto a tile that requires action:
@@ -308,13 +334,22 @@ void LevelIdleOnEnter(Game * game)
 }
 
 
-void TryMovePlayer(Actor * player, Map * map, Direction direction, int * turns)
+void TryMovePlayer(Actor * player,
+                   Map * map,
+                   Direction direction,
+                   PlayerInfo * player_info)
 {
     if ( TryMoveActor(player, direction) ) {
         CalculateDistances(map, player->tile, 0);
     }
 
-    (*turns)--;
+    --player_info->turns;
+
+    // Burn torch fuel.
+    if ( player_info->fuel && --player_info->fuel_steps == 0 ) {
+        player_info->fuel_steps = FUEL_STEPS; // Reset step counter.
+        --player_info->fuel;
+    }
 }
 
 
@@ -322,7 +357,7 @@ void StartTurn(Game * game, Direction direction)
 {
     World * world = &game->world;
     Map * map = &world->map;
-    Actor * player = FindActor(&world->actors, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
     PlayerInfo * player_info = &game->player_info;
 
     game->log[0] = '\0'; // Clear the log.
@@ -344,7 +379,7 @@ void StartTurn(Game * game, Direction direction)
 
         case TILE_BUTTON_NOT_PRESSED: {
             Actor * pillars[2] = { NULL };
-            FindActors(&world->actors, ACTOR_PILLAR, pillars);
+            FindActors(&world->actor_list, ACTOR_PILLAR, pillars);
 
             // Lower pillars.
             for ( int i = 0; i < 2; i++ ) {
@@ -357,7 +392,7 @@ void StartTurn(Game * game, Direction direction)
             S_Play("l32 o1 b- c");
             *tile = CreateTile(TILE_BUTTON_PRESSED);
 
-            TryMovePlayer(player, map, direction, &player_info->player_turns);
+            TryMovePlayer(player, map, direction, player_info);
             break;
         }
 
@@ -384,7 +419,7 @@ void StartTurn(Game * game, Direction direction)
         case TILE_BUTTON_PRESSED:
         case TILE_START:
         case TILE_FLOOR:
-            TryMovePlayer(player, map, direction, &player_info->player_turns);
+            TryMovePlayer(player, map, direction, player_info);
             break;
 
         case TILE_EXIT:
@@ -397,26 +432,22 @@ void StartTurn(Game * game, Direction direction)
 
     UpdateActorFacing(player, XDelta(direction));
 
-    ResetTileVisibility(&world->map, player->tile, &game->render_info);
+    ResetTileVisibility(world, player->tile, &game->render_info);
     PlayerCastSight(world, &game->render_info);
 
     ChangeState(game, &level_turn);
 
     // Update all actors when player is out of turns.
-    if ( player_info->player_turns < 0 ) {
-        player_info->player_turns = INITIAL_TURNS;
+    if ( player_info->turns < 0 ) {
+        player_info->turns = INITIAL_TURNS;
 
         // Do all actor turns.
-        for ( int i = 0; i < world->actors.count; i++ ) {
-            Actor * actor = &world->actors.list[i];
-
-            if ( !actor->flags.remove ) {
-                if ( !actor->flags.was_attacked && actor->action ) {
-                    actor->action(actor);
-                }
-
-                actor->flags.was_attacked = false; // reset
+        FOR_EACH_ACTOR(actor, world->actor_list) {
+            if ( !actor->flags.was_attacked && actor->action ) {
+                actor->action(actor);
             }
+
+            actor->flags.was_attacked = false; // reset
         }
     }
 }
@@ -443,12 +474,22 @@ void UseItem(ActorsStats * stats, PlayerInfo * info)
             S_Play("l32 o3 d+ < g+ b e");
             break;
         case ITEM_TURN:
-            info->player_turns++;
+            info->turns++;
             S_Play("l32 o3 f+ < b a");
             break;
         case ITEM_STRENGTH:
             info->strength_buff = 1;
             S_Play("l32 t100 o1 e a f b- f+ b");
+            break;
+        case ITEM_FUEL_SMALL:
+            info->fuel = MIN(info->fuel + 1, MAX_FUEL);
+            info->fuel_steps = FUEL_STEPS;
+            S_Play("o3 l16 t160 b e-");
+            break;
+        case ITEM_FUEL_BIG:
+            info->fuel = MIN(info->fuel + 3, MAX_FUEL);
+            info->fuel_steps = FUEL_STEPS;
+            S_Play("o2 l16 t160 b e-");
             break;
         default:
             break;
@@ -498,7 +539,7 @@ bool LevelIdleProcessInput(Game * game, const SDL_Event * event)
                     return true;
                 case SDLK_RETURN:
                     if ( game->inventory_open ) {
-                        Actor * player = FindActor(&game->world.actors,
+                        Actor * player = FindActor(&game->world.actor_list,
                                                    ACTOR_PLAYER);
                         UseItem(&player->stats, &game->player_info);
                     }
@@ -515,10 +556,8 @@ bool LevelIdleProcessInput(Game * game, const SDL_Event * event)
 void LevelIdleUpdate(Game * game, float dt)
 {
     // Update actor standing animations, etc.
-    Actors * actors = &game->world.actors;
-    for ( int i = 0; i < actors->count; i++ ) {
-        Actor * actor = &actors->list[i];
 
+    FOR_EACH_ACTOR(actor, game->world.actor_list) {
         if (actor->sprite->num_frames > 1 &&
             game->ticks % MS2TICKS(actor->sprite->frame_msec, FPS) == 0 )
         {
@@ -550,10 +589,8 @@ void LevelTurnUpdate(Game * game, float dt)
         // Don't return here, make sure actors complete their animation.
     }
 
-    Actors * actors = &game->world.actors;
-    for ( int i = 0; i < actors->count; i++ ) {
-        Actor * actor = &actors->list[i];
 
+    FOR_EACH_ACTOR(actor, game->world.actor_list) {
         if ( actor->animation ) {
             actor->animation(actor, game->move_timer);
             if ( game->move_timer == 1.0f ) {
@@ -625,7 +662,7 @@ void RenderHUD(const Game * game, const Actor * player)
 
     int turns_x = V_PrintString(hud_x, hud_y, " Turns ");
 
-    for ( int i = 0; i < game->player_info.player_turns; i++ ) {
+    for ( int i = 0; i < game->player_info.turns; i++ ) {
         RenderIcon(ICON_TURN, turns_x + i * SCALED(ICON_SIZE), hud_y);
     }
 
@@ -654,12 +691,31 @@ void RenderHUD(const Game * game, const Actor * player)
 
     hud_y -= char_h;
 
-    int fuel_x = V_PrintString(hud_x, hud_y, " Torch ");
+    int fuel_x = V_PrintString(hud_x, hud_y, "  Lamp ");
 
-    int num_icons = game->player_info.fuel / STEPS_PER_FUEL_UNIT;
-    int max_icons = MAX_FUEL / STEPS_PER_FUEL_UNIT;
-    for ( int i = 0; i < max_icons; i++ ) {
-        Icon icon = i + 1 > num_icons ? ICON_FUEL_EMPTY : ICON_FUEL_FULL;
+    const PlayerInfo * info = &game->player_info;
+
+    for ( int i = 0; i < MAX_FUEL; i++ ) {
+
+        Icon icon;
+
+        if ( i + 1 == info->fuel ) {
+            // The rightmost icon:
+            if ( GetGameState(game) == &level_turn ) {
+                icon = ICON_FUEL_BURN;
+            } else {
+                if ( info->fuel_steps == 1 ) {
+                    icon = ICON_FUEL_DYING;
+                } else {
+                    icon = ICON_FUEL_FULL;
+                }
+            }
+        } else if ( i + 1 < info->fuel ) {
+            icon = ICON_FUEL_FULL;
+        } else {
+            icon = ICON_FUEL_EMPTY;
+        }
+
         RenderIcon(icon, fuel_x + i * SCALED(ICON_SIZE), hud_y);
     }
 }
@@ -668,14 +724,18 @@ void RenderHUD(const Game * game, const Actor * player)
 #define BOOL_STR(bool_var) bool_var ? "yes" : "no"
 
 // TODO: param player stats only?
-void RenderDebugInfo(const Map * map, const Actor * player, TileCoord mouse_tile)
+void RenderDebugInfo(const World * world,
+                     const Actor * player,
+                     TileCoord mouse_tile)
 {
+    const Map * map = &world->map;
+
     DEBUG_PRINT("Frame time: %.1f (max: %.1f)",
                 frame_msec * 1000.0f,
                 max_frame_msec * 1000.0f);
     DEBUG_PRINT(" ");
     DEBUG_PRINT("Player health: %d", player->stats.health);
-    DEBUG_PRINT(" ");
+//    DEBUG_PRINT("Actors %d", world->actors.count);
 
     Tile * hover = GetTile((Map *)map, mouse_tile);
     if ( hover ) {
@@ -701,7 +761,8 @@ void GamePlayRender(const Game * game)
     const World * world = &game->world;
 
     if ( show_debug_map ) {
-        int size = area_info[world->area].debug_map_tile_size;
+//        int size = area_info[world->area].debug_map_tile_size;
+        int size = GAME_HEIGHT / world->map.height;
 
         RenderTiles(world, NULL, vec2_zero, true);
 
@@ -717,9 +778,7 @@ void GamePlayRender(const Game * game)
         V_SetRGB(255, 80, 80);
         V_DrawRect(&box);
 
-        const Actors * actors = &game->world.actors;
-        for ( int i = 0; i < actors->count; i++ ) {
-            const Actor * actor = &actors->list[i];
+        FOR_EACH_ACTOR_CONST(actor, world->actor_list) {
             int x = actor->tile.x * size;
             int y = actor->tile.y * size;
             RenderActor(actor, x, y, size, true, game->ticks);
@@ -729,7 +788,9 @@ void GamePlayRender(const Game * game)
 
         if ( menu_state == MENU_NONE ) {
             if ( !show_debug_info ) {
-                RenderHUD(game, FindActorConst(&world->actors, ACTOR_PLAYER));
+                const Actor * player = FindActorConst(&world->actor_list,
+                                                      ACTOR_PLAYER);
+                RenderHUD(game, player);
             }
         }
 
@@ -739,9 +800,8 @@ void GamePlayRender(const Game * game)
     }
 
     if ( show_debug_info ) {
-        RenderDebugInfo(&game->world.map,
-                        FindActorConst(&world->actors, ACTOR_PLAYER),
-                        world->mouse_tile);
+        const Actor * player = FindActorConst(&world->actor_list, ACTOR_PLAYER);
+        RenderDebugInfo(&game->world, player, world->mouse_tile);
     }
 
     // Darken world a bit so the menu is clear.
@@ -811,23 +871,29 @@ Game * InitGame(void)
     game->render_info.inventory_x = GAME_WIDTH; // Start closed.
     game->world = InitWorld();
     game->state_stack_top = -1;
+    game->forest_size = 128;
 
     // Generate a forest as the title screen background.
 //    u32 seed = (u32)time(NULL);
     u32 seed = 1682214124;
     printf("title screen seed: %d\n", seed);
-    GenerateForest(game, seed);
+    GenerateForest(game, seed, game->forest_size, game->forest_size);
 
     for ( int i = 0; i < game->world.map.width * game->world.map.height; i++ ) {
         Tile * tile = &game->world.map.tiles[i];
         tile->light = area_info[game->world.area].revealed_light;
     }
 
-    // Remove all non-tree actors.
-    Actors * actors = &game->world.actors;
-    for ( int i = actors->count - 1; i >= 0; i-- ) {
-        if ( actors->list[i].type != ACTOR_TREE ) {
-            actors->list[i] = actors->list[--actors->count];
+    // Remove all non-tree actors: no spiders etc on the titlescreen!
+
+    Actor * actor = game->world.actor_list.head;
+    while ( actor ) {
+        if ( actor->type != ACTOR_TREE ) {
+            Actor * temp = actor;
+            actor = actor->next;
+            RemoveActor(&game->world.actor_list, temp);
+        } else {
+            actor = actor->next;
         }
     }
 
@@ -895,6 +961,14 @@ void DoFrame(Game * game, float dt)
                     case SDLK_RIGHTBRACKET:
                         LoadLevel(game, game->level + 1, false);
                         break;
+                    case SDLK_MINUS:
+                        game->forest_size -= 8;
+                        LoadLevel(game, game->level, false);
+                        break;
+                    case SDLK_EQUALS:
+                        game->forest_size += 8;
+                        LoadLevel(game, game->level, false);
+                        break;
                     default:
                         break;
                 }
@@ -903,7 +977,7 @@ void DoFrame(Game * game, float dt)
                 switch ( event.button.button ) {
                     case SDL_BUTTON_LEFT:
                         if ( event.button.clicks == 2 && show_debug_info ) {
-                            Actor * player = FindActor(&game->world.actors,
+                            Actor * player = FindActor(&game->world.actor_list,
                                                        ACTOR_PLAYER);
                             player->tile = game->world.mouse_tile;
                         }

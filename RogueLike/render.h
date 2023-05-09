@@ -15,6 +15,8 @@
 
 #define GAME_WIDTH (256 * DRAW_SCALE)  // 32 tile wide
 #define GAME_HEIGHT (144 * DRAW_SCALE) // 18 tiles high
+#define TILES_WIDE (GAME_WIDTH / SCALED(TILE_SIZE)) // 32
+#define TILES_HIGH (GAME_HEIGHT / SCALED(TILE_SIZE)) // 18
 
 #define HUD_MARGIN 16
 

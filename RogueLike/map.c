@@ -129,7 +129,8 @@ void RenderTiles(const World * world, const Box * region, vec2_t offset, bool de
 
     int tile_size;
     if ( debug ) {
-        tile_size = area_info[world->area].debug_map_tile_size;
+//        tile_size = area_info[world->area].debug_map_tile_size;
+        tile_size = GAME_HEIGHT / map->height;
     } else {
         tile_size = SCALED(TILE_SIZE);
     }
@@ -331,20 +332,20 @@ bool TileIsAdjacentTo(const Map * map,
     return false;
 }
 
-// TODO: dungeon tiles not resetting
-void ResetTileVisibility(Map * map,
+
+void ResetTileVisibility(World * world,
                          TileCoord player_tile,
                          const RenderInfo * render_info)
 {
-    Box vis = GetVisibleRegion(map, render_info);
+    Box vis = GetVisibleRegion(&world->map, render_info);
 
     TileCoord coord;
     for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
         for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
-//            if ( LineOfSight(map, player_tile, coord) ) {
-            Tile * tile = GetTile(map, coord);
-            tile->flags.visible = false;
-//            }
+            Tile * tile = GetTile(&world->map, coord);
+            if ( !area_info[world->area].reveal_all ) {
+                tile->flags.visible = false;
+            }
         }
     }
 }

@@ -17,9 +17,11 @@ typedef enum item {
     ITEM_HEALTH,    // +1 health
     ITEM_TURN,      // +1 turn
     ITEM_STRENGTH,  // +1 damage for one turn?
+    ITEM_FUEL_SMALL,
+    ITEM_FUEL_BIG,
 
-    ITEM_SHIELD,
-    ITEM_WOODEN_SWORD,
+//    ITEM_SHIELD,
+//    ITEM_WOODEN_SWORD,
 
     // Stone of returning: drop and activate to return to stone.
     // Gem that allows you to go back a level (starting pad turns purple)

@@ -26,6 +26,14 @@ static const struct {
         .name = "Strength Potion",
         .icon = ICON_STRENGTH_POTION,
     },
+    [ITEM_FUEL_SMALL] = {
+        .name = "Small Lamp Fuel",
+        .icon = ICON_FUEL_SMALL,
+    },
+    [ITEM_FUEL_BIG] = {
+        .name = "Large Lamp Fuel",
+        .icon = ICON_FUEL_BIG,
+    },
 };
 
 

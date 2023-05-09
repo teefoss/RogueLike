@@ -8,22 +8,26 @@
 #include "loot.h"
 #include "mathlib.h"
 
+// Each list is terminated with dummy item with weight of -1.
 const Loot loot_tables[NUM_ACTOR_TYPES][20] = {
     [ACTOR_BLOB] = {
         { ACTOR_NONE,           30 },
         { ACTOR_ITEM_HEALTH,    10 },
         { ACTOR_ITEM_TURN,      10 },
         { ACTOR_ITEM_STRENGTH,  10 },
-        { 0, -1 }
+        { 0, -1 } // Terminator
     },
-    [ACTOR_SPIDER] = {
-        { ACTOR_NONE, 75 },
-        { ACTOR_ITEM_TURN, 25 },
+    [ACTOR_SUPER_SPIDER] = {
+        { ACTOR_NONE, 60 },
+        { ACTOR_ITEM_FUEL_BIG, 15 },
+        { ACTOR_ITEM_FUEL_SMALL, 25 },
         { 0, -1 },
-    },
+    }
 };
 
 
+// Drop loot according to the loot table of parameter, `actor_type`.
+// - returns: The `ActorType` of the loot dropped.
 ActorType SelectLoot(ActorType actor_type)
 {
     int total_weight = 0;

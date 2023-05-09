@@ -12,10 +12,13 @@
 
 #include "vector.h"
 #include "shorttypes.h"
+#include "mathlib.h"
+
 #include <stdbool.h>
 
 typedef struct { s16 x, y; } TileCoord;
 
+bool TileInBox(TileCoord coord, Box box);
 TileCoord AddTileCoords(TileCoord a, TileCoord b);
 bool TileCoordsEqual(TileCoord a, TileCoord b);
 int TileDistance(TileCoord a, TileCoord b);
