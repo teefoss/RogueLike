@@ -10,6 +10,7 @@
 #include "video.h"
 
 const SDL_Color palette[] = {
+    { 0, 0, 0, 0 }, // NO_COLOR
     { 67,   0, 103,    255 },
     { 148,  33, 106,    255 },
     { 255,   0,  77,    255 },

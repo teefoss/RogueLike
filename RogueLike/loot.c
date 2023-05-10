@@ -17,12 +17,27 @@ const Loot loot_tables[NUM_ACTOR_TYPES][20] = {
         { ACTOR_ITEM_STRENGTH,  10 },
         { 0, -1 } // Terminator
     },
+    [ACTOR_SPIDER] = {
+//        { ACTOR_ITEM_HEALTH, 100 },
+        { 0, -1 },
+    },
     [ACTOR_SUPER_SPIDER] = {
         { ACTOR_NONE, 60 },
         { ACTOR_ITEM_FUEL_BIG, 15 },
         { ACTOR_ITEM_FUEL_SMALL, 25 },
         { 0, -1 },
-    }
+    },
+    [ACTOR_VASE] = {
+        { ACTOR_NONE, 75 },
+        { ACTOR_ITEM_HEALTH, 15 },
+        { ACTOR_ITEM_TURN, 10, },
+        { 0, -1 },
+    },
+    [ACTOR_CLOSED_CHEST] = {
+        { ACTOR_ITEM_HEALTH, 50 },
+        { ACTOR_ITEM_TURN, 50, },
+        { 0, -1 },
+    },
 };
 
 
@@ -34,11 +49,9 @@ ActorType SelectLoot(ActorType actor_type)
 
     const Loot * table = &loot_tables[actor_type][0];
 
-    // Somebody forgot to add a table for this actor. (A zero-initialed
-    // index of loot_tables is being accessed.)
-    if ( table[0].weight == 0 ) {
-        const char * name = ActorName(actor_type);
-        printf("%s: actor '%s' has no loot table!\n", __func__, name);
+    // For any actors that don't drop loot, the uninitalized table's weight
+    // will be zero.
+    if ( table[0].weight <= 0 ) {
         return ACTOR_NONE;
     }
 

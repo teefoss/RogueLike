@@ -15,7 +15,17 @@ void C_Player(Actor * player, Actor * hit)
         damage += player->game->player_info.strength_buff;
 
         if ( DamageActor(hit, damage) <= 0 ) {
-            S_Play("t160 l32 o3 e c+ c < a-");
+            switch ( hit->type ) {
+                case ACTOR_VASE:
+                    S_Play("o5 t160 l32 g+ e- c f b-");
+                    break;
+                case ACTOR_CLOSED_CHEST:
+                    S_Play("o3 t100 l32 f c b-");
+                    break;
+                default:
+                    S_Play("t160 l32 o3 e c+ c < a-");
+                    break;
+            }
         } else {
             S_Play("t160 l32 o3 e c+ c");
         }
@@ -63,17 +73,6 @@ void C_Player(Actor * player, Actor * hit)
             RemoveActor(hit);
             S_Play("l32 t100 o1 a > a > a");
             break;
-        case ACTOR_VASE:
-            S_Play("o5 t90 l64 b d g+ e- c f b-");
-            RemoveActor(hit);
-            SpawnActor(player->game, ACTOR_ITEM_HEALTH, hit->tile);
-            break;
-        case ACTOR_CLOSED_CHEST:
-            RemoveActor(hit);
-            SpawnActor(player->game, ACTOR_ITEM_HEALTH, hit->tile);
-            SpawnActor(player->game, ACTOR_OPEN_CHEST, hit->tile);
-            S_Play("o3 t100 l32 f c b-");
-            break;
         case ACTOR_PILLAR:
             S_Play(SOUND_BUMP);
             break;
@@ -93,15 +92,6 @@ void C_Monster(Actor * monster, Actor * hit)
         } else {
             // TODO: default sound
         }
-    }
-}
-
-
-void C_Spider(Actor * spider, Actor * hit)
-{
-    if ( hit->flags.takes_damage ) {
-        DamageActor(hit, spider->stats.damage);
-        S_Play(spider->attack_sound);
     }
 }
 

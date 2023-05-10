@@ -108,7 +108,6 @@ ActorSprite sprite_info[NUM_ACTOR_TYPES] = {
 
 void C_Player(Actor * player, Actor * hit);
 void C_Monster(Actor * monster, Actor * hit);
-void C_Spider(Actor * spider, Actor * hit);
 void C_Block(Actor *, Actor *);
 
 void A_TargetAndChasePlayerIfVisible(Actor *);
@@ -135,7 +134,7 @@ static Actor templates[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_BLOB] = {
         .name = "Blob",
-        .flags = { .takes_damage = true, .drops_loot = true },
+        .flags = { .takes_damage = true, },
         .stats.max_health = 2,
         .stats.damage = 1,
         .action = A_TargetAndChasePlayerIfVisible,
@@ -143,24 +142,27 @@ static Actor templates[NUM_ACTOR_TYPES] = {
         .light_radius = 1,
         .light = 160,
         .attack_sound = "o3 l32 b c < c+",
+        .particle_color_palette_index = GOLINE_DARK_GREEN,
     },
     [ACTOR_SPIDER] = {
         .name = "Spider",
-        .flags = { .takes_damage = true },
+        .flags = { .takes_damage = true, },
         .stats.max_health = 1,
         .stats.damage = 1,
         .action = A_SpiderChase,
-        .contact = C_Spider,
+        .contact = C_Monster,
         .attack_sound = "o4 l32 f b c+",
+        .particle_color_palette_index = GOLINE_BLACK,
     },
     [ACTOR_SUPER_SPIDER] = {
         .name = "Super Spider",
-        .flags = { .takes_damage = true, .drops_loot = true },
+        .flags = { .takes_damage = true, },
         .stats.max_health = 2,
         .stats.damage = 2,
         .action = A_SpiderChase,
-        .contact = C_Spider,
+        .contact = C_Monster,
         .attack_sound = "o3 l32 f b c+",
+        .particle_color_palette_index = GOLINE_PURPLE,
     },
     [ACTOR_ITEM_HEALTH] = {
         .name = "Health Potion",
@@ -195,6 +197,11 @@ static Actor templates[NUM_ACTOR_TYPES] = {
         .name = "Block",
         .contacted = C_Block,
     },
+    [ACTOR_CLOSED_CHEST] = {
+        .name = "Closed Chest",
+        .flags = { .takes_damage = true, },
+        .stats = { .max_health = 1 },
+    },
     [ACTOR_OPEN_CHEST] = {
         .name = "Chest",
         .flags = { .no_collision = true }
@@ -206,6 +213,12 @@ static Actor templates[NUM_ACTOR_TYPES] = {
     [ACTOR_WELL] = {
         .name = "Well",
         .flags = { .no_shadow = true, .no_draw_offset = true },
+    },
+    [ACTOR_VASE] = {
+        .name = "Vase",
+        .flags = { .takes_damage = true, },
+        .particle_color_palette_index = GOLINE_PURPLE,
+        .stats = { .max_health = 1 },
     }
 };
 
@@ -267,7 +280,7 @@ Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
 }
 
 
-void SpawnParticlesAtActor(ParticleArray * array, Actor * actor, SDL_Color color)
+void SpawnParticlesAtActor(const Actor * actor)
 {
     SDL_Point position = {
         .x = actor->tile.x * TILE_SIZE,
@@ -279,7 +292,7 @@ void SpawnParticlesAtActor(ParticleArray * array, Actor * actor, SDL_Color color
         p.position.x = Random(position.x, position.x + TILE_SIZE);
         p.position.y = Random(position.y, position.y + TILE_SIZE);
         p.velocity = RandomVelocity(10.0f, 20.0f);
-        p.color = color;
+        p.color = palette[actor->particle_color_palette_index];
         p.lifespan = Random(MS2TICKS(200, FPS), MS2TICKS(400, FPS));
         InsertParticle(&actor->game->world.particles, p);
     }
@@ -288,31 +301,29 @@ void SpawnParticlesAtActor(ParticleArray * array, Actor * actor, SDL_Color color
 
 void KillActor(Actor * actor)
 {
-    if ( actor->type != ACTOR_PLAYER ) {
-        RemoveActor(actor);
-    } else {
-        // TODO: player death
+    ActorType loot = SelectLoot(actor->type);
+
+    if ( loot != ACTOR_NONE ) {
+        SpawnActor(actor->game, loot, actor->tile);
     }
 
-    if ( actor->flags.drops_loot ) {
-        ActorType loot = SelectLoot(actor->type);
-
-        if ( loot != ACTOR_NONE ) {
-            SpawnActor(actor->game, loot, actor->tile);
-        }
+    if ( actor->particle_color_palette_index != NO_COLOR ) {
+        SpawnParticlesAtActor(actor);
     }
 
-    ParticleArray * particles = &actor->game->world.particles;
+    // Remove the actor after loot have been spawned, so that loot does not
+    // replace this actor before it's fully processed.
 
     switch ( actor->type ) {
-        case ACTOR_BLOB:
-            SpawnParticlesAtActor(particles, actor, palette[GOLINE_DARK_GREEN]);
+        case ACTOR_PLAYER:
+            // TODO: player death
             break;
-        case ACTOR_SPIDER: {
-            SpawnParticlesAtActor(particles, actor, palette[GOLINE_BLACK]);
+        case ACTOR_CLOSED_CHEST:
+            SpawnActor(actor->game, ACTOR_OPEN_CHEST, actor->tile);
+            RemoveActor(actor);
             break;
-        }
         default:
+            RemoveActor(actor);
             break;
     }
 }

@@ -90,7 +90,6 @@ struct actor {
         bool no_shadow        : 1;
         bool no_draw_offset   : 1;
         bool on_teleporter    : 1;
-        bool drops_loot       : 1;
         bool remove           : 1; // Deleted
     } flags;
 
@@ -102,12 +101,14 @@ struct actor {
     u8 frame;
     ActorSprite * sprite;
 
+    // TODO: extract all const info to actor_info *
     ActorsStats stats;
     u8 light; // An actor's light propogates to surrounding tiles.
     u8 light_radius;
     TileCoord target_tile;
     float hit_timer;
     Item item; // Actor is collectible, its associated item.
+    u8 particle_color_palette_index;
 
     const char * attack_sound;
 

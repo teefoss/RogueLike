@@ -27,6 +27,7 @@
 #define SCALED(size) ((size) * DRAW_SCALE)
 
 typedef enum {
+    NO_COLOR,
     GOLINE_DARK_PURPLE,
     GOLINE_PURPLE,
     GOLINE_RED,

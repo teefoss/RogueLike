@@ -74,8 +74,6 @@ void DestroyActorList(ActorList * list)
     list->count = 0;
 
     actor = list->unused;
-
-    actor = list->unused;
     while ( actor ) {
         temp = actor;
         actor = actor->prev;
