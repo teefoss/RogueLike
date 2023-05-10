@@ -12,7 +12,7 @@
 #include "map.h"
 #include "particle.h"
 #include "render.h"
-#include "actors.h"
+#include "actor_list.h"
 
 #define NUM_STARS 5000
 
@@ -25,7 +25,6 @@ typedef struct world {
     Area area; // TODO: just make a pointer to &area_info[x]
     Map map;
     ActorList actor_list;
-    ActorList unused_list;
 
     ParticleArray particles;
     Star stars[NUM_STARS];

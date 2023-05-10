@@ -737,8 +737,6 @@ void GenerateDungeon(Game * game, int width, int height)
         Error("Could not allocate map tile id array");
     }
 
-    RemoveAllActors(&game->world.actor_list);
-
     InitTiles(map);
 
     map->num_rooms = 0;

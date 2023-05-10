@@ -140,9 +140,6 @@ void GenerateForest(Game * game, int seed, int width)
         map->tiles[i] = CreateTile(TILE_WALL);
     }
 
-    // Clear from previous level.
-    RemoveAllActors(&world->actor_list);
-
     RandomizeNoise(seed);
 //    RandomizeNoise(0);
     CLEAR(ground_coords);

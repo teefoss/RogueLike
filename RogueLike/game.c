@@ -72,6 +72,9 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
         }
     }
 
+    // Free up all previously loaded actors.
+    RemoveAllActors(&world->actor_list);
+
     switch ( level_num ) {
         case 1:
             GenerateForest(game, (u32)time(NULL), game->forest_size, game->forest_size);
@@ -841,6 +844,7 @@ Game * InitGame(void)
     printf("title screen seed: %d\n", seed);
     GenerateForest(game, seed, game->forest_size, game->forest_size);
 
+    // TODO: check if this is still needed.
     for ( int i = 0; i < game->world.map.width * game->world.map.height; i++ ) {
         Tile * tile = &game->world.map.tiles[i];
         tile->light = area_info[game->world.area].revealed_light;

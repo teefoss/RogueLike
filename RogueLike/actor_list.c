@@ -5,7 +5,7 @@
 //  Created by Thomas Foster on 4/24/23.
 //
 
-#include "actors.h"
+#include "actor_list.h"
 
 Actor * GetActorAtTile(const ActorList * actor_list, TileCoord coord)
 {
@@ -57,59 +57,14 @@ int FindActors(const ActorList * actor_list, ActorType type, Actor * out[])
 }
 
 
-/// Add a previously allocated actor to linked list.
-void AppendActor(ActorList * list, Actor * actor)
+void DestroyActorList(ActorList * list)
 {
-    if ( list->tail != NULL ) {
-        list->tail->next = actor;
-    }
+    Actor * actor;
+    Actor * temp;
 
-    actor->prev = list->tail; // NULL if adding to empty list.
-    actor->next = NULL;
-    list->tail = actor;
-
-    if ( list->head == NULL ) {
-        // This is the only actor in the list, and is both head and tail.
-        list->head = actor;
-    }
-
-    list->count++;
-}
-
-
-void RemoveActor(ActorList * list, Actor * actor)
-{
-    if ( actor == NULL ) {
-        return;
-    }
-
-    if ( actor == list->head ) {
-        list->head = actor->next;
-    }
-
-    if ( actor == list->tail ) {
-        list->tail = actor->prev;
-    }
-
-    if ( actor->prev ) {
-        actor->prev->next = actor->next;
-    }
-
-    if ( actor->next ) {
-        actor->next->prev = actor->prev;
-    }
-
-    free(actor);
-    --list->count;
-}
-
-
-void RemoveAllActors(ActorList * list)
-{
-    Actor * actor = list->head;
-
+    actor = list->head;
     while ( actor ) {
-        Actor * temp = actor;
+        temp = actor;
         actor = actor->next;
         free(temp);
     }
@@ -117,6 +72,15 @@ void RemoveAllActors(ActorList * list)
     list->head = NULL;
     list->tail = NULL;
     list->count = 0;
+
+    actor = list->unused;
+
+    actor = list->unused;
+    while ( actor ) {
+        temp = actor;
+        actor = actor->prev;
+        free(temp);
+    }
 }
 
 
@@ -133,4 +97,21 @@ void DebugPrintActorList(const ActorList * list)
         i++;
         actor = actor->next;
     }
+}
+
+
+/// Move all active actors to the unused list.
+void RemoveAllActors(ActorList * list)
+{
+    Actor * actor = list->head;
+
+    while ( actor ) {
+        actor->prev = list->unused;
+        list->unused = actor;
+        actor = actor->next;
+    }
+
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
 }

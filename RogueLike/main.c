@@ -70,6 +70,7 @@ int main(void)
     }
 
     FreeDistanceMapQueue();
+    DestroyActorList(&game->world.actor_list);
     free(game->world.map.tiles);
     free(game->world.map.tile_ids);
     free(game);

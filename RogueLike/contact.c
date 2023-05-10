@@ -60,18 +60,18 @@ void C_Player(Actor * player, Actor * hit)
         case ACTOR_GOLD_KEY:
             strncpy(player->game->log, "Got the golden key!", sizeof(player->game->log));
             player->game->player_info.has_gold_key = true;
-            hit->flags.remove = true;
+            RemoveActor(hit);
             S_Play("l32 t100 o1 a > a > a");
             break;
         case ACTOR_VASE:
             S_Play("o5 t90 l64 b d g+ e- c f b-");
+            RemoveActor(hit);
             SpawnActor(player->game, ACTOR_ITEM_HEALTH, hit->tile);
-            hit->flags.remove = true;
             break;
         case ACTOR_CLOSED_CHEST:
+            RemoveActor(hit);
             SpawnActor(player->game, ACTOR_ITEM_HEALTH, hit->tile);
             SpawnActor(player->game, ACTOR_OPEN_CHEST, hit->tile);
-            hit->flags.remove = true;
             S_Play("o3 t100 l32 f c b-");
             break;
         case ACTOR_PILLAR:

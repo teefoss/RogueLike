@@ -9,6 +9,7 @@
 #include "world.h"
 #include "render.h"
 #include "loot.h"
+#include "actor_list.h"
 
 #include "mathlib.h"
 #include "texture.h"
@@ -218,36 +219,48 @@ const char * ActorName(ActorType type)
 }
 
 
-void SpawnActor(Game * game, ActorType type, TileCoord coord)
+Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
 {
-    Actor * actor = calloc(1, sizeof(*actor));
-    if ( actor == NULL ) {
-        Error("Could not allocate Actor");
+    Actor * actor;
+    ActorList * list = &game->world.actor_list;
+
+    // If there are actors available in the unused list, grab one from there.
+    // Otherwise, allocate a new one.
+    if ( list->unused ) {
+        actor = list->unused;
+        list->unused = actor->prev;
+    } else {
+        actor = calloc(1, sizeof(*actor));
+
+        if ( actor == NULL ) {
+            Error("Could not allocate Actor");
+        }
     }
 
     *actor = templates[type];
+
+    // Append to active list.
+    if ( list->tail ) {
+        list->tail->next = actor;
+    }
+    actor->prev = list->tail; // ->next is already NULL.
+    list->tail = actor;
+
+    if ( list->head == NULL ) {
+        list->head = actor;
+    }
+
+    list->count++;
+
+    // Init.
+
     actor->game = game;
     actor->type = type;
     actor->sprite = &sprite_info[type];
     actor->tile = coord;
     actor->stats.health = actor->stats.max_health;
 
-    AppendActor(&game->world.actor_list, actor);
-    // Push to start of actor list.
-//    actor->next = game->world.actor_list;
-//    if ( game->world.actor_list != NULL ) {
-//        game->world.actor_list->prev = actor;
-//    }
-//    game->world.actor_list = actor;
-
-#if 0
-    if ( game->world.actors.count + 1 <= MAX_ACTORS ) {
-        game->world.actors.list[game->world.actors.count++] = actor;
-    } else {
-        printf("ran out of room in actor array!\n");
-        return;
-    }
-#endif
+    return actor;
 }
 
 
@@ -273,7 +286,7 @@ void SpawnParticlesAtActor(ParticleArray * array, Actor * actor, SDL_Color color
 void KillActor(Actor * actor)
 {
     if ( actor->type != ACTOR_PLAYER ) {
-        actor->flags.remove = true;
+        RemoveActor(actor);
     } else {
         // TODO: player death
     }
@@ -444,10 +457,8 @@ bool TryMoveActor(Actor * actor, Direction direction)
     // Check if there's an actor at try_x, try_y
     FOR_EACH_ACTOR(hit, actor->game->world.actor_list) {
 
-        if ( hit != actor
-            && hit->tile.x == try_coord.x
-            && hit->tile.y == try_coord.y )
-        {
+        if ( hit != actor && TileCoordsEqual(hit->tile, try_coord) ) {
+
             // There's an actor on this spot:
 
             if ( actor->contact ) {
@@ -500,4 +511,22 @@ void Teleport(Actor * actor, TileCoord from)
     }
 
     actor->tile = to;
+}
+
+
+void RemoveActor(Actor * actor)
+{
+    ActorList * list = &actor->game->world.actor_list;
+
+    // Remove from actor list.
+    if ( actor == list->tail ) {
+        list->tail = actor->prev;
+    } else {
+        actor->next->prev = actor->prev;
+    }
+    actor->prev->next = actor->next;
+
+    // Add to unused list.
+    actor->prev = list->unused;
+    list->unused = actor;
 }

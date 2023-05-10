@@ -72,14 +72,6 @@ typedef struct game Game;
 typedef struct world World;
 typedef struct actor Actor;
 
-
-typedef struct {
-    int count;
-    Actor * head;
-    Actor * tail;
-} ActorList;
-
-
 struct actor {
     Game * game;
     u8 type;
@@ -130,7 +122,7 @@ struct actor {
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
 void CastLight(World * world, const Actor * actor);
-void SpawnActor(Game * game, ActorType type, TileCoord coord);
+Actor * SpawnActor(Game * game, ActorType type, TileCoord coord);
 void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int game_ticks);
 void MoveActor(Actor * actor, Direction direction);
 bool TryMoveActor(Actor * actor, Direction direction);
@@ -139,9 +131,6 @@ void KillActor(Actor * actor);
 void UpdateActorFacing(Actor * actor, int dx);
 void Teleport(Actor * actor, TileCoord from);
 const char * ActorName(ActorType type);
-
-void RemoveActor(ActorList * list, Actor * actor);
-void RemoveAllActors(ActorList * list);
-void AppendActor(ActorList * list, Actor * actor);
+void RemoveActor(Actor * actor);
 
 #endif /* actor_h */

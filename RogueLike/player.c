@@ -52,12 +52,9 @@ bool AddToInventory(Actor * player, Actor * item_actor, Item item)
     Inventory * inventory = &player->game->player_info.inventory;
 
     if ( inventory->item_counts[item] < 8 ) {
-        if ( InventoryIsEmtpy(inventory) ) {
-            inventory->selected_item = item;
-        }
 
         inventory->item_counts[item]++;
-        item_actor->flags.remove = true;
+        RemoveActor(item_actor);
         return true;
     }
 
