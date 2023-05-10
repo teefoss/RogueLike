@@ -25,6 +25,7 @@ typedef struct world {
     Area area; // TODO: just make a pointer to &area_info[x]
     Map map;
     ActorList actor_list;
+    ActorList unused_list;
 
     ParticleArray particles;
     Star stars[NUM_STARS];

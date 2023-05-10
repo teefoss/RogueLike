@@ -33,6 +33,13 @@ static struct tile_info {
             .num_variants = 8,
         }
     },
+    [TILE_TREE] = {
+        [AREA_FOREST] = {
+            .sprite_cell = { 9, 5 },
+            .num_variants = 2,
+            .height = 2,
+        }
+    },
     [TILE_WALL] = {
         [AREA_FOREST] = {
             .sprite_cell = { 0, 5 },
@@ -89,6 +96,9 @@ static Tile tile_templates[NUM_TILE_TYPES] = {
     [TILE_WALL] = {
         .flags = { .blocks_movement = true, .blocks_sight = true },
     },
+    [TILE_TREE] = {
+        .flags = { .blocks_movement = true, .blocks_sight = true }
+    },
     [TILE_DOOR] = {
         .flags = { .blocks_movement = true, .blocks_sight = true },
     },
@@ -124,6 +134,7 @@ const char * TileName(TileType type)
 {
     switch ( type ) {
             CASE_RETURN_STRING(TILE_FLOOR);
+            CASE_RETURN_STRING(TILE_TREE);
             CASE_RETURN_STRING(TILE_WALL);
             CASE_RETURN_STRING(TILE_DOOR);
             CASE_RETURN_STRING(TILE_EXIT);
@@ -230,6 +241,9 @@ void RenderTile(const Tile * tile,
             }
             break;
         default:
+            if ( info->num_variants > 1 ) {
+                src.x += tile->variety % info->num_variants * TILE_SIZE;
+            }
             break;
     }
 

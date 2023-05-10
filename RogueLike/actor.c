@@ -97,9 +97,6 @@ ActorSprite sprite_info[NUM_ACTOR_TYPES] = {
     [ACTOR_PILLAR] = {
         .cell = { 0, 6 }
     },
-    [ACTOR_TREE] = {
-        .cell = { 0, 7 }
-    },
     [ACTOR_WELL] = {
         .cell = { 3, 6 },
         .height = 2,

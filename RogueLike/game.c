@@ -155,22 +155,6 @@ int InventoryRenderX(Inventory * inventory)
 }
 
 
-static void SpawnTreesInArea(Game * game, const Box * box)
-{
-    TileCoord coord;
-    for ( coord.y = box->top; coord.y <= box->bottom; coord.y++ ) {
-        for ( coord.x = box->left; coord.x <= box->right; coord.x++ ) {
-            Tile * tile = GetTile(&game->world.map, coord);
-
-            if ( tile->type == TILE_WALL && !tile->flags.tree_present ) {
-                SpawnActor(game, ACTOR_TREE, coord);
-                tile->flags.tree_present = true;
-            }
-        }
-    }
-}
-
-
 /// Do lighting, particles n stuff for level idle and turn.
 void UpdateLevel(Game * game, float dt)
 {
@@ -196,39 +180,18 @@ void UpdateLevel(Game * game, float dt)
                                                1.0f);
 
     // Update lighting based on new camera position.
+
     Box vis = GetVisibleRegion(map, &game->render_info);
     SetTileLight(&game->world, &game->render_info);
 
-    // Update actor lighting etc.
-    Actor * actor = game->world.actor_list.head;
-    while ( actor ) {
-
-        Tile * tile = GetTile(&game->world.map, actor->tile);
-        Actor * temp = actor;
-
+    FOR_EACH_ACTOR(actor, game->world.actor_list) {
         if ( TileInBox(actor->tile, vis) ) {
             if (    actor->type != ACTOR_PLAYER
                 || (actor->type == ACTOR_PLAYER && game->player_info.fuel) )
             {
                 CastLight(&game->world, actor);
             }
-        } else {
-            // Non-visible actors:
-            if ( game->world.area == AREA_FOREST && actor->type == ACTOR_TREE ) {
-                // This tree is no longer visible, despawn it.
-                actor->flags.remove = true;
-                tile->flags.tree_present = false;
-            }
         }
-
-        actor = actor->next;
-        if ( temp->flags.remove ) {
-            RemoveActor(&game->world.actor_list, temp);
-        }
-    }
-
-    if ( game->world.area == AREA_FOREST ) {
-        SpawnTreesInArea(game, &vis);
     }
 
     // Update inventory panel position
@@ -373,8 +336,7 @@ void StartTurn(Game * game, Direction direction)
             SetUpBumpAnimation(player, direction);
             S_Play(SOUND_BUMP);
 
-            // TODO: Game design: Hitting a wall still causes monsters to update?
-            // --turns
+            --player_info->turns; // TODO: maybe don't
             break;
 
         case TILE_BUTTON_NOT_PRESSED: {
@@ -874,7 +836,7 @@ Game * InitGame(void)
     game->forest_size = 128;
 
     // Generate a forest as the title screen background.
-//    u32 seed = (u32)time(NULL);
+    // u32 seed = (u32)time(NULL);
     u32 seed = 1682214124;
     printf("title screen seed: %d\n", seed);
     GenerateForest(game, seed, game->forest_size, game->forest_size);
@@ -884,27 +846,19 @@ Game * InitGame(void)
         tile->light = area_info[game->world.area].revealed_light;
     }
 
-    // Remove all non-tree actors: no spiders etc on the titlescreen!
-
-    Actor * actor = game->world.actor_list.head;
-    while ( actor ) {
-        if ( actor->type != ACTOR_TREE ) {
-            Actor * temp = actor;
-            actor = actor->next;
-            RemoveActor(&game->world.actor_list, temp);
-        } else {
-            actor = actor->next;
-        }
-    }
+    // Remove all actors on the titlescreen.
+    RemoveAllActors(&game->world.actor_list);
 
     // Center camera in world.
-    TileCoord center = { game->world.map.width / 2, game->world.map.height / 2 };
+    TileCoord center = {
+        game->world.map.width / 2,
+        game->world.map.height / 2
+    };
     game->render_info.camera = TileCoordToScaledWorldCoord(center, vec2_zero);
 
-    // Just make sure there's a state on the stack to begin.
+    // Make sure there's a state on the stack to begin.
     PushState(game, &game_state_title);
 
-//    ChangeStateWithFade(&game->fade_state, FADE_IN, 0.25f, &game_state_title);
     ChangeStateAndFadeIn(game, &game_state_title, 1.0f);
 
     return game;

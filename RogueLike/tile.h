@@ -14,6 +14,7 @@
 
 typedef enum {
     TILE_FLOOR,
+    TILE_TREE,
     TILE_WALL,
     TILE_DOOR,
     TILE_EXIT, // Level exit stairs

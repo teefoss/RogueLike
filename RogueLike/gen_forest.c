@@ -178,7 +178,7 @@ void GenerateForest(Game * game, int seed, int width)
             Tile * tile = GetTile(map, coord);
 
             if ( noise < -0.35f || noise > 0.05 ) {
-                *tile = CreateTile(TILE_WALL);
+                *tile = CreateTile(TILE_TREE);
             } else {
                 *tile = CreateTile(TILE_FLOOR);
             }
@@ -187,13 +187,7 @@ void GenerateForest(Game * game, int seed, int width)
                 *tile = CreateTile(TILE_WATER);
             }
 
-            if ( tile->type == TILE_WALL ) {
-                // Spawn trees, but don't bother spawning them outside the
-                // the circle
-                if ( distance <= radius ) {
-//                    SpawnActor(game, ACTOR_TREE, coord);
-                }
-            } else if ( tile->type == TILE_FLOOR ) {
+            if ( tile->type == TILE_FLOOR ) {
                 APPEND(ground_coords, coord);
             }
 
