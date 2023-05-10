@@ -10,6 +10,28 @@
 
 #include "video.h"
 
+#define FOREST_LIGHT 40
+
+const AreaInfo area_info[NUM_AREAS] = {
+    [AREA_FOREST] = {
+        .unrevealed_light = FOREST_LIGHT,
+        .revealed_light = FOREST_LIGHT,
+        .visible_light = FOREST_LIGHT,
+        .debug_map_tile_size = 4,
+        .reveal_all = true,
+        .render_clear_color = { 0, 0, 64 }
+    },
+    [AREA_DUNGEON] = {
+        .unrevealed_light = 0,
+        .revealed_light = 10, // was 20
+        .visible_light = 80,
+        .debug_map_tile_size = 16,
+        .reveal_all = false,
+        .render_clear_color = { 0, 0, 0 }
+    },
+};
+
+
 World InitWorld(void)
 {
     World world = { 0 };
@@ -17,6 +39,28 @@ World InitWorld(void)
     InitParticleArray(&world.particles);
 
     return world;
+}
+
+
+void GenerateWorld(Game * game, Area area, int seed, int width, int height)
+{
+    // Free up all previously loaded actors.
+    RemoveAllActors(&game->world.actor_list);
+
+    game->world.area = area;
+    game->world.info = &area_info[area];
+
+    switch ( area ) {
+        case AREA_FOREST:
+            GenerateForest(game, seed, width);
+            break;
+        case AREA_DUNGEON:
+            GenerateDungeon(game, width, height);
+            break;
+        default:
+            Error("weird area number!");
+            break;
+    }
 }
 
 
@@ -70,16 +114,14 @@ void RenderForestBackground(const Star * stars)
 void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
 {
     // TODO: move to area_info
-    if ( world->area == AREA_FOREST ) {
-        V_ClearRGB(0, 0, 64);
-    } else {
-        V_ClearRGB(0, 0, 0);
-    }
+
+    V_SetColor(world->info->render_clear_color);
+    V_Clear();
 
     const SDL_Rect viewport = GetLevelViewport(render_info);
     SDL_RenderSetViewport(renderer, &viewport);
 
-    if ( world->area == AREA_FOREST ) {
+    if ( world->info == &area_info[AREA_FOREST] ) {
         RenderForestBackground(world->stars);
     }
 

@@ -88,7 +88,11 @@ void C_Monster(Actor * monster, Actor * hit)
     // Monsters can damage other monsters, but not of the same type
     if ( hit->flags.takes_damage && monster->type != hit->type ) {
         DamageActor(hit, monster->stats.damage);
-        S_Play("o3 l32 b c < c+");
+        if ( monster->attack_sound ) {
+            S_Play(monster->attack_sound);
+        } else {
+            // TODO: default sound
+        }
     }
 }
 
@@ -97,7 +101,7 @@ void C_Spider(Actor * spider, Actor * hit)
 {
     if ( hit->flags.takes_damage ) {
         DamageActor(hit, spider->stats.damage);
-        S_Play("o4 l32 f b c+");
+        S_Play(spider->attack_sound);
     }
 }
 

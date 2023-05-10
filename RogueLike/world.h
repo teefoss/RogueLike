@@ -14,6 +14,24 @@
 #include "render.h"
 #include "actor_list.h"
 
+typedef enum area {
+    AREA_FOREST,
+    AREA_DUNGEON,
+    NUM_AREAS,
+} Area;
+
+typedef struct {
+    u8 unrevealed_light;
+    u8 revealed_light;
+    u8 visible_light;
+
+    u8 debug_map_tile_size;
+    bool reveal_all; // No fog of war
+
+    SDL_Color render_clear_color;
+} AreaInfo;
+
+
 #define NUM_STARS 5000
 
 typedef struct {
@@ -22,7 +40,9 @@ typedef struct {
 } Star;
 
 typedef struct world {
-    Area area; // TODO: just make a pointer to &area_info[x]
+    Area area;
+    const AreaInfo * info;
+
     Map map;
     ActorList actor_list;
 
@@ -34,5 +54,9 @@ typedef struct world {
 
 World InitWorld(void);
 void RenderWorld(const World * world, const RenderInfo * render_info, int ticks);
+
+void GenerateWorld(Game * game, Area area, int seed, int width, int height);
+void GenerateForest(Game * game, int seed, int width);
+void GenerateDungeon(Game * game, int width, int height);
 
 #endif /* world_h */

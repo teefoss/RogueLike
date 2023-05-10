@@ -343,7 +343,7 @@ void ResetTileVisibility(World * world,
     for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
         for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
             Tile * tile = GetTile(&world->map, coord);
-            if ( !area_info[world->area].reveal_all ) {
+            if ( !world->info->reveal_all ) {
                 tile->flags.visible = false;
             }
         }

@@ -12,7 +12,6 @@
 #include "game.h"
 #include "debug.h"
 #include "icon.h"
-#include "gen.h"
 #include "menu.h"
 
 #include "mathlib.h"
@@ -27,7 +26,7 @@
 /// flags.
 void SetTileLight(World * world, const RenderInfo * render_info)
 {
-    const AreaInfo * info = &area_info[world->area];
+    const AreaInfo * info = world->info;
     Box vis = GetVisibleRegion(&world->map, render_info);
 
     for ( int y = vis.top; y <= vis.bottom; y++ ) {
@@ -72,17 +71,11 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
         }
     }
 
-    // Free up all previously loaded actors.
-    RemoveAllActors(&world->actor_list);
-
-    switch ( level_num ) {
-        case 1:
-            GenerateForest(game, (u32)time(NULL), game->forest_size, game->forest_size);
-            break;
-        default:
-            // TODO: The Well
-            GenerateDungeon(game, 31, 31);
-            break;
+    int seed = (int)time(NULL);
+    if ( level_num == 1 ) {
+        GenerateWorld(game, AREA_FOREST, seed, game->forest_size, game->forest_size);
+    } else {
+        GenerateWorld(game, AREA_DUNGEON, seed, 31, 31);
     }
 
     // Focus camera on player.
@@ -224,9 +217,10 @@ void UpdateLevel(Game * game, float dt)
 
         // Convert to tile and apply draw offset
         if ( show_debug_map ) {
+            int size = game->world.info->debug_map_tile_size;
             // (No draw offset)
-            mouse.x /= area_info[game->world.area].debug_map_tile_size;
-            mouse.y /= area_info[game->world.area].debug_map_tile_size;
+            mouse.x /= size;
+            mouse.y /= size;
         } else {
             vec2_t render_offset = GetRenderOffset(&game->render_info);
             mouse.x += render_offset.x;
@@ -842,12 +836,12 @@ Game * InitGame(void)
     // u32 seed = (u32)time(NULL);
     u32 seed = 1682214124;
     printf("title screen seed: %d\n", seed);
-    GenerateForest(game, seed, game->forest_size, game->forest_size);
+    GenerateWorld(game, AREA_FOREST, seed, game->forest_size, game->forest_size);
 
     // TODO: check if this is still needed.
     for ( int i = 0; i < game->world.map.width * game->world.map.height; i++ ) {
         Tile * tile = &game->world.map.tiles[i];
-        tile->light = area_info[game->world.area].revealed_light;
+        tile->light = game->world.info->revealed_light;
     }
 
     // Remove all actors on the titlescreen.

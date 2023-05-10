@@ -73,7 +73,7 @@ void RenderTilesWithDelay(Game * game)
         V_ClearRGB(0, 0, 0);
         DebugRenderTiles(&game->world.map,
                          game->world.area,
-                         area_info[game->world.area].debug_map_tile_size);
+                         game->world.info->debug_map_tile_size);
         V_Refresh();
         SDL_Delay(25);
     }

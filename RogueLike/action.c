@@ -109,8 +109,9 @@ void A_SpiderChase(Actor * spider)
         Direction d = GetDirection(dx, dy);
 
         Tile * tile = GetAdjacentTile(&world->map, spider->tile, d);
-        if ( tile->light <= area_info[world->area].revealed_light
-            || spider->type == ACTOR_SUPER_SPIDER ) {
+        if ( tile->light <= world->info->revealed_light
+            || spider->type == ACTOR_SUPER_SPIDER )
+        {
             TryMoveActor(spider, d);
         } else {
             TryMoveActor(spider, OppositeDirection(d));

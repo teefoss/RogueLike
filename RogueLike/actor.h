@@ -109,6 +109,8 @@ struct actor {
     float hit_timer;
     Item item; // Actor is collectible, its associated item.
 
+    const char * attack_sound;
+
     void (* animation)(Actor *, float move_timer);
     void (* contact)(Actor * self, Actor * other);
     void (* contacted)(Actor * self, Actor * other); // When hit by something else.

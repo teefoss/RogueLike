@@ -15,7 +15,6 @@
 #include "tile.h"
 #include "actor.h"
 #include "item.h"
-#include "area.h"
 #include "particle.h"
 #include "world.h"
 #include "render.h"

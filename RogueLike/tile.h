@@ -8,8 +8,6 @@
 #ifndef tile_h
 #define tile_h
 
-#include "area.h"
-
 #define MAX_LIGHT 255
 
 typedef enum {
@@ -52,6 +50,7 @@ typedef struct {
 
 Tile CreateTile(TileType type);
 
+typedef enum area Area;
 void RenderTile(const Tile * tile,
                 Area area,
                 int signature,

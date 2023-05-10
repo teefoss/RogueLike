@@ -142,6 +142,7 @@ static Actor templates[NUM_ACTOR_TYPES] = {
         .contact = C_Monster,
         .light_radius = 1,
         .light = 160,
+        .attack_sound = "o3 l32 b c < c+",
     },
     [ACTOR_SPIDER] = {
         .name = "Spider",
@@ -150,6 +151,7 @@ static Actor templates[NUM_ACTOR_TYPES] = {
         .stats.damage = 1,
         .action = A_SpiderChase,
         .contact = C_Spider,
+        .attack_sound = "o4 l32 f b c+",
     },
     [ACTOR_SUPER_SPIDER] = {
         .name = "Super Spider",
@@ -158,6 +160,7 @@ static Actor templates[NUM_ACTOR_TYPES] = {
         .stats.damage = 2,
         .action = A_SpiderChase,
         .contact = C_Spider,
+        .attack_sound = "o3 l32 f b c+",
     },
     [ACTOR_ITEM_HEALTH] = {
         .name = "Health Potion",
