@@ -31,26 +31,18 @@ typedef struct {
     SDL_Color render_clear_color;
 } AreaInfo;
 
-
-#define NUM_STARS 5000
-
-typedef struct {
-    SDL_Point pt;
-    SDL_Color color;
-} Star;
-
 typedef struct world {
     Area area;
     const AreaInfo * info;
 
     Map map;
     ActorList actor_list;
-
     ParticleArray particles;
-    Star stars[NUM_STARS];
 
     TileCoord mouse_tile;
 } World;
+
+extern const AreaInfo area_info[NUM_AREAS];
 
 World InitWorld(void);
 void RenderWorld(const World * world, const RenderInfo * render_info, int ticks);

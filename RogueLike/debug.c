@@ -15,6 +15,9 @@ bool show_debug_map;
 bool show_distances;
 
 float frame_msec;
+float update_msec;
+float render_msec;
+float tiles_msec;
 float max_frame_msec;
 
 

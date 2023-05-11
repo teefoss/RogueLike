@@ -112,7 +112,7 @@ static bool MainProcessEvent(Game * game, const SDL_Event * event)
 void MenuToggle(Game * game)
 {
     if ( menu_state == MENU_NONE ) {
-        PushState(game, &game_state_menu);
+        PushState(game, &gs_menu);
         menu_state = MENU_MAIN;
     } else {
         PopState(game);

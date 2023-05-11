@@ -73,25 +73,37 @@ struct game {
     // Used when changing states. The new state is stored here while a
     // fade out happens. At end of the fade, game state is changed this.
     const GameState * post_fade_state;
-
     FadeState fade_state;
+
+    const char * kill_message;
 
     World world;
 
     // DEBUG
     int forest_size;
+    int forest_seed;
+    float forest_freq;
+    float forest_amp;
+    float forest_pers;
+    float forest_lec;
+    float forest_low;
+    float forest_high;
 };
 
-bool InventoryIsEmtpy(const Inventory * inventory);
 Game * InitGame(void);
 void DoFrame(Game * game, float dt);
 vec2_t GetWindowScale(void);
 void NewGame(Game * game);
+void LoadLevel(Game * game, int level_num, bool persist_player_stats);
+void StartFadeIn(FadeState * fade_state, float seconds);
+void StartTurn(Game * game, Direction direction);
+void UpdateLevel(Game * game, float dt);
+void GamePlayRender(const Game * game);
 
 
 #pragma mark - animation.c
 
-void LevelTurnUpdate(Game * game, float dt);
+void LevelTurn_Update(Game * game, float dt);
 void AnimateActorMove(Actor * actor, float move_timer);
 void SetUpMoveAnimation(Actor * actor, Direction direction);
 void SetUpBumpAnimation(Actor * actor, Direction direction);
@@ -107,9 +119,8 @@ void CheckForShowMapGenCancel(void);
 
 #pragma mark - player.c
 
-
 void PlayerCastSight(World * world, const RenderInfo * render_info);
 bool AddToInventory(Actor * player, Actor * item_actor, Item item);
-
+void UseItem(Actor * player);
 
 #endif /* main_h */

@@ -73,10 +73,12 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 
     int seed = (int)time(NULL);
     if ( level_num == 1 ) {
-        GenerateWorld(game, AREA_FOREST, seed, game->forest_size, game->forest_size);
+        GenerateWorld(game, AREA_FOREST, game->forest_seed, game->forest_size, game->forest_size);
     } else {
         GenerateWorld(game, AREA_DUNGEON, seed, 31, 31);
     }
+
+    printf("num actors: %d\n", game->world.actor_list.count);
 
     // Focus camera on player.
     Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
@@ -100,16 +102,6 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 }
 
 
-//void ChangeStateWithFade(FadeState * fade_state, Fade type, float seconds,
-//                         const GameState * game_state)
-//{
-//    fade_state->type = type;
-//    fade_state->timer = 0.0f;
-//    fade_state->duration_sec = seconds;
-//    fade_state->post_fade_game_state = game_state;
-//}
-
-
 void StartFadeIn(FadeState * fade_state, float seconds)
 {
     fade_state->type = FADE_IN;
@@ -127,26 +119,12 @@ void NewGame(Game * game)
     game->player_info.fuel = 3;
     game->player_info.fuel_steps = FUEL_STEPS;
 
-    ChangeStateAndFadeIn(game, &level_idle, 2.0f);
+    ChangeStateAndFadeIn(game, &gs_level_idle, 2.0f);
 }
 
-
+// TODO: move to inventory.c
 int InventoryRenderX(Inventory * inventory)
 {
-//    int max_width = 0;
-//
-//    if ( InventoryIsEmtpy(inventory) ) {
-//        return GAME_WIDTH - (V_CharWidth() * strlen("Inventory") + HUD_MARGIN * 2);
-//    }
-//
-//    for ( int i = 0; i < NUM_ITEMS; i++ ) {
-//        if ( inventory->item_counts[i] == 0 ) {
-//            continue;
-//        }
-//
-//        max_width = MAX(max_width, HUD_MARGIN * 2 + ItemInfoWidth(i));
-//    }
-
     return GAME_WIDTH - InventoryWidth();
 }
 
@@ -158,13 +136,6 @@ void UpdateLevel(Game * game, float dt)
 
     Map * map = &game->world.map;
 
-    // Update Actors: run timers.
-    FOR_EACH_ACTOR(actor, game->world.actor_list) {
-        if ( actor->hit_timer > 0.0f ) {
-            actor->hit_timer -= 5.0f * dt;
-        }
-    }
-
     // Update camera.
 
     vec2_t player_pt; // world scaled
@@ -175,12 +146,27 @@ void UpdateLevel(Game * game, float dt)
                                                0.2f,
                                                1.0f);
 
+    Box vis = GetVisibleRegion(map, &game->render_info);
+
+    int num_visible_actors = 0;
+    Actor ** visible_actors = GetVisibleActors(&game->world, &game->render_info, &num_visible_actors);
+
+    // Update Actors: run timers.
+    for ( int i = 0; i < num_visible_actors; i++ ) {
+        Actor * actor = visible_actors[i];
+        if ( actor->hit_timer > 0.0f ) {
+            actor->hit_timer -= 5.0f * dt;
+        }
+    }
+
     // Update lighting based on new camera position.
 
-    Box vis = GetVisibleRegion(map, &game->render_info);
     SetTileLight(&game->world, &game->render_info);
 
-    FOR_EACH_ACTOR(actor, game->world.actor_list) {
+
+    for ( int i = 0; i < num_visible_actors; i++ ) {
+        Actor * actor = visible_actors[i];
+
         if ( TileInBox(actor->tile, vis) ) {
             if (    actor->type != ACTOR_PLAYER
                 || (actor->type == ACTOR_PLAYER && game->player_info.fuel) )
@@ -231,65 +217,6 @@ void UpdateLevel(Game * game, float dt)
 
         game->world.mouse_tile.x = mouse.x;
         game->world.mouse_tile.y = mouse.y;
-    }
-}
-
-
-#pragma mark - Intermission State
-
-
-bool DoIntermissionInput(Game * game, const SDL_Event * event)
-{
-    switch ( event->type ) {
-        case SDL_KEYDOWN:
-            // load next level
-            // change state
-            return true;
-        default:
-            break;
-    }
-    return false;
-}
-
-
-void IntermissionOnEnter(Game * game)
-{
-    StartFadeIn(&game->fade_state, 2.0f);
-}
-
-
-void IntermissionOnExit(Game * game)
-{
-    LoadLevel(game, game->level, true);
-    game->player_info.turns = INITIAL_TURNS;
-    PlayerCastSight(&game->world, &game->render_info);
-
-    StartFadeIn(&game->fade_state, 1.0f);
-}
-
-
-#pragma mark - LEVEL IDLE STATE
-
-
-void LevelIdleOnEnter(Game * game)
-{
-    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
-    Tile * player_tile = GetTile(&game->world.map, player->tile);
-
-    // Check if the player has moved onto a tile that requires action:
-
-    switch ( (TileType)player_tile->type ) {
-        case TILE_TELEPORTER:
-            Teleport(player, player->tile);
-            S_Play("o0 t160 l32 c g > d a > e b > f+ > c+ g+ > d+ a+ > f > c ");
-            player->flags.on_teleporter = false;
-            break;
-        case TILE_EXIT:
-            ++game->level;
-            FadeOutAndChangeState(game, &intermission, 0.25f);
-            break;
-        default:
-            break;
     }
 }
 
@@ -394,7 +321,7 @@ void StartTurn(Game * game, Direction direction)
     ResetTileVisibility(world, player->tile, &game->render_info);
     PlayerCastSight(world, &game->render_info);
 
-    ChangeState(game, &level_turn);
+    ChangeState(game, &gs_level_turn);
 
     // Update all actors when player is out of turns.
     if ( player_info->turns < 0 ) {
@@ -402,8 +329,8 @@ void StartTurn(Game * game, Direction direction)
 
         // Do all actor turns.
         FOR_EACH_ACTOR(actor, world->actor_list) {
-            if ( !actor->flags.was_attacked && actor->action ) {
-                actor->action(actor);
+            if ( !actor->flags.was_attacked && actor->info->action ) {
+                actor->info->action(actor);
             }
 
             actor->flags.was_attacked = false; // reset
@@ -411,155 +338,6 @@ void StartTurn(Game * game, Direction direction)
     }
 }
 
-
-// TODO: change to Actor to ActorStats
-void UseItem(ActorsStats * stats, PlayerInfo * info)
-{
-    Inventory * inventory = &info->inventory;
-
-    // If the inventory is empty, just leave.
-    if ( inventory->item_counts[inventory->selected_item] == 0 ) {
-        return;
-    }
-
-    // Remove from inventory.
-    --inventory->item_counts[inventory->selected_item];
-
-    switch ( inventory->selected_item ) {
-        case ITEM_HEALTH:
-            if ( stats->health < stats->max_health ) {
-                stats->health++;
-            }
-            S_Play("l32 o3 d+ < g+ b e");
-            break;
-        case ITEM_TURN:
-            info->turns++;
-            S_Play("l32 o3 f+ < b a");
-            break;
-        case ITEM_STRENGTH:
-            info->strength_buff = 1;
-            S_Play("l32 t100 o1 e a f b- f+ b");
-            break;
-        case ITEM_FUEL_SMALL:
-            info->fuel = MIN(info->fuel + 1, MAX_FUEL);
-            info->fuel_steps = FUEL_STEPS;
-            S_Play("o3 l16 t160 b e-");
-            break;
-        case ITEM_FUEL_BIG:
-            info->fuel = MIN(info->fuel + 3, MAX_FUEL);
-            info->fuel_steps = FUEL_STEPS;
-            S_Play("o2 l16 t160 b e-");
-            break;
-        default:
-            break;
-    }
-}
-
-
-bool LevelIdleProcessInput(Game * game, const SDL_Event * event)
-{
-    Inventory * inv = &game->player_info.inventory;
-
-    switch ( event->type ) {
-        case SDL_KEYDOWN:
-
-            switch ( event->key.keysym.sym ) {
-                case SDLK_w:
-                    StartTurn(game, NORTH);
-                    return true;
-                case SDLK_s:
-                    StartTurn(game, SOUTH);
-                    return true;
-                case SDLK_a:
-                    StartTurn(game, WEST);
-                    return true;
-                case SDLK_d:
-                    StartTurn(game, EAST);
-                    return true;
-                case SDLK_UP:
-                    if ( game->inventory_open ) {
-                        ChangeInventorySelection(inv, NORTH);
-                    }
-                    return true;
-                case SDLK_DOWN:
-                    if ( game->inventory_open ) {
-                        ChangeInventorySelection(inv, SOUTH);
-                    }
-                    return true;
-                case SDLK_LEFT:
-                    if ( game->inventory_open ) {
-                        ChangeInventorySelection(inv, WEST);
-                    }
-                    return true;
-                case SDLK_RIGHT:
-                    if ( game->inventory_open ) {
-                        ChangeInventorySelection(inv, EAST);
-                    }
-                    return true;
-                case SDLK_RETURN:
-                    if ( game->inventory_open ) {
-                        Actor * player = FindActor(&game->world.actor_list,
-                                                   ACTOR_PLAYER);
-                        UseItem(&player->stats, &game->player_info);
-                    }
-                    return true;
-                default:
-                    return false;
-            }
-            break;
-        default:
-            return false;
-    }
-}
-
-void LevelIdleUpdate(Game * game, float dt)
-{
-    // Update actor standing animations, etc.
-
-    FOR_EACH_ACTOR(actor, game->world.actor_list) {
-        if (actor->sprite->num_frames > 1 &&
-            game->ticks % MS2TICKS(actor->sprite->frame_msec, FPS) == 0 )
-        {
-            actor->frame = (actor->frame + 1) % actor->sprite->num_frames;
-        }
-    }
-
-    UpdateLevel(game, dt);
-}
-
-
-
-#pragma mark - LEVEL TURN STATE
-
-void LevelTurnOnEnter(Game * game)
-{
-    game->move_timer = 0.0f;
-}
-
-/// Run the move timer and do actor movement animations.
-void LevelTurnUpdate(Game * game, float dt)
-{
-    game->move_timer += 5.0f * dt;
-
-    if ( game->move_timer >= 1.0f ) {
-        // We're done.
-        game->move_timer = 1.0f;
-        ChangeState(game, &level_idle);
-        // Don't return here, make sure actors complete their animation.
-    }
-
-
-    FOR_EACH_ACTOR(actor, game->world.actor_list) {
-        if ( actor->animation ) {
-            actor->animation(actor, game->move_timer);
-            if ( game->move_timer == 1.0f ) {
-                actor->animation = NULL; // Remove the animation.
-            }
-        }
-    }
-
-    UpdateLevel(game, dt);
-}
 
 #pragma mark - RENDER
 
@@ -590,7 +368,9 @@ void RenderHUD(const Game * game, const Actor * player)
 
     V_PrintString(margin, margin, "Level %d", game->level);
     if ( game->player_info.has_gold_key ) {
-        RenderIcon(ICON_GOLD_KEY, margin, margin * 2 + SCALED(1));
+        int x = margin;
+        int y = margin * 2 + SCALED(1);
+        RenderIcon(ICON_GOLD_KEY, x, y, &game->render_info);
     }
 
     // Log
@@ -599,7 +379,7 @@ void RenderHUD(const Game * game, const Actor * player)
     if ( log_len ) {
         int log_x = game->render_info.inventory_x - (log_len * char_w + margin);
 
-        if ( GetGameState(game) == &level_turn ) {
+        if ( GetGameState(game) == &gs_level_turn ) {
             float x = log_x;
             float y = Lerp(-margin, margin, game->move_timer);
             V_PrintString(x, y, game->log);
@@ -622,7 +402,7 @@ void RenderHUD(const Game * game, const Actor * player)
     int turns_x = V_PrintString(hud_x, hud_y, " Turns ");
 
     for ( int i = 0; i < game->player_info.turns; i++ ) {
-        RenderIcon(ICON_TURN, turns_x + i * SCALED(ICON_SIZE), hud_y);
+        RenderIcon(ICON_TURN, turns_x + i * SCALED(ICON_SIZE), hud_y, &game->render_info);
     }
 
     // Attack
@@ -632,7 +412,7 @@ void RenderHUD(const Game * game, const Actor * player)
 
     int total_damage = player->stats.damage + game->player_info.strength_buff;
     for ( int i = 0; i < total_damage; i++  ) {
-        RenderIcon(ICON_DAMAGE, attack_x + i * SCALED(ICON_SIZE), hud_y);
+        RenderIcon(ICON_DAMAGE, attack_x + i * SCALED(ICON_SIZE), hud_y, &game->render_info);
     }
 
     // Health
@@ -641,9 +421,9 @@ void RenderHUD(const Game * game, const Actor * player)
 
     int health_x = V_PrintString(hud_x, hud_y, "Health ");
 
-    for ( int i = 0; i < player->stats.max_health; i++ ) {
+    for ( int i = 0; i < player->info->max_health; i++ ) {
         Icon icon = i + 1 > player->stats.health ? ICON_HEART_EMPTY : ICON_HEART_FULL;
-        RenderIcon(icon, health_x + i * SCALED(ICON_SIZE), hud_y);
+        RenderIcon(icon, health_x + i * SCALED(ICON_SIZE), hud_y, &game->render_info);
     }
 
     // Fuel
@@ -660,7 +440,7 @@ void RenderHUD(const Game * game, const Actor * player)
 
         if ( i + 1 == info->fuel ) {
             // The rightmost icon:
-            if ( GetGameState(game) == &level_turn ) {
+            if ( GetGameState(game) == &gs_level_turn ) {
                 icon = ICON_FUEL_BURN;
             } else {
                 if ( info->fuel_steps == 1 ) {
@@ -675,7 +455,7 @@ void RenderHUD(const Game * game, const Actor * player)
             icon = ICON_FUEL_EMPTY;
         }
 
-        RenderIcon(icon, fuel_x + i * SCALED(ICON_SIZE), hud_y);
+        RenderIcon(icon, fuel_x + i * SCALED(ICON_SIZE), hud_y, &game->render_info);
     }
 }
 
@@ -692,6 +472,9 @@ void RenderDebugInfo(const World * world,
     DEBUG_PRINT("Frame time: %.1f (max: %.1f)",
                 frame_msec * 1000.0f,
                 max_frame_msec * 1000.0f);
+    DEBUG_PRINT("- Update time: %.1f", update_msec * 1000.0f);
+    DEBUG_PRINT("- Render time: %.1f", render_msec * 1000.0f);
+    DEBUG_PRINT("- - Tiles: %.1f", tiles_msec * 1000.0f);
     DEBUG_PRINT(" ");
     DEBUG_PRINT("Player health: %d", player->stats.health);
 //    DEBUG_PRINT("Actors %d", world->actors.count);
@@ -771,33 +554,6 @@ void GamePlayRender(const Game * game)
 }
 
 
-void TitleScreenRender(const Game * game)
-{
-    RenderWorld(&game->world, &game->render_info, game->ticks);
-}
-
-
-void TitleScreenOnEnter(Game * game)
-{
-    menu_state = MENU_MAIN;
-    PushState(game, &game_state_menu);
-}
-
-
-void IntermissionRender(const Game * game)
-{
-    const char * level_string = "Level %d";
-
-    V_SetRGBA(0, 0, 0, 0);
-    int width = V_PrintString(0, 0, level_string, game->level);
-
-    V_SetRGB(255, 255, 255);
-    int x = (GAME_WIDTH - width) / 2;
-    int y = (GAME_HEIGHT - V_CharHeight()) / 2;
-    V_PrintString(x, y, level_string, game->level);
-}
-
-
 /// Render a transparent rectangle over everything if fading in/out.
 void RenderFade(FadeState * fade_state)
 {
@@ -830,8 +586,19 @@ Game * InitGame(void)
     game->render_info.inventory_x = GAME_WIDTH; // Start closed.
     game->world = InitWorld();
     game->state_stack_top = -1;
-    game->forest_size = 128;
+    game->render_info = InitRenderInfo();
 
+    // DEBUG
+    game->forest_size = 256;
+    game->forest_seed = 0;
+    game->forest_freq = 0.06f;
+    game->forest_amp = 1.0f;
+    game->forest_pers = 0.6f;
+    game->forest_lec = 2.0f; // lac
+    game->forest_low = -0.35f;
+    game->forest_high = 0.05;
+
+    // TODO: all this should be in title screen on enter
     // Generate a forest as the title screen background.
     // u32 seed = (u32)time(NULL);
     u32 seed = 1682214124;
@@ -855,9 +622,8 @@ Game * InitGame(void)
     game->render_info.camera = TileCoordToScaledWorldCoord(center, vec2_zero);
 
     // Make sure there's a state on the stack to begin.
-    PushState(game, &game_state_title);
-
-    ChangeStateAndFadeIn(game, &game_state_title, 1.0f);
+    PushState(game, &gs_title_screen);
+    ChangeState(game, &gs_title_screen);
 
     return game;
 }
@@ -867,6 +633,8 @@ Game * InitGame(void)
 void DoFrame(Game * game, float dt)
 {
     debug_row = 0;
+    SDL_Keymod mods = SDL_GetModState();
+    bool shift = mods & KMOD_SHIFT;
 
     SDL_Event event;
     while ( SDL_PollEvent(&event) ) {
@@ -921,6 +689,37 @@ void DoFrame(Game * game, float dt)
                         game->forest_size += 8;
                         LoadLevel(game, game->level, false);
                         break;
+                    case SDLK_COMMA:
+                        --game->forest_seed;
+                        LoadLevel(game, game->level, false);
+                        break;
+                    case SDLK_PERIOD:
+                        ++game->forest_seed;
+                        LoadLevel(game, game->level, false);
+                        break;
+                    case SDLK_u:
+                        game->forest_freq += shift ? -0.01f : 0.01f;
+                        LoadLevel(game, game->level, false);
+                        break;
+                    case SDLK_i:
+                        game->forest_amp += shift ? -0.1f : 0.1f;
+                        LoadLevel(game, game->level, false);
+                        break;
+                    case SDLK_o:
+                        game->forest_pers += shift ? -0.1f : 0.1f;
+                        LoadLevel(game, game->level, false);
+                        break;
+                    case SDLK_p:
+                        game->forest_lec += shift ? -0.1f : 0.1f;
+                        LoadLevel(game, game->level, false);
+                        break;
+                    case SDLK_k:
+                        FOR_EACH_ACTOR(actor, game->world.actor_list) {
+                            if ( actor->type != ACTOR_PLAYER ) {
+                                RemoveActor(actor);
+                            }
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -943,7 +742,9 @@ void DoFrame(Game * game, float dt)
         }
     }
 
-    UpdateState(game, dt);
+    PROFILE(UpdateState(game, dt), update_msec);
+
+    float render_start = ProgramTime();
 
     V_ClearRGB(0, 0, 0);
 
@@ -959,6 +760,8 @@ void DoFrame(Game * game, float dt)
     }
 
     V_Refresh();
+
+    render_msec = ProgramTime() - render_start;
 
     game->ticks++;
 }

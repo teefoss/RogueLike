@@ -13,6 +13,9 @@
 
 #define MAX_GAME_STATES 10
 
+// A fade out is started with FadeOutAndChangeState.
+// A fade in in started with ChangeStateAndFade in, or via StartFadeIn
+// once the new state is active, usually in on_enter.
 typedef enum {
     FADE_NONE,
     FADE_IN,
@@ -36,12 +39,13 @@ typedef struct game_state {
     const struct game_state * next_state;
 } GameState;
 
-extern const GameState blank;
-extern const GameState level_idle;
-extern const GameState level_turn;
-extern const GameState intermission;
-extern const GameState game_state_menu;
-extern const GameState game_state_title;
+extern const GameState gs_death_screen;
+extern const GameState gs_intermission;
+extern const GameState gs_level_idle;
+extern const GameState gs_level_turn;
+extern const GameState gs_menu;
+extern const GameState gs_title_screen;
+
 
 const GameState * GetGameState(const Game * game);
 void PushState(Game * game, const GameState * new_state);

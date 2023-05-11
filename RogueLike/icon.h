@@ -9,6 +9,7 @@
 #define icon_h
 
 #include "shorttypes.h"
+#include "render.h"
 
 #define ICON_SIZE 6
 
@@ -31,6 +32,6 @@ typedef enum {
     NUM_ICONS,
 } Icon;
 
-void RenderIcon(Icon icon, int x, int y);
+void RenderIcon(Icon icon, int x, int y, const RenderInfo * render_info);
 
 #endif /* icon_h */

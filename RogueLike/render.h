@@ -9,7 +9,7 @@
 #define render_h
 
 #include "vector.h"
-#include <SDL_rect.h>
+#include <SDL.h>
 
 #define DRAW_SCALE 4
 
@@ -49,6 +49,10 @@ typedef enum {
 typedef struct {
     vec2_t camera; // world focus point in scaled coordinates
     float inventory_x; // the left side of the inventory panel
+    SDL_Texture * stars;
+    SDL_Texture * actor_texture;
+    SDL_Texture * tile_texture;
+    SDL_Texture * icon_texture;
 } RenderInfo;
 
 extern const SDL_Color palette[];
@@ -60,5 +64,8 @@ vec2_t GetRenderLocation(const RenderInfo * render_info, vec2_t point);
 vec2_t GetRenderOffset(const RenderInfo * render_info);
 
 void SetColor(PaletteColor color);
+
+RenderInfo InitRenderInfo(void);
+void FreeRenderAssets(RenderInfo * info);
 
 #endif /* render_h */

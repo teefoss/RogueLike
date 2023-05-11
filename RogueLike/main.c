@@ -25,9 +25,11 @@ int main(void)
 //    SDL_GetCurrentDisplayMode(0, &display_mode);
 //    printf("desktop size: %d x %d\n", display_mode.w, display_mode.h);
 
+    double window_scale = 1.5;
+
     video_info_t info = {
-        .window_width = GAME_WIDTH * 1.5,
-        .window_height = GAME_HEIGHT * 1.5,
+        .window_width = GAME_WIDTH * window_scale,
+        .window_height = GAME_HEIGHT * window_scale,
 //        .render_flags = SDL_RENDERER_PRESENTVSYNC,
         .window_flags = SDL_WINDOW_ALLOW_HIGHDPI,
         .render_flags = 0,
@@ -69,8 +71,11 @@ int main(void)
         old_time = new_time;
     }
 
+
     FreeDistanceMapQueue();
     DestroyActorList(&game->world.actor_list);
+    FreeRenderAssets(&game->render_info);
+    FreeVisibleActorsArray();
     free(game->world.map.tiles);
     free(game->world.map.tile_ids);
     free(game);

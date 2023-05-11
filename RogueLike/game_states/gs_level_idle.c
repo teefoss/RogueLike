@@ -1,0 +1,149 @@
+//
+//  gs_level_idle.c
+//  RogueLike
+//
+//  Created by Thomas Foster on 5/11/23.
+//
+
+#include "game.h"
+#include "sound.h"
+
+
+static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
+{
+    Inventory * inv = &game->player_info.inventory;
+
+    switch ( event->type ) {
+        case SDL_KEYDOWN:
+            switch ( event->key.keysym.sym ) {
+                case SDLK_UP:
+                    ChangeInventorySelection(inv, NORTH);
+                    return true;
+                case SDLK_DOWN:
+                    ChangeInventorySelection(inv, SOUTH);
+                    return true;
+                case SDLK_LEFT:
+                    ChangeInventorySelection(inv, WEST);
+                    return true;
+                case SDLK_RIGHT:
+                    ChangeInventorySelection(inv, EAST);
+                    return true;
+                case SDLK_RETURN: {
+                    Actor * player = FindActor(&game->world.actor_list,
+                                               ACTOR_PLAYER);
+                    UseItem(player);
+                    return true;
+                }
+                default:
+                    return false;
+            }
+            break;
+        default:
+            return false;
+    }
+}
+
+
+static bool LevelProcessEvent(Game * game, const SDL_Event * event)
+{
+    const float elevation_change = 0.05f;
+
+    switch ( event->type ) {
+        case SDL_KEYDOWN:
+            switch ( event->key.keysym.sym ) {
+                case SDLK_w:
+                    StartTurn(game, NORTH);
+                    return true;
+                case SDLK_s:
+                    StartTurn(game, SOUTH);
+                    return true;
+                case SDLK_a:
+                    StartTurn(game, WEST);
+                    return true;
+                case SDLK_d:
+                    StartTurn(game, EAST);
+                    return true;
+                case SDLK_UP:
+                        game->forest_high += elevation_change;
+                        LoadLevel(game, game->level, false);
+                    return true;
+                case SDLK_DOWN:
+                        game->forest_high -= elevation_change;
+                        LoadLevel(game, game->level, false);
+                    return true;
+                case SDLK_LEFT:
+                        game->forest_low -= elevation_change;
+                        LoadLevel(game, game->level, false);
+                    return true;
+                case SDLK_RIGHT:
+                        game->forest_low += elevation_change;
+                        LoadLevel(game, game->level, false);
+                    return true;
+                default:
+                    return false;
+            }
+            break;
+        default:
+            return false;
+    }
+}
+
+
+bool LevelIdle_ProcessEvent(Game * game, const SDL_Event * event)
+{
+    if ( InventoryProcessEvent(game, event) ) {
+        return true;
+    } else {
+        return LevelProcessEvent(game, event);
+    }
+}
+
+
+void LevelIdle_Update(Game * game, float dt)
+{
+    // Update actor standing animations, etc.
+
+    FOR_EACH_ACTOR(actor, game->world.actor_list) {
+        const ActorSprite * sprite = &actor->info->sprite;
+        if (sprite->num_frames > 1 &&
+            game->ticks % MS2TICKS(sprite->frame_msec, FPS) == 0 )
+        {
+            actor->frame = (actor->frame + 1) % sprite->num_frames;
+        }
+    }
+
+    UpdateLevel(game, dt);
+}
+
+
+void LevelIdle_OnEnter(Game * game)
+{
+    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
+    Tile * player_tile = GetTile(&game->world.map, player->tile);
+
+    // Check if the player has moved onto a tile that requires action:
+
+    switch ( (TileType)player_tile->type ) {
+        case TILE_TELEPORTER:
+            Teleport(player, player->tile);
+            S_Play("o0 t160 l32 c g > d a > e b > f+ > c+ g+ > d+ a+ > f > c ");
+            player->flags.on_teleporter = false;
+            break;
+        case TILE_EXIT:
+            ++game->level;
+            FadeOutAndChangeState(game, &gs_intermission, 0.25f);
+            break;
+        default:
+            break;
+    }
+}
+
+
+const GameState gs_level_idle = {
+    .process_event      = LevelIdle_ProcessEvent,
+    .update             = LevelIdle_Update,
+    .render             = GamePlayRender,
+    .on_enter           = LevelIdle_OnEnter,
+    .on_exit            = NULL,
+    .next_state         = NULL,
+};

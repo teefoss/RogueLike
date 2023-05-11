@@ -156,9 +156,10 @@ void RenderTile(const Tile * tile,
                 int pixel_x,
                 int pixel_y,
                 int render_size,
-                bool debug)
+                bool debug,
+                const RenderInfo * render_info)
 {
-    SDL_Texture * tiles = GetTexture("assets/tiles2.png");
+    SDL_Texture * tiles = render_info->tile_texture;
     tile_info_t * info = &_info[tile->type][area];
 
     if ( debug || tile->flags.bright ) {

@@ -90,7 +90,12 @@ void ChangeInventorySelection(Inventory * inventory, Direction direction)
 }
 
 
-static void RenderItemInfo(Item item, int count, int x, int y, bool selected)
+static void RenderItemInfo(Item item,
+                           int count,
+                           int x,
+                           int y,
+                           bool selected,
+                           const RenderInfo * render_info)
 {
     SDL_Rect icon_cell = {
         .x = x - SCALED(CELL_MARGIN),
@@ -120,7 +125,7 @@ static void RenderItemInfo(Item item, int count, int x, int y, bool selected)
     }
 
     if ( count > 0 ) {
-        RenderIcon(ItemIcon(item), x, y);
+        RenderIcon(ItemIcon(item), x, y, render_info);
 
         SetColor(GOLINE_WHITE);
         V_PrintString(x + V_CharWidth() * 2 + SCALED(1), y, "%d", count);
@@ -133,7 +138,6 @@ int InventoryWidth(void)
     int width = 0;
     width += INVENTORY_MARGIN_LEFT;
     width += 5 * V_CharWidth() * ITEM_COLS;
-//    width += INVENTORY_MARGIN_LEFT; // Right margin.
 
     return width;
 };
@@ -180,7 +184,8 @@ void RenderInventory(const Inventory * inv, const RenderInfo * info)
                        inv->item_counts[i],
                        INVENTORY_MARGIN_LEFT + col * V_CharWidth(),
                        start_y + row * line_height,
-                       selected);
+                       selected,
+                       info);
     }
 
     SDL_RenderSetViewport(renderer, NULL);

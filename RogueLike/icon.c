@@ -33,9 +33,9 @@ static struct {
 static SDL_Rect src = { .w = ICON_SIZE, .h = ICON_SIZE };
 static SDL_Rect dst = { .w = SCALED(ICON_SIZE), .h = SCALED(ICON_SIZE) };
 
-void RenderIcon(Icon icon, int x, int y)
+void RenderIcon(Icon icon, int x, int y, const RenderInfo * render_info)
 {
-    SDL_Texture * icons_texture = GetTexture("assets/icons.png");
+    SDL_Texture * icons_texture = render_info->icon_texture;
 
     src.x = info[icon].x * ICON_SIZE;
     src.y = info[icon].y * ICON_SIZE;

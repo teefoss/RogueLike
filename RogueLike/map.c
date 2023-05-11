@@ -125,6 +125,8 @@ TileCoord GetCoordinate(const Map * map, int index)
 /// entire map.
 void RenderTiles(const World * world, const Box * region, vec2_t offset, bool debug)
 {
+    float start = ProgramTime();
+
     const Map * map = &world->map;
 
     int tile_size;
@@ -167,6 +169,8 @@ void RenderTiles(const World * world, const Box * region, vec2_t offset, bool de
             }
         }
     }
+
+    tiles_msec = ProgramTime() - start;
 }
 
 

@@ -8,6 +8,8 @@
 #ifndef tile_h
 #define tile_h
 
+#include "render.h"
+
 #define MAX_LIGHT 255
 
 typedef enum {
@@ -57,7 +59,8 @@ void RenderTile(const Tile * tile,
                 int pixel_x,
                 int pixel_y,
                 int render_size,
-                bool debug);
+                bool debug,
+                const RenderInfo * render_info);
 
 //void DebugDrawTile(const tile_t * tile, int x, int y, int size);
 const char * TileName(TileType type);

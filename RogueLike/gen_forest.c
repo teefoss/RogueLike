@@ -102,23 +102,18 @@ void GenerateForest(Game * game, int seed, int width)
         Error("forest size must be <= %d\n", FOREST_MAX_SIZE);
     }
 
+    printf("\n- Generate Forest- \n");
+    printf("seed: %d\n", seed);
+    printf("low: %0.2f\n", game->forest_low);
+    printf("high: %0.2f\n", game->forest_high);
+    printf("freq: %.02f\n", game->forest_freq);
+    printf("amp: %.01f\n", game->forest_amp);
+    printf("pers: %.01f\n", game->forest_pers);
+    printf("lac: %.01f\n", game->forest_lec);
+
     World * world = &game->world;
     world->area = AREA_FOREST;
 
-    for ( int i = 0; i < NUM_STARS; i++ ) {
-        world->stars[i].pt.x = Random(0, GAME_WIDTH - 1);
-        world->stars[i].pt.y = Random(0, GAME_HEIGHT - 1);
-
-        SDL_Color * c = &world->stars[i].color;
-        int n = Random(0, 1000);
-        if ( n == 1000 ) {
-            *c = (SDL_Color){ 0, 248, 0, 255 };
-        } else if ( n < 500 ) {
-            *c = (SDL_Color){ 208, 208, 208, 255 };
-        } else {
-            *c = (SDL_Color){ 128, 128, 128, 255 };
-        }
-    }
 
     SDL_memset(region_areas, 0, sizeof(region_areas));
 
@@ -159,10 +154,10 @@ void GenerateForest(Game * game, int seed, int width)
 
             if ( distance <= radius ) {
                 float gradient = MAP(distance, 0.0f, (float)radius, 0.0f, 1.0f);
-                float freq = 0.04f;
-                float amp = 1.0f;
-                float pers = 0.6f;
-                float lac = 2.0f;
+                float freq = game->forest_freq;
+                float amp = game->forest_amp;
+                float pers = game->forest_pers;
+                float lac = game->forest_lec;
                 noise = Noise2(x, y, 1.0f, freq, 6, amp, pers, lac) - gradient;
 
                 water_noise
@@ -174,13 +169,13 @@ void GenerateForest(Game * game, int seed, int width)
 
             Tile * tile = GetTile(map, coord);
 
-            if ( noise < -0.35f || noise > 0.05 ) {
+            if ( noise < game->forest_low || noise > game->forest_high ) {
                 *tile = CreateTile(TILE_TREE);
             } else {
                 *tile = CreateTile(TILE_FLOOR);
             }
 
-            if ( water_noise > 0.05f ) {
+            if ( water_noise > game->forest_high ) {
                 *tile = CreateTile(TILE_WATER);
             }
 
@@ -200,7 +195,7 @@ void GenerateForest(Game * game, int seed, int width)
         if ( tile_regions[coord.y][coord.x] == -1 ) { // Not yet visited
             region++;
             FloodFillGroundTiles_r(map, coord, region);
-            printf("region %d area: %d\n", region, region_areas[region]);
+//            printf("region %d area: %d\n", region, region_areas[region]);
         }
     }
 
@@ -230,7 +225,7 @@ void GenerateForest(Game * game, int seed, int width)
 
     // Spawn actor, spiders, and teleporter in second largest region.
     GetTilesInRegion(map, second_largest_region); // OK
-    printf("second largest num tiles: %d\n", num_tiles); // OK
+
     SpawnActorAtRandomLocation(game, ACTOR_PLAYER);
     CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
     for ( int i = 0; i < region_areas[second_largest_region] / 20; i++ ) {

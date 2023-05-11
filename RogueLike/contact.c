@@ -10,11 +10,11 @@
 
 void C_Player(Actor * player, Actor * hit)
 {
-    if ( hit->flags.takes_damage ) {
+    if ( hit->info->flags.takes_damage ) {
         int damage = player->stats.damage;
         damage += player->game->player_info.strength_buff;
 
-        if ( DamageActor(hit, damage) <= 0 ) {
+        if ( DamageActor(hit, player) <= 0 ) {
             switch ( hit->type ) {
                 case ACTOR_VASE:
                     S_Play("o5 t160 l32 g+ e- c f b-");
@@ -32,13 +32,13 @@ void C_Player(Actor * player, Actor * hit)
     }
 
     // Collect inventory items
-    if ( hit->flags.collectible ) {
-        if ( AddToInventory(player, hit, hit->item) ) {
+    if ( hit->info->flags.collectible ) {
+        if ( AddToInventory(player, hit, hit->info->item) ) {
 
             char * log = player->game->log;
             size_t log_size = sizeof(player->game->log);
 
-            switch ( hit->item ) {
+            switch ( hit->info->item ) {
                 case ITEM_HEALTH:
                     strncpy(log, "Picked up a Health Potion!", log_size);
                     S_Play("l32 o2 e b g+ > d+");
@@ -85,10 +85,10 @@ void C_Player(Actor * player, Actor * hit)
 void C_Monster(Actor * monster, Actor * hit)
 {
     // Monsters can damage other monsters, but not of the same type
-    if ( hit->flags.takes_damage && monster->type != hit->type ) {
-        DamageActor(hit, monster->stats.damage);
-        if ( monster->attack_sound ) {
-            S_Play(monster->attack_sound);
+    if ( hit->info->flags.takes_damage && monster->type != hit->type ) {
+        DamageActor(hit, monster);
+        if ( monster->info->attack_sound ) {
+            S_Play(monster->info->attack_sound);
         } else {
             // TODO: default sound
         }

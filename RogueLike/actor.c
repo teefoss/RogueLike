@@ -10,6 +10,7 @@
 #include "render.h"
 #include "loot.h"
 #include "actor_list.h"
+#include "game_state.h"
 
 #include "mathlib.h"
 #include "texture.h"
@@ -26,86 +27,6 @@ enum {
     DRAW_PRIORITY_PLAYER,
 };
 
-
-// Animated sprite frames are layed out horizontally.
-// `cell` is the first frame in an animation.
-ActorSprite sprite_info[NUM_ACTOR_TYPES] = {
-    [ACTOR_PLAYER] = {
-        .cell = { 0, 0 },
-        .num_frames = 2,
-        .frame_msec = 500,
-        .draw_priority = DRAW_PRIORITY_PLAYER,
-    },
-    [ACTOR_TORCH] = {
-        .cell = { 2, 3 },
-        .num_frames = 2,
-        .frame_msec = 300,
-    },
-    [ACTOR_BLOB] = {
-        .cell = { 0, 2 },
-        .num_frames = 2,
-        .frame_msec = 300,
-        .draw_priority = DRAW_PRIORITY_MONSTER,
-    },
-    [ACTOR_SPIDER] = {
-        .cell = { 4, 2 },
-        .num_frames = 4,
-        .frame_msec = 100,
-        .draw_priority = DRAW_PRIORITY_MONSTER,
-    },
-    [ACTOR_SUPER_SPIDER] = {
-        .cell = { 4, 6 },
-        .num_frames = 4,
-        .frame_msec = 100,
-        .draw_priority = DRAW_PRIORITY_MONSTER,
-    },
-    [ACTOR_ITEM_HEALTH] = {
-        .cell = { 0, 1 },
-        .draw_priority = DRAW_PRIORITY_ITEM,
-    },
-    [ACTOR_ITEM_TURN] = {
-        .cell = { 1, 1 },
-        .draw_priority = DRAW_PRIORITY_ITEM,
-    },
-    [ACTOR_ITEM_STRENGTH] = {
-        .cell = { 3, 1 },
-        .draw_priority = DRAW_PRIORITY_ITEM,
-    },
-    [ACTOR_ITEM_FUEL_SMALL] = {
-        .cell = { 4, 1 },
-        .draw_priority = DRAW_PRIORITY_ITEM,
-    },
-    [ACTOR_ITEM_FUEL_BIG] = {
-        .cell = { 5, 1 },
-        .draw_priority = DRAW_PRIORITY_ITEM,
-    },
-    [ACTOR_GOLD_KEY] = {
-        .cell = { 2, 1 },
-        .draw_priority = DRAW_PRIORITY_KEY,
-    },
-    [ACTOR_BLOCK] = {
-        .cell = { 4, 3 }
-    },
-    [ACTOR_VASE] = {
-        .cell = { 5, 0 }
-    },
-    [ACTOR_CLOSED_CHEST] = {
-        .cell = { 0, 3 }
-    },
-    [ACTOR_OPEN_CHEST] = {
-        .cell = { 1, 3 }
-    },
-    [ACTOR_PILLAR] = {
-        .cell = { 0, 6 }
-    },
-    [ACTOR_WELL] = {
-        .cell = { 3, 6 },
-        .height = 2,
-        .y_offset = -1,
-    }
-};
-
-
 void C_Player(Actor * player, Actor * hit);
 void C_Monster(Actor * monster, Actor * hit);
 void C_Block(Actor *, Actor *);
@@ -117,122 +38,186 @@ void A_SpiderChase(Actor * spider);
 
 #define ITEM_FLAGS { .collectible = true, .no_collision = true }
 
-static Actor templates[NUM_ACTOR_TYPES] = {
+const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
         .name = "Player",
         .flags = { .directional = true, .takes_damage = true },
-        .stats.max_health = 10,
-        .stats.damage = 1,
+        .max_health = 10,
+        .damage = 1,
         .light = 255,
         .light_radius = 3,
         .contact = C_Player,
+        .sprite = {
+            .cell = { 0, 0 },
+            .num_frames = 2,
+            .frame_msec = 500,
+            .draw_priority = DRAW_PRIORITY_PLAYER,
+        },
     },
     [ACTOR_TORCH] = {
         .name = "Torch",
         .light = 255,
         .light_radius = 2,
+        .sprite = {
+            .cell = { 2, 3 },
+            .num_frames = 2,
+            .frame_msec = 300,
+        },
     },
     [ACTOR_BLOB] = {
         .name = "Blob",
         .flags = { .takes_damage = true, },
-        .stats.max_health = 2,
-        .stats.damage = 1,
+        .max_health = 2,
+        .damage = 1,
         .action = A_TargetAndChasePlayerIfVisible,
         .contact = C_Monster,
         .light_radius = 1,
         .light = 160,
         .attack_sound = "o3 l32 b c < c+",
         .particle_color_palette_index = GOLINE_DARK_GREEN,
+        .kill_message = "A Blob absorbs you.",
+        .sprite = {
+            .cell = { 0, 2 },
+            .num_frames = 2,
+            .frame_msec = 300,
+            .draw_priority = DRAW_PRIORITY_MONSTER,
+        },
     },
     [ACTOR_SPIDER] = {
         .name = "Spider",
         .flags = { .takes_damage = true, },
-        .stats.max_health = 1,
-        .stats.damage = 1,
+        .max_health = 1,
+        .damage = 1,
         .action = A_SpiderChase,
         .contact = C_Monster,
         .attack_sound = "o4 l32 f b c+",
         .particle_color_palette_index = GOLINE_BLACK,
+        .kill_message = "You have been devoured by a Spider!",
+        .sprite = {
+            .cell = { 4, 2 },
+            .num_frames = 4,
+            .frame_msec = 100,
+            .draw_priority = DRAW_PRIORITY_MONSTER,
+        },
     },
     [ACTOR_SUPER_SPIDER] = {
         .name = "Super Spider",
         .flags = { .takes_damage = true, },
-        .stats.max_health = 2,
-        .stats.damage = 2,
+        .max_health = 2,
+        .damage = 2,
         .action = A_SpiderChase,
         .contact = C_Monster,
         .attack_sound = "o3 l32 f b c+",
         .particle_color_palette_index = GOLINE_PURPLE,
+        .kill_message = "You have been consumed by a Super Spider!",
+        .sprite = {
+            .cell = { 4, 6 },
+            .num_frames = 4,
+            .frame_msec = 100,
+            .draw_priority = DRAW_PRIORITY_MONSTER,
+        },
     },
     [ACTOR_ITEM_HEALTH] = {
         .name = "Health Potion",
         .item = ITEM_HEALTH,
         .flags = ITEM_FLAGS,
+        .sprite = {
+            .cell = { 0, 1 },
+            .draw_priority = DRAW_PRIORITY_ITEM,
+        },
     },
     [ACTOR_ITEM_TURN] = {
         .name = "Turn Potion",
         .item = ITEM_TURN,
         .flags = ITEM_FLAGS,
+        .sprite = {
+            .cell = { 1, 1 },
+            .draw_priority = DRAW_PRIORITY_ITEM,
+        },
     },
     [ACTOR_ITEM_STRENGTH] = {
         .name = "Strength Potion",
         .item = ITEM_STRENGTH,
         .flags = ITEM_FLAGS,
+        .sprite = {
+            .cell = { 3, 1 },
+            .draw_priority = DRAW_PRIORITY_ITEM,
+        },
     },
     [ACTOR_ITEM_FUEL_SMALL] = {
         .name = "Small Lamp Fuel",
         .item = ITEM_FUEL_SMALL,
         .flags = ITEM_FLAGS,
+        .sprite = {
+            .cell = { 4, 1 },
+            .draw_priority = DRAW_PRIORITY_ITEM,
+        },
     },
     [ACTOR_ITEM_FUEL_BIG] = {
         .name = "Large Lamp Fuel",
         .item = ITEM_FUEL_BIG,
         .flags = ITEM_FLAGS,
+        .sprite = {
+            .cell = { 5, 1 },
+            .draw_priority = DRAW_PRIORITY_ITEM,
+        },
     },
     [ACTOR_GOLD_KEY] = {
         .name = "Gold Key",
         .flags = ITEM_FLAGS,
+        .sprite = {
+            .cell = { 2, 1 },
+            .draw_priority = DRAW_PRIORITY_KEY,
+        },
     },
     [ACTOR_BLOCK] = {
         .name = "Block",
         .contacted = C_Block,
+        .sprite = {
+            .cell = { 4, 3 }
+        },
     },
     [ACTOR_CLOSED_CHEST] = {
         .name = "Closed Chest",
         .flags = { .takes_damage = true, },
-        .stats = { .max_health = 1 },
+        .max_health = 1,
+        .sprite = {
+            .cell = { 0, 3 }
+        },
     },
     [ACTOR_OPEN_CHEST] = {
         .name = "Chest",
-        .flags = { .no_collision = true }
+        .flags = { .no_collision = true },
+        .sprite = {
+            .cell = { 1, 3 }
+        },
     },
     [ACTOR_PILLAR] = {
         .name = "Pillar",
         .flags = { .no_shadow = true },
+        .sprite = {
+            .cell = { 0, 6 }
+        },
     },
     [ACTOR_WELL] = {
         .name = "Well",
         .flags = { .no_shadow = true, .no_draw_offset = true },
+        .sprite = {
+            .cell = { 3, 6 },
+            .height = 2,
+            .y_offset = -1,
+        },
     },
     [ACTOR_VASE] = {
         .name = "Vase",
         .flags = { .takes_damage = true, },
         .particle_color_palette_index = GOLINE_PURPLE,
-        .stats = { .max_health = 1 },
+        .max_health = 1,
+        .sprite = {
+            .cell = { 5, 0 }
+        },
     }
 };
-
-
-const char * ActorName(ActorType type)
-{
-    const char * name = templates[type].name;
-
-    if ( name == NULL ) {
-        return "[This actor has no name!]";
-    }
-
-    return name;
-}
 
 
 Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
@@ -253,7 +238,7 @@ Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
         }
     }
 
-    *actor = templates[type];
+    memset(actor, 0, sizeof(*actor));
 
     // Append to active list.
     if ( list->tail ) {
@@ -271,10 +256,11 @@ Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
     // Init.
 
     actor->game = game;
+    actor->info = &actor_info_list[type];
     actor->type = type;
-    actor->sprite = &sprite_info[type];
     actor->tile = coord;
-    actor->stats.health = actor->stats.max_health;
+    actor->stats.health = actor->info->max_health;
+    actor->stats.damage = actor->info->damage;
 
     return actor;
 }
@@ -292,14 +278,14 @@ void SpawnParticlesAtActor(const Actor * actor)
         p.position.x = Random(position.x, position.x + TILE_SIZE);
         p.position.y = Random(position.y, position.y + TILE_SIZE);
         p.velocity = RandomVelocity(10.0f, 20.0f);
-        p.color = palette[actor->particle_color_palette_index];
+        p.color = palette[actor->info->particle_color_palette_index];
         p.lifespan = Random(MS2TICKS(200, FPS), MS2TICKS(400, FPS));
         InsertParticle(&actor->game->world.particles, p);
     }
 }
 
 
-void KillActor(Actor * actor)
+void KillActor(Actor * actor, Actor * killer)
 {
     ActorType loot = SelectLoot(actor->type);
 
@@ -307,7 +293,7 @@ void KillActor(Actor * actor)
         SpawnActor(actor->game, loot, actor->tile);
     }
 
-    if ( actor->particle_color_palette_index != NO_COLOR ) {
+    if ( actor->info->particle_color_palette_index != NO_COLOR ) {
         SpawnParticlesAtActor(actor);
     }
 
@@ -315,9 +301,11 @@ void KillActor(Actor * actor)
     // replace this actor before it's fully processed.
 
     switch ( actor->type ) {
-        case ACTOR_PLAYER:
-            // TODO: player death
+        case ACTOR_PLAYER: {
+            actor->game->kill_message = killer->info->kill_message;
+            ChangeState(actor->game, &gs_death_screen);
             break;
+        }
         case ACTOR_CLOSED_CHEST:
             SpawnActor(actor->game, ACTOR_OPEN_CHEST, actor->tile);
             RemoveActor(actor);
@@ -329,14 +317,14 @@ void KillActor(Actor * actor)
 }
 
 
-int DamageActor(Actor * actor, int damage)
+int DamageActor(Actor * actor, Actor * inflictor)
 {
     actor->hit_timer = 1.0f;
     actor->flags.was_attacked = true;
 
-    actor->stats.health -= damage;
+    actor->stats.health -= inflictor->stats.damage;
     if ( actor->stats.health <= 0 ) {
-        KillActor(actor);
+        KillActor(actor, inflictor);
     }
 
     return actor->stats.health;
@@ -345,7 +333,8 @@ int DamageActor(Actor * actor, int damage)
 
 void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int game_ticks)
 {
-    SDL_Texture * actor_sheet = GetTexture("assets/actors.png");
+    SDL_Texture * actor_sheet = actor->game->render_info.actor_texture;
+    const ActorSprite * sprite = &actor->info->sprite;
 
     Tile * tile = GetTile(&actor->game->world.map, actor->tile);
     if ( !debug ) {
@@ -355,24 +344,24 @@ void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int ga
     }
 
     SDL_Rect src;
-    src.x = (actor->sprite->cell.x + actor->frame) * TILE_SIZE;
-    src.y = actor->sprite->cell.y * TILE_SIZE;
+    src.x = (sprite->cell.x + actor->frame) * TILE_SIZE;
+    src.y = sprite->cell.y * TILE_SIZE;
     src.w = TILE_SIZE;
 
     // "Damaged" sprite?
     if ( actor->hit_timer > 0.0f ) {
-        src.x += TILE_SIZE * actor->sprite->num_frames;
+        src.x += TILE_SIZE * sprite->num_frames;
     }
 
     SDL_Rect dst;
     dst.x = x;
-    dst.y = y + actor->sprite->y_offset * size;
+    dst.y = y + sprite->y_offset * size;
     dst.w = size;
 
     // Adjust height.
-    if ( actor->sprite->height ) {
-        src.h = actor->sprite->height * TILE_SIZE;
-        dst.h = actor->sprite->height * size;
+    if ( actor->info->sprite.height ) {
+        src.h = sprite->height * TILE_SIZE;
+        dst.h = sprite->height * size;
     } else {
         src.h = TILE_SIZE;
         dst.h = size;
@@ -380,7 +369,7 @@ void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int ga
 
     // Draw actor's shadow
     // TODO: adjust shadow for tall sprites
-    if ( !actor->flags.no_shadow ) {
+    if ( !actor->info->flags.no_shadow ) {
         SDL_Rect shadow_sprite_location = {
             .x = 4 * TILE_SIZE,
             .y = 0 * TILE_SIZE,
@@ -392,7 +381,7 @@ void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int ga
 
     // y position tweaks
     // TODO: adjust for tall sprites
-    if ( actor->flags.floats ) {
+    if ( actor->info->flags.floats ) {
         dst.y += (sinf(game_ticks / 7) * SCALED(1)) - SCALED(6);
     } else {
         if ( !debug ) {
@@ -400,7 +389,7 @@ void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int ga
         }
     }
 
-    if ( actor->flags.directional && actor->flags.facing_left ) {
+    if ( actor->info->flags.directional && actor->flags.facing_left ) {
         V_DrawTextureFlip(actor_sheet, &src, &dst, SDL_FLIP_HORIZONTAL);
     } else {
         V_DrawTexture(actor_sheet, &src, &dst);
@@ -410,7 +399,7 @@ void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int ga
 
 void CastLight(World * world, const Actor * actor)
 {
-    int r = actor->light_radius;
+    int r = actor->info->light_radius;
 
     if ( r == 0 ) {
         return;
@@ -434,8 +423,8 @@ void CastLight(World * world, const Actor * actor)
                                              coord.y) )
             {
                 if ( TileDistance(actor->tile, coord) <= r ) {
-                    if ( t->flags.revealed && actor->light > t->light ) {
-                        t->light = actor->light;
+                    if ( t->flags.revealed && actor->info->light > t->light ) {
+                        t->light = actor->info->light;
                     }
                 }
             }
@@ -475,16 +464,16 @@ bool TryMoveActor(Actor * actor, Direction direction)
 
             // There's an actor on this spot:
 
-            if ( actor->contact ) {
-                actor->contact(actor, hit);
+            if ( actor->info->contact ) {
+                actor->info->contact(actor, hit);
             }
 
-            if ( hit->contacted ) {
-                hit->contacted(hit, actor);
+            if ( hit->info->contacted ) {
+                hit->info->contacted(hit, actor);
             }
 
             // Bump into it?
-            if ( !hit->flags.no_collision ) {
+            if ( !hit->info->flags.no_collision ) {
                 SetUpBumpAnimation(actor, direction);
                 return false;
             }
@@ -543,4 +532,57 @@ void RemoveActor(Actor * actor)
     // Add to unused list.
     actor->prev = list->unused;
     list->unused = actor;
+}
+
+
+// Include a padding since the camera may be mid-tile. For the y,
+// include extra padding in case there are tall actors visible
+static Actor ** visible_actors = NULL;
+static int capacity = 0;
+
+Actor ** GetVisibleActors(const World * world,
+                          const RenderInfo * render_info,
+                          int * count)
+{
+    Box vis_rect = GetVisibleRegion(&world->map, render_info);
+    int w = (vis_rect.right - vis_rect.left) + 1;
+    int h = (vis_rect.bottom - vis_rect.top) + 1;
+    int area = w * h;
+
+    // Resize array if needed;
+    if ( area > capacity ) {
+        printf("area %d is greater than capacity %d, resizing\n", area, capacity);
+        size_t new_size = area * sizeof(Actor *);
+        if ( capacity == 0 ) {
+            visible_actors = malloc(new_size);
+        } else {
+            visible_actors = realloc(visible_actors, new_size);
+        }
+
+        if ( visible_actors == NULL ) {
+            Error("could not malloc visible actor array");
+        }
+
+        capacity = area;
+    }
+
+    *count = 0;
+
+    FOR_EACH_ACTOR_CONST(actor, world->actor_list) {
+        const Tile * tile = GetTile(&world->map, actor->tile);
+
+        if ( tile->flags.visible && TileInBox(actor->tile, vis_rect) ) {
+            visible_actors[(*count)++] = (Actor *)actor; // fuck it
+        }
+    }
+
+    return visible_actors;
+}
+
+
+void FreeVisibleActorsArray(void)
+{
+    if ( visible_actors ) {
+        free(visible_actors);
+    }
 }

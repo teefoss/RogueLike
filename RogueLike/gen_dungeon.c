@@ -55,12 +55,19 @@ TileID * GetTileID(Map * map, TileCoord coord)
 }
 
 
-void DebugRenderTiles(const Map * map, Area area, int tile_size)
+void DebugRenderTiles(const Map * map, Area area, int tile_size, const RenderInfo * info)
 {
     for ( int y = 0; y < map->height; y++ ) {
         for ( int x = 0; x < map->width; x++ ) {
             Tile * tile = GetTile((Map *)map, ((TileCoord){ x, y }));
-            RenderTile(tile, area, 0, x * tile_size, y * tile_size, tile_size, true);
+            RenderTile(tile,
+                       area,
+                       0,
+                       x * tile_size,
+                       y * tile_size,
+                       tile_size,
+                       true,
+                       info);
         }
     }
 }
@@ -685,7 +692,7 @@ void SpawnActorAtRandomPointInBuffer(Game * game, ActorType type)
         SpawnActor(game, type, _buffer[i]);
         BufferRemove(i);
     } else {
-        printf("no room to spawn %s!", ActorName(type));
+        printf("no room to spawn %s!", actor_info_list[type].name);
     }
 }
 

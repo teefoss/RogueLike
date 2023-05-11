@@ -11,64 +11,12 @@
 
 #include "genlib.h"
 
-bool LevelIdleProcessInput(Game * game, const SDL_Event * event);
-void LevelIdleUpdate(Game * game, float dt);
-void LevelIdleOnEnter(Game * game);
 
-void LevelTurnUpdate(Game * game, float dt);
-void LevelTurnOnEnter(Game * game);
-
-void GamePlayRender(const Game * game);
-
-void IntermissionRender(const Game * game);
-void IntermissionOnEnter(Game * game);
-void IntermissionOnExit(Game * game);
-
-void TitleScreenOnEnter(Game * game);
-void TitleScreenRender(const Game * game);
-
-const GameState blank = {
-    0
-};
-
-const GameState level_idle = {
-        .process_event  = LevelIdleProcessInput,
-        .update         = LevelIdleUpdate,
-        .render         = GamePlayRender,
-        .on_enter       = LevelIdleOnEnter,
-        .on_exit        = NULL,
-        .next_state     = NULL,
-};
-
-const GameState level_turn = {
-        .process_event  = NULL,
-        .update         = LevelTurnUpdate,
-        .render         = GamePlayRender,
-        .on_enter       = LevelTurnOnEnter,
-        .on_exit        = NULL,
-        .next_state     = &level_idle,
-};
-
-const GameState intermission = {
-        .process_event  = NULL,
-        .update         = NULL,
-        .render         = IntermissionRender,
-        .on_enter       = IntermissionOnEnter,
-        .on_exit        = IntermissionOnExit,
-        .finite_duration = true,
-        .duration_ticks = MS2TICKS(3000, FPS),
-        .next_state     = &level_idle,
-};
-
-const GameState game_state_menu = {
+const GameState gs_menu = {
     .process_event = MenuProcessEvent,
     .render = MenuRender,
 };
 
-const GameState game_state_title = {
-    .render = TitleScreenRender,
-    .on_enter = TitleScreenOnEnter,
-};
 
 
 const GameState * GetGameState(const Game * game)
