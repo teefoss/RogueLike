@@ -123,7 +123,11 @@ TileCoord GetCoordinate(const Map * map, int index)
 
 /// - parameter region: the rectangular area of the map to draw or NULL to draw
 /// entire map.
-void RenderTiles(const World * world, const Box * region, vec2_t offset, bool debug)
+void RenderTiles(const World * world,
+                 const Box * region,
+                 vec2_t offset,
+                 bool debug,
+                 const RenderInfo * render_info)
 {
     float start = ProgramTime();
 
@@ -160,7 +164,8 @@ void RenderTiles(const World * world, const Box * region, vec2_t offset, bool de
                        pixel_x,
                        pixel_y,
                        tile_size,
-                       debug);
+                       debug,
+                       render_info);
 
             if ( show_debug_info && TileCoordsEqual(coord, world->mouse_tile) ) {
                 SDL_Rect highlight = { pixel_x, pixel_y, tile_size, tile_size };

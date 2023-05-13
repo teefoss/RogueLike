@@ -80,7 +80,8 @@ void RenderTilesWithDelay(Game * game)
         V_ClearRGB(0, 0, 0);
         DebugRenderTiles(&game->world.map,
                          game->world.area,
-                         game->world.info->debug_map_tile_size);
+                         game->world.info->debug_map_tile_size,
+                         &game->render_info);
         V_Refresh();
         SDL_Delay(25);
     }
@@ -96,7 +97,7 @@ static void GenerateHallway_r(Map * map, int current_id, TileCoord coord)
     Tile * here = GetTile(map, coord);
     TileID * id = GetTileID(map, coord);
     *here = CreateTile(TILE_FLOOR);
-    here->room_num = -1;
+    here->id = -1;
     *id = current_id;
 
 //    RenderTilesWithDelay(map);
@@ -380,7 +381,7 @@ static void InitTiles(Map * map)
             TileID * id = GetTileID(map, coord);
 
             *t = CreateTile(TILE_WALL);
-            t->room_num = -1;
+            t->id = -1;
 
             if (   coord.x == 0
                 || coord.x == map->width - 1
@@ -431,7 +432,7 @@ void SpawnRooms(Map * map, int * current_id)
                 Tile * tile = GetTile(map, coord);
                 *tile = CreateTile(TILE_FLOOR);
 //                tile->flags |= FLAG(TILE_ROOM);
-                tile->room_num = map->num_rooms;
+                tile->id = map->num_rooms;
                 *GetTileID(map, coord) = *current_id;
             }
         }
@@ -592,7 +593,7 @@ void SpawnGoldKey(Game * game)
     // Remove any points that are not in a room (-1) or are in the start room (0)
     for ( int i = _count - 1; i >= 0; i-- ) {
         Tile * tile = GetTile(map, _buffer[i]);
-        if ( tile->room_num <= 0 ) {
+        if ( tile->id <= 0 ) {
             BufferRemove(i);
         }
     }
@@ -612,7 +613,7 @@ void SpawnGoldKey(Game * game)
 
     // Save the gold key's room number.
     Tile * gold_key_tile = GetTile(map, gold_key_tile_coord);
-    map->gold_key_room_num = gold_key_tile->room_num;
+    map->gold_key_room_num = gold_key_tile->id;
 }
 
 

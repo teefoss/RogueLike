@@ -3,21 +3,26 @@
 Actor animation during turn (walking)
 Log slide right on disappear
 Sword/Shield sprite
-Refine forest gen -> more padding
-level fade in
+
 little indicator when mobs drop items (ooh!) - rectangular shrinking ring?
 damage indicators
 alert indicators
+
 put row/col numbers in sprite sheets
-line of sight does expand on floors for mob LOS
-Selected item stays, even when ran out
+line of sight doesn't expand on floors for mob LOS
+
 Selected item indicator when inventory closed.
+
 INVENTORY:
     Make inventory panel 'float' above level (a small margin)
     inventory is only as tall as items held?
     Move inventory counts over 1 scaled pixel
     Reduce space between cols?
+forest: more spiders!
+forest: three area
+- teleporter stone (key)
 
+Food = strength
 
 
 # BUGS
@@ -28,6 +33,9 @@ tab open inventory on title screen
 don't drink po if full
 blob 'stutter'
 key got placed in exit room!
+no bump into tree - look at how to handle this automatically
+title screen should reset forest on enter
+
 
 # Keep an eye on...
 

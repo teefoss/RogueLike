@@ -142,7 +142,7 @@ Actor * SpawnActor(Game * game, ActorType type, TileCoord coord);
 void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int game_ticks);
 void MoveActor(Actor * actor, Direction direction);
 bool TryMoveActor(Actor * actor, Direction direction);
-int DamageActor(Actor * actor, Actor * inflictor);
+int DamageActor(Actor * actor, Actor * inflictor, int damage);
 void KillActor(Actor * actor, Actor * killer);
 void UpdateActorFacing(Actor * actor, int dx);
 void Teleport(Actor * actor, TileCoord from);

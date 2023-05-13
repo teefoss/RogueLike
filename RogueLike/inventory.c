@@ -140,7 +140,7 @@ int InventoryWidth(void)
     width += 5 * V_CharWidth() * ITEM_COLS;
 
     return width;
-};
+}
 
 
 void RenderInventory(const Inventory * inv, const RenderInfo * info)

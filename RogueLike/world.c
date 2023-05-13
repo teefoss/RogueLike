@@ -7,6 +7,7 @@
 
 #include "world.h"
 #include "game.h"
+#include "debug.h"
 
 #include "video.h"
 
@@ -92,7 +93,7 @@ void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
     vec2_t offset = GetRenderLocation(render_info, render_info->camera);
     Box vis_rect = GetVisibleRegion(&world->map, render_info);
 
-    RenderTiles(world, &vis_rect, offset, false);
+    RenderTiles(world, &vis_rect, offset, false, render_info);
     RenderParticles(&world->particles, DRAW_SCALE, offset);
 
     // Make a list of visible actors.
@@ -106,6 +107,8 @@ void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
 
     // Draw actors.
 
+    float start = ProgramTime();
+
     for ( int i = 0; i < num_visible_actors; i++ ) {
         const Actor * a = visible_actors[i];
         int size = SCALED(TILE_SIZE);
@@ -113,6 +116,8 @@ void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
         int y = a->tile.y * size + a->offset_current.y - offset.y;
         RenderActor(a, x, y, size, false, ticks);
     }
+
+    actors_msec = ProgramTime() - start;
 
     SDL_RenderSetViewport(renderer, NULL);
 }

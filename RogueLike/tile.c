@@ -151,7 +151,7 @@ const char * TileName(TileType type)
 
 /// - parameter debug: Ignore lighting and tile's revealed property.
 void RenderTile(const Tile * tile,
-                Area area,
+                int area,
                 int signature,
                 int pixel_x,
                 int pixel_y,

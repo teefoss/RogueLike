@@ -475,6 +475,7 @@ void RenderDebugInfo(const World * world,
     DEBUG_PRINT("- Update time: %.1f", update_msec * 1000.0f);
     DEBUG_PRINT("- Render time: %.1f", render_msec * 1000.0f);
     DEBUG_PRINT("- - Tiles: %.1f", tiles_msec * 1000.0f);
+    DEBUG_PRINT("- - Actors: %.1f", actors_msec * 1000.0f);
     DEBUG_PRINT(" ");
     DEBUG_PRINT("Player health: %d", player->stats.health);
 //    DEBUG_PRINT("Actors %d", world->actors.count);
@@ -506,7 +507,7 @@ void GamePlayRender(const Game * game)
 //        int size = area_info[world->area].debug_map_tile_size;
         int size = GAME_HEIGHT / world->map.height;
 
-        RenderTiles(world, NULL, vec2_zero, true);
+        RenderTiles(world, NULL, vec2_zero, true, &game->render_info);
 
         Box vis = GetVisibleRegion(&world->map, &game->render_info);
 
@@ -583,12 +584,12 @@ Game * InitGame(void)
     game->is_running = true;
     game->ticks = 0;
     game->inventory_open = false;
-    game->render_info.inventory_x = GAME_WIDTH; // Start closed.
+
     game->world = InitWorld();
     game->state_stack_top = -1;
     game->render_info = InitRenderInfo();
 
-    // DEBUG
+    // TODO: move to debug.c
     game->forest_size = 256;
     game->forest_seed = 0;
     game->forest_freq = 0.06f;

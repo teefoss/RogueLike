@@ -24,6 +24,7 @@ extern float frame_msec;
 extern float update_msec;
 extern float render_msec;
 extern float tiles_msec;
+extern float actors_msec;
 extern float max_frame_msec;
 extern bool show_debug_map;
 extern bool show_distances;

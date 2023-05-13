@@ -37,7 +37,12 @@ void CalculateDistances(Map * map, TileCoord coord, int ignore_flags);
 bool ManhattenPathsAreClear(Map * map, int x0, int y0, int x1, int y1);
 void FreeDistanceMapQueue(void);
 bool TileIsAdjacentTo(const Map * map, TileCoord coord, TileType type, int num_directions);
-void RenderTiles(const World * world, const Box * region, vec2_t offset, bool debug);
+void RenderTiles(const World * world,
+                 const Box * region,
+                 vec2_t offset,
+                 bool debug,
+                 const RenderInfo * render_info);
+
 
 void ResetTileVisibility(World * world,
                          TileCoord player_tile,

@@ -150,7 +150,10 @@ RenderInfo InitRenderInfo(void)
 {
     RenderInfo info = { 0 };
 
+    info.inventory_x = GAME_WIDTH; // Start closed.
+
     info.stars = CreateForestBackgroundTexture();
+
     info.actor_texture = LoadTexture("assets/actors.png");
     info.tile_texture = LoadTexture("assets/tiles2.png");
     info.icon_texture = LoadTexture("assets/icons.png");

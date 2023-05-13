@@ -18,6 +18,7 @@ float frame_msec;
 float update_msec;
 float render_msec;
 float tiles_msec;
+float actors_msec;
 float max_frame_msec;
 
 

@@ -317,12 +317,12 @@ void KillActor(Actor * actor, Actor * killer)
 }
 
 
-int DamageActor(Actor * actor, Actor * inflictor)
+int DamageActor(Actor * actor, Actor * inflictor, int damage)
 {
     actor->hit_timer = 1.0f;
     actor->flags.was_attacked = true;
 
-    actor->stats.health -= inflictor->stats.damage;
+    actor->stats.health -= damage;
     if ( actor->stats.health <= 0 ) {
         KillActor(actor, inflictor);
     }

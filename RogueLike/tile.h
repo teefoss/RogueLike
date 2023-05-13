@@ -34,7 +34,7 @@ typedef s8 TileID;
 typedef struct {
     u8 type; // a tile_type_t
     u8 variety; // A value that can be used for visual randomization.
-    s8 room_num; // or -1 if not in a room.
+    s16 id; // forest region, or dungeon room (-1 if none).
 
     struct {
         bool blocks_movement    : 1;
@@ -52,9 +52,8 @@ typedef struct {
 
 Tile CreateTile(TileType type);
 
-typedef enum area Area;
 void RenderTile(const Tile * tile,
-                Area area,
+                int area,
                 int signature,
                 int pixel_x,
                 int pixel_y,

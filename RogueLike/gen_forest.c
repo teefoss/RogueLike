@@ -11,7 +11,6 @@
 
 #define FOREST_MAX_SIZE 256
 
-int tile_regions[FOREST_MAX_SIZE][FOREST_MAX_SIZE];
 int region_areas[FOREST_MAX_SIZE * FOREST_MAX_SIZE];
 
 static STORAGE(TileCoord, FOREST_MAX_SIZE * FOREST_MAX_SIZE) ground_coords;
@@ -26,7 +25,8 @@ static void GetTilesInRegion(const Map * map, int region)
     TileCoord coord;
     for ( coord.y = 0; coord.y < map->height; coord.y++ ) {
         for ( coord.x = 0; coord.x < map->width; coord.x++ ) {
-            if ( tile_regions[coord.y][coord.x] == region ) {
+            const Tile * tile = GetTile(map, coord);
+            if ( tile->id == region ) {
                 tiles[num_tiles++] = coord;
             }
         }
@@ -81,8 +81,8 @@ static void FloodFillGroundTiles_r(Map * map, TileCoord coord, int region)
         return;
     }
 
-    if ( tile->type == TILE_FLOOR && tile_regions[coord.y][coord.x] == -1 ) {
-        tile_regions[coord.y][coord.x] = region;
+    if ( tile->type == TILE_FLOOR && tile->id == -1 ) {
+        tile->id = region;
         region_areas[region]++;
         for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
             TileCoord adjacent_coord = AdjacentTileCoord(coord, d);
@@ -183,7 +183,7 @@ void GenerateForest(Game * game, int seed, int width)
                 APPEND(ground_coords, coord);
             }
 
-            tile_regions[y][x] = -1; // Reset all tiles' region
+            tile->id = -1; // Reset all tiles' region
             tile->flags.revealed = true;
         }
     }
@@ -192,7 +192,8 @@ void GenerateForest(Game * game, int seed, int width)
     int region = -1;
     for ( int i = 0; i < ground_coords.count; i++ ) {
         TileCoord coord = ground_coords.data[i];
-        if ( tile_regions[coord.y][coord.x] == -1 ) { // Not yet visited
+        Tile * tile = GetTile(map, ground_coords.data[i]);
+        if ( tile->id == -1 ) { // Not yet visited
             region++;
             FloodFillGroundTiles_r(map, coord, region);
 //            printf("region %d area: %d\n", region, region_areas[region]);

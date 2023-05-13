@@ -14,7 +14,7 @@ void C_Player(Actor * player, Actor * hit)
         int damage = player->stats.damage;
         damage += player->game->player_info.strength_buff;
 
-        if ( DamageActor(hit, player) <= 0 ) {
+        if ( DamageActor(hit, player, damage) <= 0 ) {
             switch ( hit->type ) {
                 case ACTOR_VASE:
                     S_Play("o5 t160 l32 g+ e- c f b-");
@@ -86,7 +86,7 @@ void C_Monster(Actor * monster, Actor * hit)
 {
     // Monsters can damage other monsters, but not of the same type
     if ( hit->info->flags.takes_damage && monster->type != hit->type ) {
-        DamageActor(hit, monster);
+        DamageActor(hit, monster, monster->stats.damage);
         if ( monster->info->attack_sound ) {
             S_Play(monster->info->attack_sound);
         } else {
