@@ -48,6 +48,7 @@ typedef struct {
 
     u8 light; // Current light level.
     s16 distance; // For pathfinding. Updated via CalculateDistances()
+    u8 tag;
 } Tile;
 
 Tile CreateTile(TileType type);

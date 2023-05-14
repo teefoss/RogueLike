@@ -91,7 +91,7 @@ void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
     }
 
     vec2_t offset = GetRenderLocation(render_info, render_info->camera);
-    Box vis_rect = GetVisibleRegion(&world->map, render_info);
+    Box vis_rect = GetCameraVisibleRegion(&world->map, render_info);
 
     RenderTiles(world, &vis_rect, offset, false, render_info);
     RenderParticles(&world->particles, DRAW_SCALE, offset);

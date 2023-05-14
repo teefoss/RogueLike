@@ -290,10 +290,10 @@ bool ManhattenPathsAreClear(Map * map, int x0, int y0, int x1, int y1)
 
 
 ///
-/// Get the rectangular region around the player that is currently visible
-/// on screen.
+/// Get the rectangular region that is current visible based on the camera
+/// location.
 ///
-Box GetVisibleRegion(const Map * map, const RenderInfo * render_info)
+Box GetCameraVisibleRegion(const Map * map, const RenderInfo * render_info)
 {
     SDL_Rect viewport = GetLevelViewport(render_info);
 
@@ -315,6 +315,21 @@ Box GetVisibleRegion(const Map * map, const RenderInfo * render_info)
     region.bottom = MIN((camera_tile.y + h / 2 + 1), map->height - 1);
 
     return region;
+}
+
+
+/// Get the screen-sized region around the player, which is the area visible
+/// when the camera is centered on the player.
+Box GetPlayerVisibleRegion(const Map * map, TileCoord player_coord)
+{
+    Box box;
+
+    box.left    = player_coord.x - (TILES_WIDE + 1) / 2;
+    box.right   = player_coord.x + (TILES_WIDE + 1) / 2;
+    box.top     = player_coord.y - (TILES_HIGH + 2) / 2;
+    box.bottom  = player_coord.y + (TILES_HIGH + 2) / 2;
+
+    return box;
 }
 
 
@@ -346,7 +361,7 @@ void ResetTileVisibility(World * world,
                          TileCoord player_tile,
                          const RenderInfo * render_info)
 {
-    Box vis = GetVisibleRegion(&world->map, render_info);
+    Box vis = GetCameraVisibleRegion(&world->map, render_info);
 
     TileCoord coord;
     for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {

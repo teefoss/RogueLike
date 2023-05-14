@@ -32,16 +32,14 @@ void RevealTile(Map * map, TileCoord coord)
 /// Reveal and set tiles visible if LOS to player.
 void PlayerCastSight(World * world, const RenderInfo * render_info)
 {
-    Map * map = &world->map;
-    Box vis = GetVisibleRegion(map, render_info);
-
     const Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+    Box vis = GetPlayerVisibleRegion(&world->map, player->tile);
 
     TileCoord coord;
     for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
         for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
-            if ( LineOfSight(map, player->tile, coord) ) {
-                RevealTile(map, coord);
+            if ( LineOfSight(&world->map, player->tile, coord) ) {
+                RevealTile(&world->map, coord);
             }
         }
     }

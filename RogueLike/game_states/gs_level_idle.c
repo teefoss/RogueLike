@@ -125,9 +125,11 @@ void LevelIdle_OnEnter(Game * game)
 
     switch ( (TileType)player_tile->type ) {
         case TILE_TELEPORTER:
-            Teleport(player, player->tile);
-            S_Play("o0 t160 l32 c g > d a > e b > f+ > c+ g+ > d+ a+ > f > c ");
-            player->flags.on_teleporter = false;
+            if ( player->flags.on_teleporter ) {
+                Teleport(player);
+                player->flags.on_teleporter = false;
+                S_Play("o0 t160 l32 c g > d a > e b > f+ > c+ g+ > d+ a+ > f > c ");
+            }
             break;
         case TILE_EXIT:
             ++game->level;

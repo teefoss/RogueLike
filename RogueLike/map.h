@@ -30,7 +30,8 @@ typedef struct {
 Tile * GetAdjacentTile(Map * map, TileCoord coord, Direction direction);
 
 TileCoord GetCoordinate(const Map * map, int index);
-Box GetVisibleRegion(const Map * map, const RenderInfo * render_info);
+Box GetCameraVisibleRegion(const Map * map, const RenderInfo * render_info);
+Box GetPlayerVisibleRegion(const Map * map, TileCoord player_coord);
 bool IsInBounds(const Map * map, int x, int y);
 bool LineOfSight(Map * map, TileCoord t1, TileCoord t2);
 void CalculateDistances(Map * map, TileCoord coord, int ignore_flags);

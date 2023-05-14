@@ -24,6 +24,8 @@ forest: three area
 
 Food = strength
 
+large lamp fuel = 2 not 3
+decrease spider fuel drop rate
 
 # BUGS
 
@@ -32,10 +34,12 @@ title screen render mod
 tab open inventory on title screen
 don't drink po if full
 blob 'stutter'
-key got placed in exit room!
+key got placed in exit room! / beyond exit room
 no bump into tree - look at how to handle this automatically
 title screen should reset forest on enter
-
+particle lighting
+pillar button broken
+can move during fade in
 
 # Keep an eye on...
 

@@ -432,12 +432,23 @@ void CastLight(World * world, const Actor * actor)
     }
 }
 
+// TODO: This needs to be Move to tile with a helper function move direction!
 void MoveActor(Actor * actor, Direction direction)
 {
-    actor->tile.x += XDelta(direction);
-    actor->tile.y += YDelta(direction);
+    if ( direction != NO_DIRECTION ) {
+        actor->tile.x += XDelta(direction);
+        actor->tile.y += YDelta(direction);
 
-    SetUpMoveAnimation(actor, direction);
+        SetUpMoveAnimation(actor, direction);
+        UpdateActorFacing(actor, XDelta(direction));
+    }
+
+    if ( actor->type == ACTOR_PLAYER ) {
+        World * world = &actor->game->world;
+
+        ResetTileVisibility(world, actor->tile, &actor->game->render_info);
+        PlayerCastSight(world, &actor->game->render_info);
+    }
 }
 
 
@@ -493,27 +504,29 @@ void UpdateActorFacing(Actor * actor, int dx)
 
 
 // TODO: telefrag?
-void Teleport(Actor * actor, TileCoord from)
+void Teleport(Actor * actor)
 {
     Map * map = &actor->game->world.map;
 
-    int min_distance = INT_MAX;
-    TileCoord to = actor->tile;
+    Tile * entry_tile = GetTile(map, actor->tile);
+    int tag = entry_tile->tag;
 
     // Find the nearest teleport.
     for ( int i = 0; i < map->width * map->height; i++ ) {
-        if ( map->tiles[i].type == TILE_TELEPORTER ) {
-            TileCoord coord = GetCoordinate(map, i);
+        if (   map->tiles[i].type == TILE_TELEPORTER
+            && map->tiles[i].tag == tag
+            && &map->tiles[i] != entry_tile )
+        {
+            TileCoord exit_coord = GetCoordinate(map, i);
 
-            int distance = DISTANCE(coord.x, coord.y, from.x, from.y);
-            if ( distance != 0 && distance < min_distance ) {
-                min_distance = distance;
-                to = coord;
-            }
+            actor->tile = exit_coord;
+            MoveActor(actor, NO_DIRECTION); // TODO: hack, update sight etc.
+            return;
         }
     }
 
-    actor->tile = to;
+    // No connected teleporter found? Don't do anything.
+    printf("no teleporter with tag %d found\n", tag);
 }
 
 
@@ -544,7 +557,7 @@ Actor ** GetVisibleActors(const World * world,
                           const RenderInfo * render_info,
                           int * count)
 {
-    Box vis_rect = GetVisibleRegion(&world->map, render_info);
+    Box vis_rect = GetCameraVisibleRegion(&world->map, render_info);
     int w = (vis_rect.right - vis_rect.left) + 1;
     int h = (vis_rect.bottom - vis_rect.top) + 1;
     int area = w * h;

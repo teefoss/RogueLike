@@ -27,7 +27,7 @@
 void SetTileLight(World * world, const RenderInfo * render_info)
 {
     const AreaInfo * info = world->info;
-    Box vis = GetVisibleRegion(&world->map, render_info);
+    Box vis = GetCameraVisibleRegion(&world->map, render_info);
 
     for ( int y = vis.top; y <= vis.bottom; y++ ) {
         for ( int x = vis.left; x <= vis.right; x++ ) {
@@ -132,12 +132,9 @@ int InventoryRenderX(Inventory * inventory)
 /// Do lighting, particles n stuff for level idle and turn.
 void UpdateLevel(Game * game, float dt)
 {
-    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
-
-    Map * map = &game->world.map;
-
     // Update camera.
 
+    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
     vec2_t player_pt; // world scaled
     player_pt.x = player->tile.x * SCALED(TILE_SIZE) + player->offset_current.x;
     player_pt.y = player->tile.y * SCALED(TILE_SIZE) + player->offset_current.y;
@@ -145,8 +142,6 @@ void UpdateLevel(Game * game, float dt)
                                                player_pt,
                                                0.2f,
                                                1.0f);
-
-    Box vis = GetVisibleRegion(map, &game->render_info);
 
     int num_visible_actors = 0;
     Actor ** visible_actors = GetVisibleActors(&game->world, &game->render_info, &num_visible_actors);
@@ -167,12 +162,10 @@ void UpdateLevel(Game * game, float dt)
     for ( int i = 0; i < num_visible_actors; i++ ) {
         Actor * actor = visible_actors[i];
 
-        if ( TileInBox(actor->tile, vis) ) {
-            if (    actor->type != ACTOR_PLAYER
-                || (actor->type == ACTOR_PLAYER && game->player_info.fuel) )
-            {
-                CastLight(&game->world, actor);
-            }
+        if (    actor->type != ACTOR_PLAYER
+            || (actor->type == ACTOR_PLAYER && game->player_info.fuel) )
+        {
+            CastLight(&game->world, actor);
         }
     }
 
@@ -227,6 +220,13 @@ void TryMovePlayer(Actor * player,
                    PlayerInfo * player_info)
 {
     if ( TryMoveActor(player, direction) ) {
+
+        // Only set 'on_teleporer' to false once we've definitely moved off it.
+//        Tile * player_tile = GetTile(map, player->tile);
+//        if ( player_tile->type != TILE_TELEPORTER ) {
+//            player->flags.on_teleporter = false;
+//        }
+
         CalculateDistances(map, player->tile, 0);
     }
 
@@ -301,7 +301,7 @@ void StartTurn(Game * game, Direction direction)
 
         case TILE_TELEPORTER:
             player->flags.on_teleporter = true;
-
+            // Fallthough:
         case TILE_BUTTON_PRESSED:
         case TILE_START:
         case TILE_FLOOR:
@@ -316,10 +316,6 @@ void StartTurn(Game * game, Direction direction)
             break;
     }
 
-    UpdateActorFacing(player, XDelta(direction));
-
-    ResetTileVisibility(world, player->tile, &game->render_info);
-    PlayerCastSight(world, &game->render_info);
 
     ChangeState(game, &gs_level_turn);
 
@@ -509,7 +505,7 @@ void GamePlayRender(const Game * game)
 
         RenderTiles(world, NULL, vec2_zero, true, &game->render_info);
 
-        Box vis = GetVisibleRegion(&world->map, &game->render_info);
+        Box vis = GetCameraVisibleRegion(&world->map, &game->render_info);
 
         SDL_Rect box = {
             .x = vis.left * size,

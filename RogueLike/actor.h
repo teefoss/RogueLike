@@ -145,7 +145,7 @@ bool TryMoveActor(Actor * actor, Direction direction);
 int DamageActor(Actor * actor, Actor * inflictor, int damage);
 void KillActor(Actor * actor, Actor * killer);
 void UpdateActorFacing(Actor * actor, int dx);
-void Teleport(Actor * actor, TileCoord from);
+void Teleport(Actor * actor);
 void RemoveActor(Actor * actor);
 Actor ** GetVisibleActors(const World * world,
                           const RenderInfo * render_info,

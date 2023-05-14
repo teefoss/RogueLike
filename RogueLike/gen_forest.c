@@ -11,46 +11,54 @@
 
 #define FOREST_MAX_SIZE 256
 
-int region_areas[FOREST_MAX_SIZE * FOREST_MAX_SIZE];
+struct region {
+    u16 region;
+    u16 area;
+} regions[FOREST_MAX_SIZE * FOREST_MAX_SIZE];
 
-static STORAGE(TileCoord, FOREST_MAX_SIZE * FOREST_MAX_SIZE) ground_coords;
-static int distances[FOREST_MAX_SIZE][FOREST_MAX_SIZE];
+//int region_areas[FOREST_MAX_SIZE * FOREST_MAX_SIZE];
 
-static int num_tiles;
-static TileCoord tiles[FOREST_MAX_SIZE * FOREST_MAX_SIZE];
+static int num_coords;
+static TileCoord coords[FOREST_MAX_SIZE * FOREST_MAX_SIZE];
 
 static void GetTilesInRegion(const Map * map, int region)
 {
-    num_tiles = 0;
+    num_coords = 0;
     TileCoord coord;
     for ( coord.y = 0; coord.y < map->height; coord.y++ ) {
         for ( coord.x = 0; coord.x < map->width; coord.x++ ) {
             const Tile * tile = GetTile(map, coord);
             if ( tile->id == region ) {
-                tiles[num_tiles++] = coord;
+                coords[num_coords++] = coord;
             }
         }
     }
 }
 
 
+static void AddTile(TileCoord coord)
+{
+    coords[num_coords++] = coord;
+}
+
+
 static void RemoveTile(int index)
 {
-    tiles[index] = tiles[--num_tiles];
+    coords[index] = coords[--num_coords];
 }
 
 
 static int RandomIndex(void)
 {
-    return Random(0, num_tiles - 1);
+    return Random(0, num_coords - 1);
 }
 
 
 static void SpawnActorAtRandomLocation(Game * game, ActorType type)
 {
-    if ( num_tiles != 0 ) {
+    if ( num_coords != 0 ) {
         int index = RandomIndex();
-        SpawnActor(game, type, tiles[index]);
+        SpawnActor(game, type, coords[index]);
         RemoveTile(index);
     } else {
         printf("%s: not tiles left!\n", __func__);
@@ -58,17 +66,17 @@ static void SpawnActorAtRandomLocation(Game * game, ActorType type)
 }
 
 
-static TileCoord CreateTileAtRandomLocation(Map * map, TileType type)
+static Tile * CreateTileAtRandomLocation(Map * map, TileType type)
 {
     int index = RandomIndex();
-    TileCoord coord = tiles[index];
+    TileCoord coord = coords[index];
 
     Tile * tile = GetTile(map, coord);
     *tile = CreateTile(type);
     tile->flags.revealed = true;
     RemoveTile(index);
 
-    return coord;
+    return tile;
 }
 
 
@@ -83,12 +91,38 @@ static void FloodFillGroundTiles_r(Map * map, TileCoord coord, int region)
 
     if ( tile->type == TILE_FLOOR && tile->id == -1 ) {
         tile->id = region;
-        region_areas[region]++;
+//        region_areas[region]++;
+        regions[region].region = region;
+        regions[region].area++;
         for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
             TileCoord adjacent_coord = AdjacentTileCoord(coord, d);
             FloodFillGroundTiles_r(map, adjacent_coord, region);
         }
     }
+}
+
+
+static int GetTilesInFirstRegionSmallerThan(const Map * map,
+                                   int area,
+                                   int backup_index,
+                                   int num_regions)
+{
+    int result_area = -1;
+    for ( int i = 0; i < num_regions; i++ ) {
+        if ( regions[i].area < area ) {
+            GetTilesInRegion(map, regions[i].region);
+            result_area = regions[i].area;
+            break;
+        }
+    }
+
+    if ( result_area == -1 ) {
+        // If a region wasn't found, use the backup.
+        GetTilesInRegion(map, regions[backup_index].region);
+        result_area = regions[backup_index].area;
+    }
+
+    return result_area;
 }
 
 
@@ -103,19 +137,19 @@ void GenerateForest(Game * game, int seed, int width)
     }
 
     printf("\n- Generate Forest- \n");
-    printf("seed: %d\n", seed);
+    printf("(<>) seed: %d\n", seed);
     printf("low: %0.2f\n", game->forest_low);
     printf("high: %0.2f\n", game->forest_high);
-    printf("freq: %.02f\n", game->forest_freq);
-    printf("amp: %.01f\n", game->forest_amp);
-    printf("pers: %.01f\n", game->forest_pers);
-    printf("lac: %.01f\n", game->forest_lec);
+    printf("(u) freq: %.02f\n", game->forest_freq);
+    printf("(i) amp: %.01f\n", game->forest_amp);
+    printf("(o) pers: %.01f\n", game->forest_pers);
+    printf("(p) lac: %.01f\n", game->forest_lec);
 
     World * world = &game->world;
     world->area = AREA_FOREST;
 
-
-    SDL_memset(region_areas, 0, sizeof(region_areas));
+//    SDL_memset(region_areas, 0, sizeof(region_areas));
+    SDL_memset(regions, 0, sizeof(regions));
 
     Map * map = &world->map;
 
@@ -137,17 +171,16 @@ void GenerateForest(Game * game, int seed, int width)
 
     RandomizeNoise(seed);
 //    RandomizeNoise(0);
-    CLEAR(ground_coords);
+    num_coords = 0;
 
-    // Generate forest (wall), ground (floor), and water terrain.
-    // Spawn trees on wall tiles.
+    // Generate forest (tree), ground, and water terrain.
+    // Add all ground tile coords to the array.
     for ( int y = 0; y < map->height; y++ ) {
         for ( int x = 0; x < map->width; x++ ) {
             TileCoord coord = { x, y };
 
             // Distance from this tile to center of map.
             float distance = DISTANCE(x, y, width / 2, width / 2);
-            distances[y][x] = distance;
 
             float noise;
             float water_noise;
@@ -180,7 +213,7 @@ void GenerateForest(Game * game, int seed, int width)
             }
 
             if ( tile->type == TILE_FLOOR ) {
-                APPEND(ground_coords, coord);
+                AddTile(coord);
             }
 
             tile->id = -1; // Reset all tiles' region
@@ -190,55 +223,101 @@ void GenerateForest(Game * game, int seed, int width)
 
     // For all ground tiles, sort into connected regions.
     int region = -1;
-    for ( int i = 0; i < ground_coords.count; i++ ) {
-        TileCoord coord = ground_coords.data[i];
-        Tile * tile = GetTile(map, ground_coords.data[i]);
+    for ( int i = 0; i < num_coords; i++ ) {
+        Tile * tile = GetTile(map, coords[i]);
+
         if ( tile->id == -1 ) { // Not yet visited
             region++;
-            FloodFillGroundTiles_r(map, coord, region);
-//            printf("region %d area: %d\n", region, region_areas[region]);
+            FloodFillGroundTiles_r(map, coords[i], region);
         }
     }
 
-    printf("total regions: %d\n", region);
-    int largest_region = -1;
-    int second_largest_region = -1;
-    int max = -1;
-    int max2 = -1;
+    int num_regions = region + 1;
+    num_coords = 0;
 
-    // Find the largest and second largest region.
-    for ( int i = 0; i <= region; i++ ) {
-        if ( region_areas[i] > max ) {
-            max2 = max;
-            second_largest_region = largest_region;
-            max = region_areas[i];
-            largest_region = i;
-        } else if ( region_areas[i] > max2 ) {
-            max2 = region_areas[i];
-            second_largest_region = i;
+    // Sort regions by highest area.
+    for ( int i = 0; i < num_regions ; i++ ) {
+        for ( int j = i + 1; j < num_regions; j++ ) {
+            if ( i != j && regions[j].area > regions[i].area ) {
+                struct region temp = regions[i];
+                regions[i] = regions[j];
+                regions[j] = temp;
+            }
         }
     }
 
-    printf("largest: region %d, area %d\n",
-           largest_region, region_areas[largest_region]);
-    printf("second largest: region %d, area %d\n",
-           second_largest_region, region_areas[second_largest_region]);
+    for ( int i = 0; i < region; i++ ) {
+        printf("- region %d: area %d\n", regions[i].region, regions[i].area);
+    }
 
-    // Spawn actor, spiders, and teleporter in second largest region.
-    GetTilesInRegion(map, second_largest_region); // OK
+    //
+    // Starting region
+    // Just the player and a teleporter.
+    //
+
+    int area = GetTilesInFirstRegionSmallerThan(map, 80, 3, num_regions);
 
     SpawnActorAtRandomLocation(game, ACTOR_PLAYER);
-    CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
-    for ( int i = 0; i < region_areas[second_largest_region] / 20; i++ ) {
+    Tile * tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
+    tp->tag = 0;
+
+    //
+    // Second region - small area
+    // Spawn spiders, and teleporter
+    //
+
+    area = GetTilesInFirstRegionSmallerThan(map, 128, 2, num_regions);
+
+    tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
+    tp->tag = 0;
+    tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
+    tp->tag = 1;
+
+    for ( int i = 0; i < area / 20; i++ ) {
         SpawnActorAtRandomLocation(game, ACTOR_SPIDER);
     }
 
-    // Spawn second teleporter, spiders, and exit in largest region.
-    GetTilesInRegion(map, largest_region);
-    CreateTileAtRandomLocation(map, TILE_TELEPORTER);
-    TileCoord exit_coord = CreateTileAtRandomLocation(map, TILE_EXIT);
+    //
+    // Middle region - medium size
+    // Spawn second teleporter, spiders, super spiders.
+    //
+
+    area = GetTilesInFirstRegionSmallerThan(map, 256, 1, num_regions);
+
+    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER);
+    tp->tag = 1; // connected to previous region
+    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER);
+    tp->tag = 2; // connected to next region
+
+    for ( int i = 0; i < area / 10; i++ ) {
+        if ( Chance(0.2) ) {
+            SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER);
+        } else {
+            SpawnActorAtRandomLocation(game, ACTOR_SPIDER);
+        }
+    }
+
+    //
+    // Final region - largest
+    // Spawn ...
+    // Spawn the exit.
+    //
+
+    GetTilesInRegion(map, regions[0].region);
+    area = regions[0].area;
+
+    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER);
+    tp->tag = 2; // connected to previos region
+
+    int index = RandomIndex();
+    TileCoord exit_coord = coords[index];
+    Tile * tile = GetTile(map, exit_coord);
+    *tile = CreateTile(TILE_EXIT);
+    tile->flags.revealed = true;
     SpawnActor(game, ACTOR_WELL, exit_coord);
-    for ( int i = 0; i < region_areas[largest_region] / 10; i++ ) {
+
+    for ( int i = 0; i < area / 5; i++ ) {
+        // TODO: tweak
         if ( Chance(0.2) ) {
             SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER);
         } else {
