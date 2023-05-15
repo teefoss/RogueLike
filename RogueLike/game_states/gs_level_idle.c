@@ -16,6 +16,9 @@ static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
     switch ( event->type ) {
         case SDL_KEYDOWN:
             switch ( event->key.keysym.sym ) {
+                case SDLK_TAB:
+                    game->inventory_open = false;
+                    return true;
                 case SDLK_UP:
                     ChangeInventorySelection(inv, NORTH);
                     return true;
@@ -51,6 +54,9 @@ static bool LevelProcessEvent(Game * game, const SDL_Event * event)
     switch ( event->type ) {
         case SDL_KEYDOWN:
             switch ( event->key.keysym.sym ) {
+                case SDLK_TAB:
+                    game->inventory_open = true;
+                    return true;
                 case SDLK_w:
                     StartTurn(game, NORTH);
                     return true;

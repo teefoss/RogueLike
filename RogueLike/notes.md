@@ -18,28 +18,19 @@ INVENTORY:
     inventory is only as tall as items held?
     Move inventory counts over 1 scaled pixel
     Reduce space between cols?
-forest: more spiders!
-forest: three area
 - teleporter stone (key)
 
 Food = strength
 
-large lamp fuel = 2 not 3
-decrease spider fuel drop rate
 
 # BUGS
 
-teleporter, don't reactivate if hitting mob while standing on it.
-title screen render mod
-tab open inventory on title screen
-don't drink po if full
 blob 'stutter'
-key got placed in exit room! / beyond exit room
-no bump into tree - look at how to handle this automatically
-title screen should reset forest on enter
+* key got placed in exit room! / beyond exit room
 particle lighting
-pillar button broken
-can move during fade in
+* pillar button broken
+* opening door does not cast sight!
+
 
 # Keep an eye on...
 

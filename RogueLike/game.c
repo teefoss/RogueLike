@@ -256,6 +256,7 @@ void StartTurn(Game * game, Direction direction)
 
     switch ( (TileType)tile->type ) {
 
+        case TILE_TREE:
         case TILE_WALL:
             SetUpBumpAnimation(player, direction);
             S_Play(SOUND_BUMP);
@@ -595,29 +596,6 @@ Game * InitGame(void)
     game->forest_low = -0.35f;
     game->forest_high = 0.05;
 
-    // TODO: all this should be in title screen on enter
-    // Generate a forest as the title screen background.
-    // u32 seed = (u32)time(NULL);
-    u32 seed = 1682214124;
-    printf("title screen seed: %d\n", seed);
-    GenerateWorld(game, AREA_FOREST, seed, game->forest_size, game->forest_size);
-
-    // TODO: check if this is still needed.
-    for ( int i = 0; i < game->world.map.width * game->world.map.height; i++ ) {
-        Tile * tile = &game->world.map.tiles[i];
-        tile->light = game->world.info->revealed_light;
-    }
-
-    // Remove all actors on the titlescreen.
-    RemoveAllActors(&game->world.actor_list);
-
-    // Center camera in world.
-    TileCoord center = {
-        game->world.map.width / 2,
-        game->world.map.height / 2
-    };
-    game->render_info.camera = TileCoordToScaledWorldCoord(center, vec2_zero);
-
     // Make sure there's a state on the stack to begin.
     PushState(game, &gs_title_screen);
     ChangeState(game, &gs_title_screen);
@@ -638,7 +616,9 @@ void DoFrame(Game * game, float dt)
 
         // Let the current game state process this event first, if not doing
         // a fade in/out transition.
-        if ( game->fade_state.type == FADE_NONE ) {
+        if (   game->fade_state.type == FADE_NONE
+            || game->fade_state.type == FADE_IN )
+        {
             const GameState * state = game->state_stack[game->state_stack_top];
 
             if ( state->process_event && state->process_event(game, &event) ) {
@@ -655,9 +635,6 @@ void DoFrame(Game * game, float dt)
                 switch ( event.key.keysym.sym ) {
                     case SDLK_BACKSLASH:
                         V_ToggleFullscreen(DESKTOP);
-                        break;
-                    case SDLK_TAB:
-                        game->inventory_open = !game->inventory_open;
                         break;
                     case SDLK_ESCAPE:
                         MenuToggle(game);

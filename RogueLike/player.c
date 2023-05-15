@@ -73,33 +73,50 @@ void UseItem(Actor * player)
         return;
     }
 
-    // Remove from inventory.
-    --inventory->item_counts[inventory->selected_item];
+    const char * cant_use_sound = "l32 o4 e c+";
 
+    // TODO: clean this up
     switch ( inventory->selected_item ) {
         case ITEM_HEALTH:
             if ( stats->health < actor_info->max_health ) {
                 stats->health++;
+                --inventory->item_counts[inventory->selected_item];
+                S_Play("l32 o3 d+ < g+ b e");
+            } else {
+                S_Play(cant_use_sound);
             }
-            S_Play("l32 o3 d+ < g+ b e");
             break;
         case ITEM_TURN:
             player_info->turns++;
             S_Play("l32 o3 f+ < b a");
+            --inventory->item_counts[inventory->selected_item];
             break;
         case ITEM_STRENGTH:
-            player_info->strength_buff = 1;
-            S_Play("l32 t100 o1 e a f b- f+ b");
+            if ( player_info->strength_buff == 0 ) {
+                player_info->strength_buff = 1;
+                S_Play("l32 t100 o1 e a f b- f+ b");
+                --inventory->item_counts[inventory->selected_item];
+            } else {
+                S_Play(cant_use_sound);
+            }
             break;
         case ITEM_FUEL_SMALL:
-            player_info->fuel = MIN(player_info->fuel + 1, MAX_FUEL);
-            player_info->fuel_steps = FUEL_STEPS;
-            S_Play("o3 l16 t160 b e-");
+            if ( player_info->fuel < MAX_FUEL) {
+                player_info->fuel++;
+                player_info->fuel_steps = FUEL_STEPS;
+                S_Play("o3 l16 t160 b e-");
+            } else {
+                S_Play(cant_use_sound);
+            }
             break;
         case ITEM_FUEL_BIG:
-            player_info->fuel = MIN(player_info->fuel + 3, MAX_FUEL);
-            player_info->fuel_steps = FUEL_STEPS;
-            S_Play("o2 l16 t160 b e-");
+            if ( player_info->fuel < MAX_FUEL) {
+                player_info->fuel = MIN(player_info->fuel + 2, MAX_FUEL);
+                player_info->fuel_steps = FUEL_STEPS;
+                S_Play("o2 l16 t160 b e-");
+            } else {
+                S_Play(cant_use_sound);
+            }
             break;
         default:
             break;
