@@ -96,7 +96,7 @@ vec2_t GetWindowScale(void);
 void NewGame(Game * game);
 void LoadLevel(Game * game, int level_num, bool persist_player_stats);
 void StartFadeIn(FadeState * fade_state, float seconds);
-void StartTurn(Game * game, Direction direction);
+void StartTurn(Game * game, TileCoord destination, Direction direction);
 void UpdateLevel(Game * game, float dt);
 void GamePlayRender(const Game * game);
 
@@ -105,7 +105,7 @@ void GamePlayRender(const Game * game);
 
 void LevelTurn_Update(Game * game, float dt);
 void AnimateActorMove(Actor * actor, float move_timer);
-void SetUpMoveAnimation(Actor * actor, Direction direction);
+void SetUpMoveAnimation(Actor * actor, TileCoord destination);
 void SetUpBumpAnimation(Actor * actor, Direction direction);
 
 

@@ -16,9 +16,6 @@ static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
     switch ( event->type ) {
         case SDL_KEYDOWN:
             switch ( event->key.keysym.sym ) {
-                case SDLK_TAB:
-                    game->inventory_open = false;
-                    return true;
                 case SDLK_UP:
                     ChangeInventorySelection(inv, NORTH);
                     return true;
@@ -50,25 +47,24 @@ static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
 static bool LevelProcessEvent(Game * game, const SDL_Event * event)
 {
     const float elevation_change = 0.05f;
+    TileCoord dummy_coord = { 0, 0 };
 
     switch ( event->type ) {
         case SDL_KEYDOWN:
             switch ( event->key.keysym.sym ) {
-                case SDLK_TAB:
-                    game->inventory_open = true;
-                    return true;
                 case SDLK_w:
-                    StartTurn(game, NORTH);
+                    StartTurn(game, dummy_coord, NORTH);
                     return true;
                 case SDLK_s:
-                    StartTurn(game, SOUTH);
+                    StartTurn(game, dummy_coord, SOUTH);
                     return true;
                 case SDLK_a:
-                    StartTurn(game, WEST);
+                    StartTurn(game, dummy_coord, WEST);
                     return true;
                 case SDLK_d:
-                    StartTurn(game, EAST);
+                    StartTurn(game, dummy_coord, EAST);
                     return true;
+#if 0
                 case SDLK_UP:
                         game->forest_high += elevation_change;
                         LoadLevel(game, game->level, false);
@@ -85,6 +81,7 @@ static bool LevelProcessEvent(Game * game, const SDL_Event * event)
                         game->forest_low += elevation_change;
                         LoadLevel(game, game->level, false);
                     return true;
+#endif
                 default:
                     return false;
             }
@@ -97,8 +94,12 @@ static bool LevelProcessEvent(Game * game, const SDL_Event * event)
 
 bool LevelIdle_ProcessEvent(Game * game, const SDL_Event * event)
 {
-    if ( InventoryProcessEvent(game, event) ) {
-        return true;
+    if ( event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_TAB ) {
+        game->inventory_open = !game->inventory_open;
+    }
+
+    if ( game->inventory_open ) {
+        return InventoryProcessEvent(game, event);
     } else {
         return LevelProcessEvent(game, event);
     }

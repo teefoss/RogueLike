@@ -27,14 +27,15 @@ enum {
     DRAW_PRIORITY_PLAYER,
 };
 
-void C_Player(Actor * player, Actor * hit);
-void C_Monster(Actor * monster, Actor * hit);
+void C_Player(Actor *, Actor *);
+void C_Monster(Actor *, Actor *);
 void C_Block(Actor *, Actor *);
 
 void A_TargetAndChasePlayerIfVisible(Actor *);
 void A_ChasePlayerIfVisible(Actor *);
-void A_StupidChasePlayerIfVisible(Actor * actor);
-void A_SpiderChase(Actor * spider);
+void A_StupidChasePlayerIfVisible(Actor *);
+void A_SpiderChase(Actor *);
+void A_GhostChase(Actor *);
 
 #define ITEM_FLAGS { .collectible = true, .no_collision = true }
 
@@ -114,6 +115,22 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
             .cell = { 4, 6 },
             .num_frames = 4,
             .frame_msec = 100,
+            .draw_priority = DRAW_PRIORITY_MONSTER,
+        },
+    },
+    [ACTOR_GHOST] = {
+        .name = "Ghost",
+        .flags = { .takes_damage = true, .floats = true },
+        .max_health = 3,
+        .damage = 3,
+        .action = A_GhostChase,
+        .contact = C_Monster,
+        .attack_sound = "o1 l32 c e a- > d- f",
+        .particle_color_palette_index = GOLINE_WHITE,
+        .kill_message = "A Ghost ate your soul!",
+        .sprite = {
+            .cell = { 6, 1 },
+            .num_frames = 1,
             .draw_priority = DRAW_PRIORITY_MONSTER,
         },
     },
@@ -433,13 +450,13 @@ void CastLight(World * world, const Actor * actor)
 }
 
 // TODO: This needs to be Move to tile with a helper function move direction!
-void MoveActor(Actor * actor, Direction direction)
+void MoveActor(Actor * actor, TileCoord coord)
 {
-    if ( direction != NO_DIRECTION ) {
-        actor->tile.x += XDelta(direction);
-        actor->tile.y += YDelta(direction);
+    if ( !TileCoordsEqual(actor->tile, coord) ) {
+        Direction direction = GetHorizontalDirection(coord.x - actor->tile.x);
 
-        SetUpMoveAnimation(actor, direction);
+        SetUpMoveAnimation(actor, coord);
+        actor->tile = coord;
         UpdateActorFacing(actor, XDelta(direction));
     }
 
@@ -452,10 +469,12 @@ void MoveActor(Actor * actor, Direction direction)
 }
 
 
-bool TryMoveActor(Actor * actor, Direction direction)
+bool TryMoveActor(Actor * actor, TileCoord coord)
 {
-    Tile * tile = GetAdjacentTile(&actor->game->world.map, actor->tile, direction);
-    TileCoord try_coord = AdjacentTileCoord(actor->tile, direction);
+//    Tile * tile = GetAdjacentTile(&actor->game->world.map, actor->tile, direction);
+    Tile * tile = GetTile(&actor->game->world.map, coord);
+//    TileCoord try_coord = AdjacentTileCoord(actor->tile, direction);
+    TileCoord try_coord = coord;
 
     if ( tile->flags.blocks_movement ) {
         return false;
@@ -466,7 +485,12 @@ bool TryMoveActor(Actor * actor, Direction direction)
         return false;
     }
 
-    UpdateActorFacing(actor, XDelta(direction));
+//    Direction direction = NO_DIRECTION;
+    int dx = coord.x - actor->tile.x;
+    int dy = coord.y - actor->tile.y;
+    Direction direction = GetDirection(dx, dy);
+
+    UpdateActorFacing(actor, dx);
 
     // Check if there's an actor at try_x, try_y
     FOR_EACH_ACTOR(hit, actor->game->world.actor_list) {
@@ -491,7 +515,7 @@ bool TryMoveActor(Actor * actor, Direction direction)
         }
     }
 
-    MoveActor(actor, direction);
+    MoveActor(actor, coord);
     return true;
 }
 
@@ -520,7 +544,7 @@ void Teleport(Actor * actor)
             TileCoord exit_coord = GetCoordinate(map, i);
 
             actor->tile = exit_coord;
-            MoveActor(actor, NO_DIRECTION); // TODO: hack, update sight etc.
+            MoveActor(actor, actor->tile); // TODO: hack, update sight etc.
             return;
         }
     }
@@ -540,7 +564,12 @@ void RemoveActor(Actor * actor)
     } else {
         actor->next->prev = actor->prev;
     }
-    actor->prev->next = actor->next;
+
+    if ( actor == list->head ) {
+        list->head = list->head->next;
+    } else {
+        actor->prev->next = actor->next;
+    }
 
     // Add to unused list.
     actor->prev = list->unused;

@@ -29,6 +29,7 @@ typedef enum {
 int XDelta(Direction direction);
 int YDelta(Direction direction);
 Direction GetDirection(int dx, int dy);
+Direction GetHorizontalDirection(int dx);
 TileCoord AdjacentTileCoord(TileCoord coord, Direction direction);
 Direction OppositeDirection(Direction direction);
 

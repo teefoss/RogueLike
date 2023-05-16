@@ -58,12 +58,24 @@ Direction OppositeDirection(Direction direction)
 Direction GetDirection(int dx, int dy)
 {
     for ( Direction d = 0; d < NUM_DIRECTIONS; d++ ) {
-        if ( deltas[d].x == dx && deltas[d].y == dy ) {
+        if ( deltas[d].x == SIGN(dx) && deltas[d].y == SIGN(dy) ) {
             return d;
         }
     }
 
     return NO_DIRECTION;
+}
+
+
+Direction GetHorizontalDirection(int dx)
+{
+    if ( dx < 0 ) {
+        return WEST;
+    } else if ( dx > 0 ) {
+        return EAST;
+    } else {
+        return NO_DIRECTION;
+    }
 }
 
 

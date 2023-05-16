@@ -33,6 +33,7 @@ typedef enum {
     ACTOR_BLOB,
     ACTOR_SPIDER,
     ACTOR_SUPER_SPIDER,
+    ACTOR_GHOST,
     ACTOR_ITEM_HEALTH,
     ACTOR_ITEM_TURN,
     ACTOR_ITEM_STRENGTH,
@@ -140,8 +141,8 @@ extern const ActorInfo actor_info_list[NUM_ACTOR_TYPES];
 void CastLight(World * world, const Actor * actor);
 Actor * SpawnActor(Game * game, ActorType type, TileCoord coord);
 void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int game_ticks);
-void MoveActor(Actor * actor, Direction direction);
-bool TryMoveActor(Actor * actor, Direction direction);
+void MoveActor(Actor * actor, TileCoord coord);
+bool TryMoveActor(Actor * actor, TileCoord coord);
 int DamageActor(Actor * actor, Actor * inflictor, int damage);
 void KillActor(Actor * actor, Actor * killer);
 void UpdateActorFacing(Actor * actor, int dx);

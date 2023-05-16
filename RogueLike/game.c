@@ -73,6 +73,7 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 
     int seed = (int)time(NULL);
     if ( level_num == 1 ) {
+        game->forest_seed = 
         GenerateWorld(game, AREA_FOREST, game->forest_seed, game->forest_size, game->forest_size);
     } else {
         GenerateWorld(game, AREA_DUNGEON, seed, 31, 31);
@@ -113,10 +114,10 @@ void StartFadeIn(FadeState * fade_state, float seconds)
 void NewGame(Game * game)
 {
     LoadLevel(game, 1, false);
-    game->player_info.inventory.item_counts[0] = 1;
-    game->player_info.inventory.item_counts[1] = 2;
+    game->player_info.inventory.item_counts[0] = 3;
+    game->player_info.inventory.item_counts[1] = 3;
 
-    game->player_info.fuel = 3;
+    game->player_info.fuel = 4;
     game->player_info.fuel_steps = FUEL_STEPS;
 
     ChangeStateAndFadeIn(game, &gs_level_idle, 2.0f);
@@ -216,10 +217,10 @@ void UpdateLevel(Game * game, float dt)
 
 void TryMovePlayer(Actor * player,
                    Map * map,
-                   Direction direction,
+                   TileCoord coord,
                    PlayerInfo * player_info)
 {
-    if ( TryMoveActor(player, direction) ) {
+    if ( TryMoveActor(player, coord) ) {
 
         // Only set 'on_teleporer' to false once we've definitely moved off it.
 //        Tile * player_tile = GetTile(map, player->tile);
@@ -240,7 +241,7 @@ void TryMovePlayer(Actor * player,
 }
 
 
-void StartTurn(Game * game, Direction direction)
+void StartTurn(Game * game, TileCoord destination, Direction direction)
 {
     World * world = &game->world;
     Map * map = &world->map;
@@ -252,7 +253,13 @@ void StartTurn(Game * game, Direction direction)
     // Do player-tile collisions:
 
     // The tile we are moving to.
-    Tile * tile = GetAdjacentTile(map, player->tile, direction);
+    Tile * tile;
+    if ( direction != NO_DIRECTION ) {
+        tile = GetAdjacentTile(map, player->tile, direction);
+        destination = AdjacentTileCoord(player->tile, direction);
+    } else {
+        tile = GetTile(map, destination);
+    }
 
     switch ( (TileType)tile->type ) {
 
@@ -270,16 +277,16 @@ void StartTurn(Game * game, Direction direction)
 
             // Lower pillars.
             for ( int i = 0; i < 2; i++ ) {
-                pillars[i]->flags.remove = true;
                 Tile * pillar_tile = GetTile(map, pillars[i]->tile);
                 *pillar_tile = CreateTile(TILE_BUTTON_PRESSED);
+                RemoveActor(pillars[i]);
             }
 
             // Press the button.
             S_Play("l32 o1 b- c");
             *tile = CreateTile(TILE_BUTTON_PRESSED);
 
-            TryMovePlayer(player, map, direction, player_info);
+            TryMovePlayer(player, map, destination, player_info);
             break;
         }
 
@@ -287,6 +294,9 @@ void StartTurn(Game * game, Direction direction)
             SetUpBumpAnimation(player, direction);
             S_Play("l32o2c+f+b");
             *tile = CreateTile(TILE_FLOOR); // Open (remove) the door.
+
+            // Make sure to reveal what's behind the door.
+            PlayerCastSight(world, &game->render_info);
             break;
 
         case TILE_GOLD_DOOR:
@@ -306,17 +316,16 @@ void StartTurn(Game * game, Direction direction)
         case TILE_BUTTON_PRESSED:
         case TILE_START:
         case TILE_FLOOR:
-            TryMovePlayer(player, map, direction, player_info);
+            TryMovePlayer(player, map, destination, player_info);
             break;
 
         case TILE_EXIT:
-            MoveActor(player, direction);
+            MoveActor(player, destination);
             S_Play("l32o3bb-a-fd-<a-d<g");
             break;
         default:
             break;
     }
-
 
     ChangeState(game, &gs_level_turn);
 
@@ -655,6 +664,7 @@ void DoFrame(Game * game, float dt)
                     case SDLK_RIGHTBRACKET:
                         LoadLevel(game, game->level + 1, false);
                         break;
+#if 0
                     case SDLK_MINUS:
                         game->forest_size -= 8;
                         LoadLevel(game, game->level, false);
@@ -663,6 +673,7 @@ void DoFrame(Game * game, float dt)
                         game->forest_size += 8;
                         LoadLevel(game, game->level, false);
                         break;
+#endif
                     case SDLK_COMMA:
                         --game->forest_seed;
                         LoadLevel(game, game->level, false);
@@ -671,6 +682,7 @@ void DoFrame(Game * game, float dt)
                         ++game->forest_seed;
                         LoadLevel(game, game->level, false);
                         break;
+#if 0
                     case SDLK_u:
                         game->forest_freq += shift ? -0.01f : 0.01f;
                         LoadLevel(game, game->level, false);
@@ -687,6 +699,7 @@ void DoFrame(Game * game, float dt)
                         game->forest_lec += shift ? -0.1f : 0.1f;
                         LoadLevel(game, game->level, false);
                         break;
+#endif 
                     case SDLK_k:
                         FOR_EACH_ACTOR(actor, game->world.actor_list) {
                             if ( actor->type != ACTOR_PLAYER ) {

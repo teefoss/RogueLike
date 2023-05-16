@@ -54,26 +54,34 @@ static int RandomIndex(void)
 }
 
 
-static void SpawnActorAtRandomLocation(Game * game, ActorType type)
+static Actor * SpawnActorAtRandomLocation(Game * game, ActorType type, int max_index)
 {
     if ( num_coords != 0 ) {
-        int index = RandomIndex();
-        SpawnActor(game, type, coords[index]);
+        int index = Random(0, max_index);
+        Actor * actor = SpawnActor(game, type, coords[index]);
         RemoveTile(index);
+        return actor;
     } else {
         printf("%s: not tiles left!\n", __func__);
+        return NULL;
     }
 }
 
 
-static Tile * CreateTileAtRandomLocation(Map * map, TileType type)
+static Tile * CreateTileAtRandomLocation(Map * map, TileType type, int max_index, TileCoord * out)
 {
-    int index = RandomIndex();
+    int index = Random(0, max_index);
     TileCoord coord = coords[index];
+
+    if ( out ) {
+        *out = coord;
+    }
 
     Tile * tile = GetTile(map, coord);
     *tile = CreateTile(type);
-    tile->flags.revealed = true;
+    if ( area_info[AREA_FOREST].reveal_all ) {
+        tile->flags.revealed = true;
+    }
     RemoveTile(index);
 
     return tile;
@@ -125,6 +133,32 @@ static int GetTilesInFirstRegionSmallerThan(const Map * map,
     return result_area;
 }
 
+
+void CalculateTileDistancesFrom(Map * map, TileCoord coord)
+{
+    for ( int i = 0; i < num_coords; i++ ) {
+        Tile * tile = GetTile(map, coords[i]);
+        tile->distance = TileDistance(coords[i], coord);
+    }
+}
+
+
+void SortCoordsByDistance(Map * map)
+{
+    // Sort coords by distance, farthest first.
+    for ( int i = 0; i < num_coords; i++ ) {
+        for ( int j = i + 1; j < num_coords; j++ ) {
+            Tile * i_tile = GetTile(map, coords[i]);
+            Tile * j_tile = GetTile(map, coords[j]);
+
+            if ( j_tile->distance > i_tile->distance ) {
+                TileCoord temp = coords[i];
+                coords[i] = coords[j];
+                coords[j] = temp;
+            }
+        }
+    }
+}
 
 /// Generate a forest level. The map is square.
 /// - parameter width: The full width of the map.
@@ -217,7 +251,9 @@ void GenerateForest(Game * game, int seed, int width)
             }
 
             tile->id = -1; // Reset all tiles' region
-            tile->flags.revealed = true;
+            if ( area_info[AREA_FOREST].reveal_all ) {
+                tile->flags.revealed = true;
+            }
         }
     }
 
@@ -250,6 +286,7 @@ void GenerateForest(Game * game, int seed, int width)
         printf("- region %d: area %d\n", regions[i].region, regions[i].area);
     }
 
+    // TODO: refactor ASAP
     //
     // Starting region
     // Just the player and a teleporter.
@@ -257,9 +294,14 @@ void GenerateForest(Game * game, int seed, int width)
 
     int area = GetTilesInFirstRegionSmallerThan(map, 80, 3, num_regions);
 
-    SpawnActorAtRandomLocation(game, ACTOR_PLAYER);
-    Tile * tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
+    Actor * player = SpawnActorAtRandomLocation(game, ACTOR_PLAYER, num_coords - 1);
+
+    CalculateTileDistancesFrom(map, player->tile);
+    SortCoordsByDistance(map);
+    int num_viable = area / 10;
+    Tile * tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 0;
+
 
     //
     // Second region - small area
@@ -268,13 +310,20 @@ void GenerateForest(Game * game, int seed, int width)
 
     area = GetTilesInFirstRegionSmallerThan(map, 128, 2, num_regions);
 
-    tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
+    // Create first teleporter.
+    TileCoord tp_coord;
+    tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER, num_coords - 1, & tp_coord);
     tp->tag = 0;
-    tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER);
+
+    // Create second teleporter.
+    CalculateTileDistancesFrom(map, tp_coord);
+    SortCoordsByDistance(map);
+    num_viable = area / 10;
+    tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 1;
 
     for ( int i = 0; i < area / 20; i++ ) {
-        SpawnActorAtRandomLocation(game, ACTOR_SPIDER);
+        SpawnActorAtRandomLocation(game, ACTOR_SPIDER, num_coords - 1);
     }
 
     //
@@ -284,16 +333,22 @@ void GenerateForest(Game * game, int seed, int width)
 
     area = GetTilesInFirstRegionSmallerThan(map, 256, 1, num_regions);
 
-    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER);
+    // Create first teleporter.
+    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER, num_coords - 1, &tp_coord);
     tp->tag = 1; // connected to previous region
-    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER);
+
+    // Create second teleporter.
+    CalculateTileDistancesFrom(map, tp_coord);
+    SortCoordsByDistance(map);
+    num_viable = area / 10;
+    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 2; // connected to next region
 
     for ( int i = 0; i < area / 10; i++ ) {
         if ( Chance(0.2) ) {
-            SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER);
+            SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, num_coords - 1);
         } else {
-            SpawnActorAtRandomLocation(game, ACTOR_SPIDER);
+            SpawnActorAtRandomLocation(game, ACTOR_SPIDER, num_coords - 1);
         }
     }
 
@@ -306,22 +361,30 @@ void GenerateForest(Game * game, int seed, int width)
     GetTilesInRegion(map, regions[0].region);
     area = regions[0].area;
 
-    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER);
+    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER, num_coords - 1, &tp_coord);
     tp->tag = 2; // connected to previos region
 
-    int index = RandomIndex();
+    CalculateTileDistancesFrom(map, tp_coord);
+    SortCoordsByDistance(map);
+    num_viable = area / 10;
+
+    int index = Random(0, num_viable);
     TileCoord exit_coord = coords[index];
     Tile * tile = GetTile(map, exit_coord);
     *tile = CreateTile(TILE_EXIT);
-    tile->flags.revealed = true;
+    if ( area_info[AREA_FOREST].reveal_all ) {
+        tile->flags.revealed = true;
+    }
     SpawnActor(game, ACTOR_WELL, exit_coord);
 
     for ( int i = 0; i < area / 5; i++ ) {
         // TODO: tweak
-        if ( Chance(0.2) ) {
-            SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER);
+        if ( Chance(0.05) ) {
+            SpawnActorAtRandomLocation(game, ACTOR_GHOST, num_coords - 1);
+        } else if ( Chance( 0.1 ) ) {
+            SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, num_coords - 1);
         } else {
-            SpawnActorAtRandomLocation(game, ACTOR_SPIDER);
+            SpawnActorAtRandomLocation(game, ACTOR_SPIDER, num_coords - 1);
         }
     }
 }

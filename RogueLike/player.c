@@ -70,6 +70,7 @@ void UseItem(Actor * player)
 
     // If the inventory is empty, just leave.
     if ( inventory->item_counts[inventory->selected_item] == 0 ) {
+        S_Play("o1 t100 l32 d");
         return;
     }
 
@@ -105,6 +106,7 @@ void UseItem(Actor * player)
                 player_info->fuel++;
                 player_info->fuel_steps = FUEL_STEPS;
                 S_Play("o3 l16 t160 b e-");
+                --inventory->item_counts[inventory->selected_item];
             } else {
                 S_Play(cant_use_sound);
             }
@@ -114,6 +116,7 @@ void UseItem(Actor * player)
                 player_info->fuel = MIN(player_info->fuel + 2, MAX_FUEL);
                 player_info->fuel_steps = FUEL_STEPS;
                 S_Play("o2 l16 t160 b e-");
+                --inventory->item_counts[inventory->selected_item];
             } else {
                 S_Play(cant_use_sound);
             }

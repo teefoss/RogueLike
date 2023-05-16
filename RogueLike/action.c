@@ -62,7 +62,8 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
 
     if ( actor->flags.has_target ) {
         Direction d = PathFindToTile(world, actor->tile, actor->target_tile);
-        TryMoveActor(actor, d);
+        TileCoord coord = AdjacentTileCoord(actor->tile, d);
+        TryMoveActor(actor, coord);
 
         // Arrived at target?
         if ( TileCoordsEqual(actor->tile, actor->target_tile) ) {
@@ -79,7 +80,8 @@ void A_ChasePlayerIfVisible(Actor * actor)
 
     if ( LineOfSight(&world->map, actor->tile, player->tile) ) {
         Direction d = PathFindToTile(world, actor->tile, player->tile);
-        TryMoveActor(actor, d);
+        TileCoord coord = AdjacentTileCoord(actor->tile, d);
+        TryMoveActor(actor, coord);
     }
 }
 
@@ -93,7 +95,8 @@ void A_StupidChasePlayerIfVisible(Actor * actor)
         int dx = SIGN(player->tile.x - actor->tile.x);
         int dy = SIGN(player->tile.y - actor->tile.y);
         Direction d = GetDirection(dx, dy);
-        TryMoveActor(actor, d);
+        TileCoord coord = AdjacentTileCoord(actor->tile, d);
+        TryMoveActor(actor, coord);
     }
 }
 
@@ -107,14 +110,69 @@ void A_SpiderChase(Actor * spider)
         int dx = SIGN(player->tile.x - spider->tile.x);
         int dy = SIGN(player->tile.y - spider->tile.y);
         Direction d = GetDirection(dx, dy);
+        TileCoord coord;
 
         Tile * tile = GetAdjacentTile(&world->map, spider->tile, d);
         if ( tile->light <= world->info->revealed_light
             || spider->type == ACTOR_SUPER_SPIDER )
         {
-            TryMoveActor(spider, d);
+            coord = AdjacentTileCoord(spider->tile, d);
         } else {
-            TryMoveActor(spider, OppositeDirection(d));
+            coord = AdjacentTileCoord(spider->tile, OppositeDirection(d));
+        }
+
+        TryMoveActor(spider, coord);
+    }
+}
+
+
+#define GHOST_RADIUS 4
+
+void A_GhostChase(Actor * ghost)
+{
+    World * world = &ghost->game->world;
+    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+
+    if ( LineOfSight(&world->map, ghost->tile, player->tile) ) {
+        ghost->target_tile = player->tile;
+        ghost->flags.has_target = true;
+    }
+
+    if ( ghost->flags.has_target ) {
+        int distance = TileDistance(ghost->tile, ghost->target_tile);
+
+        if ( distance > GHOST_RADIUS ) {
+            // Get a list of potential tiles around the player to teleport to.
+            TileCoord coords[(GHOST_RADIUS * 2 + 1) * (GHOST_RADIUS * 2 + 1)];
+            int num_coords = 0;;
+
+            for ( int y = ghost->target_tile.y - GHOST_RADIUS;
+                 y <= ghost->target_tile.y + GHOST_RADIUS;
+                 y++ )
+            {
+                for ( int x = ghost->target_tile.x - GHOST_RADIUS;
+                     x <= ghost->target_tile.x + GHOST_RADIUS;
+                     x++ )
+                {
+                    // Tile distance from player
+                    int tile_dist = DISTANCE(ghost->target_tile.x, ghost->target_tile.y, x, y);
+
+                    if ( tile_dist >= 1 && tile_dist <= GHOST_RADIUS ) {
+                        coords[num_coords].x = x;
+                        coords[num_coords].y = y;
+                        num_coords++;
+                    }
+                }
+            }
+
+            // Select one and try to move there.
+            int index = Random(0, num_coords - 1);
+            TryMoveActor(ghost, coords[index]);
+
+        } else {
+            Direction d = PathFindToTile(world, ghost->tile, player->tile);
+            TileCoord coord = AdjacentTileCoord(ghost->tile, d);
+            TryMoveActor(ghost, coord);
         }
     }
 }

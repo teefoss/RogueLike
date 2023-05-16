@@ -100,8 +100,11 @@ void C_Block(Actor * block, Actor * pusher)
 {
     int dx = block->tile.x - pusher->tile.x;
     int dy = block->tile.y - pusher->tile.y;
+    TileCoord coord;
+    coord.x = block->tile.x + dx;
+    coord.y = block->tile.y + dy;
 
-    if ( TryMoveActor(block, GetDirection(dx, dy)) ) {
+    if ( TryMoveActor(block, coord) ) {
         S_Play("l32 o1 b-f-");
     }
 }

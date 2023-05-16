@@ -20,6 +20,8 @@ INVENTORY:
     Reduce space between cols?
 - teleporter stone (key)
 
+Forest teleporters don't spawn so close together
+
 Food = strength
 
 
@@ -28,8 +30,7 @@ Food = strength
 blob 'stutter'
 * key got placed in exit room! / beyond exit room
 particle lighting
-* pillar button broken
-* opening door does not cast sight!
+fix map mouse...
 
 
 # Keep an eye on...
