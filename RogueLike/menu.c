@@ -9,6 +9,7 @@
 #include "video.h"
 #include "game_state.h"
 #include "game.h"
+#include "config.h"
 
 #include <stdarg.h>
 
@@ -158,7 +159,7 @@ static void VideoRender(const Game * game)
 
     bool is_fullscreen = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP;
     MenuPrint(0, 2, "Fullscreen  %s", is_fullscreen ? "YES" : "NO" );
-    MenuPrint(0, 3, "Window Scale  %c %.1f %c", game->render_info.window_scale, 0x1b, 0x1a);
+    MenuPrint(0, 3, "Window Scale  %c %.1f %c", 0x1b, cfg_window_scale, 0x1a);
     MenuPrint(0, 4, "Back");
 
     MenuPrint(-2, video_cursor + 2, "%c", CURSOR_CHAR);
@@ -171,21 +172,22 @@ static void VideoMenuAction(Game * game, int action)
         case VIDEO_FULLSCREEN: {
             if ( action == ACTION_CONFIRM ) {
                 V_ToggleFullscreen(DESKTOP);
+                cfg_fullscreen ^= 1;
             }
             break;
         }
         case VIDEO_WINDOW_SCALE:
             if ( action == ACTION_LEFT ) {
-                game->render_info.window_scale -= 0.5f;
+                cfg_window_scale -= 0.5f;
             } else if ( action == ACTION_RIGHT ) {
-                game->render_info.window_scale += 0.5f;
+                cfg_window_scale += 0.5f;
             } else {
                 return;
             }
-            CLAMP(game->render_info.window_scale, 1.0f, 5.0f);
+            CLAMP(cfg_window_scale, 0.5f, 5.0f);
             SDL_SetWindowSize(window,
-                              game->render_info.width * game->render_info.window_scale,
-                              game->render_info.height * game->render_info.window_scale);
+                              game->render_info.width * cfg_window_scale,
+                              game->render_info.height * cfg_window_scale);
             SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
             break;
         case VIDEO_BACK:

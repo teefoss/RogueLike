@@ -13,6 +13,7 @@
 #include "debug.h"
 #include "icon.h"
 #include "menu.h"
+#include "config.h"
 
 #include "mathlib.h"
 #include "sound.h"
@@ -643,6 +644,7 @@ void DoFrame(Game * game, float dt)
                 switch ( event.key.keysym.sym ) {
                     case SDLK_BACKSLASH:
                         V_ToggleFullscreen(DESKTOP);
+                        cfg_fullscreen ^= 1;
                         break;
                     case SDLK_ESCAPE:
                         MenuToggle(game);

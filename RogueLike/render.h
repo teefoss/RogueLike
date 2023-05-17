@@ -50,7 +50,6 @@ typedef enum {
 typedef struct {
     int width;
     int height;
-    float window_scale;
 
     vec2_t camera; // world focus point in scaled coordinates
     float inventory_x; // the left side of the inventory panel

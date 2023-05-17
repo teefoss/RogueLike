@@ -41,6 +41,7 @@
 		607E792529D8C112006FA184 /* gen_forest.c in Sources */ = {isa = PBXBuildFile; fileRef = 607E792429D8C112006FA184 /* gen_forest.c */; };
 		608E80BC29354A830060A04D /* animation.c in Sources */ = {isa = PBXBuildFile; fileRef = 608E80BB29354A830060A04D /* animation.c */; };
 		608E80BE2937A05F0060A04D /* player.c in Sources */ = {isa = PBXBuildFile; fileRef = 608E80BD2937A05F0060A04D /* player.c */; };
+		609DDBBC2A156D1C00FF85AD /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = 609DDBBB2A156D1C00FF85AD /* config.c */; };
 		60E8548A29D4F1D500C606D7 /* icon.c in Sources */ = {isa = PBXBuildFile; fileRef = 60E8548929D4F1D500C606D7 /* icon.c */; };
 		60E8548E29D5DF9700C606D7 /* item.c in Sources */ = {isa = PBXBuildFile; fileRef = 60E8548D29D5DF9700C606D7 /* item.c */; };
 		60EB154D29E0624100DBCED8 /* particle.c in Sources */ = {isa = PBXBuildFile; fileRef = 60EB154C29E0624100DBCED8 /* particle.c */; };
@@ -124,6 +125,8 @@
 		607E792429D8C112006FA184 /* gen_forest.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gen_forest.c; sourceTree = "<group>"; };
 		608E80BB29354A830060A04D /* animation.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = animation.c; sourceTree = "<group>"; };
 		608E80BD2937A05F0060A04D /* player.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = player.c; sourceTree = "<group>"; };
+		609DDBBA2A156D1C00FF85AD /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		609DDBBB2A156D1C00FF85AD /* config.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = config.c; sourceTree = "<group>"; };
 		60DF52C92915E35300ED43BF /* game.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = game.h; sourceTree = "<group>"; };
 		60E8548829D4F1D500C606D7 /* icon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = icon.h; sourceTree = "<group>"; };
 		60E8548929D4F1D500C606D7 /* icon.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = icon.c; sourceTree = "<group>"; };
@@ -233,6 +236,8 @@
 				6041A51329F71C4E002E2E92 /* actor_list.c */,
 				608E80BB29354A830060A04D /* animation.c */,
 				60558AA9291AF9CC00814C16 /* contact.c */,
+				609DDBBA2A156D1C00FF85AD /* config.h */,
+				609DDBBB2A156D1C00FF85AD /* config.c */,
 				60F0A70B29D20CAF0022A995 /* coord.h */,
 				60F0A70C29D20CAF0022A995 /* coord.c */,
 				60F9293E2919464400CDCEC8 /* debug.h */,
@@ -380,6 +385,7 @@
 				60E8548A29D4F1D500C606D7 /* icon.c in Sources */,
 				608E80BE2937A05F0060A04D /* player.c in Sources */,
 				60F0A71029D2325A0022A995 /* direction.c in Sources */,
+				609DDBBC2A156D1C00FF85AD /* config.c in Sources */,
 				60373EF229FAB6B5001CCE44 /* sound.c in Sources */,
 				60761FB02A0C9E530003F34E /* gs_title_screen.c in Sources */,
 				60F0A70D29D20CAF0022A995 /* coord.c in Sources */,

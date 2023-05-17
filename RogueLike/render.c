@@ -152,7 +152,6 @@ RenderInfo InitRenderInfo(int width, int height)
 
     info.width = width;
     info.height = height;
-    info.window_scale = 1.0f;
 
     info.inventory_x = width; // Start closed.
 

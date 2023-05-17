@@ -12,46 +12,55 @@
 #include "game.h"
 #include "debug.h"
 #include "world.h"
+#include "config.h"
 
-int main(void)
+static SDL_Rect InitVideo(void)
 {
-    Randomize();
+    // Create the window with the same asepct ratio as the desktop resoltuion.
 
-    if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0 ) {
-        Error("Could not init SDL: %s", SDL_GetError());
-    }
-
+    // Calculate the monitor's aspect ratio.
     SDL_DisplayMode display_mode;
     SDL_GetCurrentDisplayMode(0, &display_mode);
-    printf("desktop size: %d x %d\n", display_mode.w, display_mode.h);
     float aspect = (float)display_mode.h / (float)display_mode.w;
 
-    int game_height = 18 * SCALED(TILE_SIZE);
-    int game_width = (float)game_height / aspect;
+    SDL_Rect size;
+    size.h = 18 * SCALED(TILE_SIZE); // Height is fixed as 18 tiles high.
+    size.w = (float)size.h / aspect; // Width derived from aspect ratio.
+
+    u32 window_flags = SDL_WINDOW_ALLOW_HIGHDPI;
+    if ( cfg_fullscreen ) {
+        window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    }
 
     video_info_t info = {
-        .window_width = game_width,
-        .window_height = game_height,
+        .window_width = size.w * cfg_window_scale,
+        .window_height = size.h * cfg_window_scale,
 //        .render_flags = SDL_RENDERER_PRESENTVSYNC,
-        .window_flags = SDL_WINDOW_ALLOW_HIGHDPI,
+        .window_flags = window_flags,
         .render_flags = 0,
     };
 
     V_InitVideo(&info);
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_RenderSetLogicalSize(renderer, game_width, game_height);
+    SDL_RenderSetLogicalSize(renderer, size.w, size.h);
     V_SetFont(FONT_4X6);
     V_SetTextScale(DRAW_SCALE, DRAW_SCALE);
 
+    return size;
+}
+
+int main(void)
+{
+    if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0 ) {
+        Error("Could not init SDL: %s", SDL_GetError());
+    }
+
+    Randomize();
+    LoadConfigFile();
+    SDL_Rect game_size = InitVideo();
     S_InitSound();
-
-    printf("size of Game: %zu bytes\n", sizeof(Game));
-    printf("size of World: %zu bytes\n", sizeof(World));
-    printf("size of Map: %zu bytes\n", sizeof(Map));
-    printf("size of Actor: %zu bytes\n", sizeof(Actor));
-
-    Game * game = InitGame(game_width, game_height);
+    Game * game = InitGame(game_size.w, game_size.h);
 
     int old_time = SDL_GetTicks();
     const float target_dt = 1.0f / FPS;
@@ -73,6 +82,7 @@ int main(void)
         old_time = new_time;
     }
 
+    SaveConfigFile();
 
     FreeDistanceMapQueue();
     DestroyActorList(&game->world.actor_list);
