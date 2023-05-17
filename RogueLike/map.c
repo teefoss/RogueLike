@@ -136,7 +136,7 @@ void RenderTiles(const World * world,
     int tile_size;
     if ( debug ) {
 //        tile_size = area_info[world->area].debug_map_tile_size;
-        tile_size = GAME_HEIGHT / map->height;
+        tile_size = render_info->height / map->height;
     } else {
         tile_size = SCALED(TILE_SIZE);
     }
@@ -324,10 +324,11 @@ Box GetPlayerVisibleRegion(const Map * map, TileCoord player_coord)
 {
     Box box;
 
-    box.left    = player_coord.x - (TILES_WIDE + 1) / 2;
-    box.right   = player_coord.x + (TILES_WIDE + 1) / 2;
-    box.top     = player_coord.y - (TILES_HIGH + 2) / 2;
-    box.bottom  = player_coord.y + (TILES_HIGH + 2) / 2;
+    // TODO: tiles wide and tiles high
+    box.left    = player_coord.x - (32 + 1) / 2;
+    box.right   = player_coord.x + (32 + 1) / 2;
+    box.top     = player_coord.y - (18 + 2) / 2;
+    box.bottom  = player_coord.y + (18 + 2) / 2;
 
     return box;
 }

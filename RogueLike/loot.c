@@ -41,6 +41,11 @@ const Loot loot_tables[NUM_ACTOR_TYPES][20] = {
         { ACTOR_ITEM_TURN,          50, },
         { 0, -1 },
     },
+    [ACTOR_GHOST] = {
+        { ACTOR_ITEM_FUEL_BIG,      50 },
+        { ACTOR_ITEM_FUEL_SMALL,    50 },
+        { 0, -1 },
+    },
 };
 
 

@@ -8,7 +8,6 @@
 #include "game.h"
 #include "sound.h"
 
-
 static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
 {
     Inventory * inv = &game->player_info.inventory;
@@ -16,15 +15,19 @@ static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
     switch ( event->type ) {
         case SDL_KEYDOWN:
             switch ( event->key.keysym.sym ) {
+                case SDLK_w:
                 case SDLK_UP:
                     ChangeInventorySelection(inv, NORTH);
                     return true;
+                case SDLK_s:
                 case SDLK_DOWN:
                     ChangeInventorySelection(inv, SOUTH);
                     return true;
+                case SDLK_a:
                 case SDLK_LEFT:
                     ChangeInventorySelection(inv, WEST);
                     return true;
+                case SDLK_d:
                 case SDLK_RIGHT:
                     ChangeInventorySelection(inv, EAST);
                     return true;
@@ -64,6 +67,10 @@ static bool LevelProcessEvent(Game * game, const SDL_Event * event)
                 case SDLK_d:
                     StartTurn(game, dummy_coord, EAST);
                     return true;
+                case SDLK_1: {
+                    game->player_info.fuel++;
+                    return true;
+                }
 #if 0
                 case SDLK_UP:
                         game->forest_high += elevation_change;

@@ -244,9 +244,9 @@ Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
 
     // If there are actors available in the unused list, grab one from there.
     // Otherwise, allocate a new one.
-    if ( list->unused ) {
-        actor = list->unused;
-        list->unused = actor->prev;
+    if ( list->free_list ) {
+        actor = list->free_list;
+        list->free_list = actor->prev;
     } else {
         actor = calloc(1, sizeof(*actor));
 
@@ -572,8 +572,8 @@ void RemoveActor(Actor * actor)
     }
 
     // Add to unused list.
-    actor->prev = list->unused;
-    list->unused = actor;
+    actor->prev = list->free_list;
+    list->free_list = actor;
 }
 
 

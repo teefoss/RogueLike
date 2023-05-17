@@ -21,15 +21,17 @@ int main(void)
         Error("Could not init SDL: %s", SDL_GetError());
     }
 
-//    SDL_DisplayMode display_mode;
-//    SDL_GetCurrentDisplayMode(0, &display_mode);
-//    printf("desktop size: %d x %d\n", display_mode.w, display_mode.h);
+    SDL_DisplayMode display_mode;
+    SDL_GetCurrentDisplayMode(0, &display_mode);
+    printf("desktop size: %d x %d\n", display_mode.w, display_mode.h);
+    float aspect = (float)display_mode.h / (float)display_mode.w;
 
-    double window_scale = 1.5;
+    int game_height = 18 * SCALED(TILE_SIZE);
+    int game_width = (float)game_height / aspect;
 
     video_info_t info = {
-        .window_width = GAME_WIDTH * window_scale,
-        .window_height = GAME_HEIGHT * window_scale,
+        .window_width = game_width,
+        .window_height = game_height,
 //        .render_flags = SDL_RENDERER_PRESENTVSYNC,
         .window_flags = SDL_WINDOW_ALLOW_HIGHDPI,
         .render_flags = 0,
@@ -38,7 +40,7 @@ int main(void)
     V_InitVideo(&info);
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_RenderSetLogicalSize(renderer, GAME_WIDTH, GAME_HEIGHT);
+    SDL_RenderSetLogicalSize(renderer, game_width, game_height);
     V_SetFont(FONT_4X6);
     V_SetTextScale(DRAW_SCALE, DRAW_SCALE);
 
@@ -49,7 +51,7 @@ int main(void)
     printf("size of Map: %zu bytes\n", sizeof(Map));
     printf("size of Actor: %zu bytes\n", sizeof(Actor));
 
-    Game * game = InitGame();
+    Game * game = InitGame(game_width, game_height);
 
     int old_time = SDL_GetTicks();
     const float target_dt = 1.0f / FPS;

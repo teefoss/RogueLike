@@ -19,7 +19,7 @@ void TitleScreen_OnEnter(Game * game)
 {
     // Generate a forest as the title screen background.
     // u32 seed = (u32)time(NULL);
-    u32 seed = 1682214124;
+    u32 seed = 0;
     printf("title screen seed: %d\n", seed);
     GenerateWorld(game, AREA_FOREST, seed, game->forest_size, game->forest_size);
 

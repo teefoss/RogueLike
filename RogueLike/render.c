@@ -46,13 +46,13 @@ static void RenderMoon(int x, int y, int size)
 }
 
 
-static SDL_Texture * CreateForestBackgroundTexture(void)
+static SDL_Texture * CreateForestBackgroundTexture(int width, int height)
 {
     SDL_Texture * texture = SDL_CreateTexture(renderer,
                                               SDL_PIXELFORMAT_RGBA8888,
                                               SDL_TEXTUREACCESS_TARGET,
-                                              GAME_WIDTH,
-                                              GAME_HEIGHT);
+                                              width,
+                                              height);
 
     SDL_SetRenderTarget(renderer, texture);
     V_SetColor(area_info[AREA_FOREST].render_clear_color);
@@ -60,8 +60,8 @@ static SDL_Texture * CreateForestBackgroundTexture(void)
 
     for ( int i = 0; i < 5000; i++ ) {
         SDL_Point pt;
-        pt.x = Random(0, GAME_WIDTH - 1);
-        pt.y = Random(0, GAME_HEIGHT - 1);
+        pt.x = Random(0, width - 1);
+        pt.y = Random(0, height - 1);
 
         int n = Random(0, 1000);
         if ( n == 1000 ) {
@@ -78,8 +78,8 @@ static SDL_Texture * CreateForestBackgroundTexture(void)
     }
 
     int moom_size = SCALED(TILE_SIZE * 3);
-    RenderMoon(GAME_WIDTH * 0.66, GAME_HEIGHT * 0.66, moom_size);
-    RenderMoon(GAME_WIDTH * 0.33, GAME_HEIGHT * 0.33, moom_size * 0.66);
+    RenderMoon(width * 0.66, height * 0.66, moom_size);
+    RenderMoon(width * 0.33, height * 0.33, moom_size * 0.66);
 
     SDL_SetRenderTarget(renderer, NULL);
 
@@ -111,8 +111,8 @@ static SDL_Texture * LoadTexture(const char * file)
 /// Level area rect. Width and height are scaled.
 SDL_Rect GetLevelViewport(const RenderInfo * render_info)
 {
-    int inventory_width = GAME_WIDTH - render_info->inventory_x;
-    SDL_Rect viewport = { 0, 0, GAME_WIDTH - inventory_width, GAME_HEIGHT };
+    int inventory_width = render_info->width - render_info->inventory_x;
+    SDL_Rect viewport = { 0, 0, render_info->width - inventory_width, render_info->height };
 
     return viewport;
 }
@@ -146,13 +146,17 @@ void SetColor(PaletteColor color)
 }
 
 
-RenderInfo InitRenderInfo(void)
+RenderInfo InitRenderInfo(int width, int height)
 {
     RenderInfo info = { 0 };
 
-    info.inventory_x = GAME_WIDTH; // Start closed.
+    info.width = width;
+    info.height = height;
+    info.window_scale = 1.0f;
 
-    info.stars = CreateForestBackgroundTexture();
+    info.inventory_x = width; // Start closed.
+
+    info.stars = CreateForestBackgroundTexture(width, height);
 
     info.actor_texture = LoadTexture("assets/actors.png");
     info.tile_texture = LoadTexture("assets/tiles2.png");
@@ -168,4 +172,28 @@ void FreeRenderAssets(RenderInfo * info)
     SDL_DestroyTexture(info->actor_texture);
     SDL_DestroyTexture(info->tile_texture);
     SDL_DestroyTexture(info->icon_texture);
+}
+
+
+SDL_Rect GetRenderSize(void) 
+{
+    int window_w;
+    int window_h;
+    SDL_GetWindowSize(window, &window_w, &window_h);
+    float aspect = (float)window_h / (float)window_w;
+
+    SDL_Rect size;
+    size.h = 18 * SCALED(TILE_SIZE);
+    size.w = (float)size.h / aspect;
+
+    return size;
+}
+
+SDL_Rect GetRenderSizeInTiles(void)
+{
+    SDL_Rect size = GetRenderSize();
+    size.w /= SCALED(TILE_SIZE);
+    size.h /= SCALED(TILE_SIZE);
+
+    return size;
 }

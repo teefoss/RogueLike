@@ -22,6 +22,16 @@
 #include <stdio.h>
 
 
+static vec2_t GetWindowScale(const RenderInfo * info)
+{
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+    vec2_t scale = { w / (float)info->width, h / (float)info->height };
+
+    return scale;
+}
+
+
 /// In the visible rect, set each tile's light level according to its visibility
 /// flags.
 void SetTileLight(World * world, const RenderInfo * render_info)
@@ -73,8 +83,7 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 
     int seed = (int)time(NULL);
     if ( level_num == 1 ) {
-        game->forest_seed = 
-        GenerateWorld(game, AREA_FOREST, game->forest_seed, game->forest_size, game->forest_size);
+        GenerateWorld(game, AREA_FOREST, (int)time(NULL), game->forest_size, game->forest_size);
     } else {
         GenerateWorld(game, AREA_DUNGEON, seed, 31, 31);
     }
@@ -124,9 +133,9 @@ void NewGame(Game * game)
 }
 
 // TODO: move to inventory.c
-int InventoryRenderX(Inventory * inventory)
+int InventoryRenderX(const RenderInfo * info)
 {
-    return GAME_WIDTH - InventoryWidth();
+    return info->width - InventoryWidth();
 }
 
 
@@ -174,9 +183,9 @@ void UpdateLevel(Game * game, float dt)
     {
         float target;
         if ( game->inventory_open ) {
-            target = InventoryRenderX(&game->player_info.inventory);
+            target = InventoryRenderX(&game->render_info);
         } else {
-            target = GAME_WIDTH; // Closed
+            target = game->render_info.width; // Closed
         }
 
         game->render_info.inventory_x = LerpEpsilon(game->render_info.inventory_x, target, 0.33f, 1.0f);
@@ -186,7 +195,7 @@ void UpdateLevel(Game * game, float dt)
 
     // Update mouse tile
     {
-        vec2_t window_scale = GetWindowScale();
+        vec2_t window_scale = GetWindowScale(&game->render_info);
         int mx, my;
         SDL_GetMouseState(&mx, &my);
 
@@ -348,16 +357,6 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
 #pragma mark - RENDER
 
 
-vec2_t GetWindowScale(void)
-{
-    int w, h;
-    SDL_GetWindowSize(window, &w, &h);
-    vec2_t scale = { w / (float)GAME_WIDTH, h / (float)GAME_HEIGHT };
-
-    return scale;
-}
-
-
 // TODO: param player stats only? This all needs a massive clean up
 void RenderHUD(const Game * game, const Actor * player)
 {
@@ -401,7 +400,7 @@ void RenderHUD(const Game * game, const Actor * player)
     //
 
     int hud_x = margin;
-    int hud_y = GAME_HEIGHT - (V_CharHeight() + margin);
+    int hud_y = game->render_info.height - (V_CharHeight() + margin);
 
     // Turns
 
@@ -511,7 +510,7 @@ void GamePlayRender(const Game * game)
 
     if ( show_debug_map ) {
 //        int size = area_info[world->area].debug_map_tile_size;
-        int size = GAME_HEIGHT / world->map.height;
+        int size = game->render_info.height / world->map.height;
 
         RenderTiles(world, NULL, vec2_zero, true, &game->render_info);
 
@@ -543,7 +542,7 @@ void GamePlayRender(const Game * game)
             }
         }
 
-        if ( game->render_info.inventory_x != GAME_WIDTH ) {
+        if ( game->render_info.inventory_x != game->render_info.width ) {
             RenderInventory(&game->player_info.inventory, &game->render_info);
         }
     }
@@ -580,7 +579,7 @@ void RenderFade(FadeState * fade_state)
 #pragma mark -
 
 
-Game * InitGame(void)
+Game * InitGame(int width, int height)
 {
     Game * game = calloc(1, sizeof(*game));
     if ( game == NULL ) {
@@ -593,7 +592,7 @@ Game * InitGame(void)
 
     game->world = InitWorld();
     game->state_stack_top = -1;
-    game->render_info = InitRenderInfo();
+    game->render_info = InitRenderInfo(width, height);
 
     // TODO: move to debug.c
     game->forest_size = 256;
@@ -617,8 +616,8 @@ Game * InitGame(void)
 void DoFrame(Game * game, float dt)
 {
     debug_row = 0;
-    SDL_Keymod mods = SDL_GetModState();
-    bool shift = mods & KMOD_SHIFT;
+//    SDL_Keymod mods = SDL_GetModState();
+//    bool shift = mods & KMOD_SHIFT;
 
     SDL_Event event;
     while ( SDL_PollEvent(&event) ) {

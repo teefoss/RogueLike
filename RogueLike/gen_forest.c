@@ -204,7 +204,6 @@ void GenerateForest(Game * game, int seed, int width)
     }
 
     RandomizeNoise(seed);
-//    RandomizeNoise(0);
     num_coords = 0;
 
     // Generate forest (tree), ground, and water terrain.
@@ -377,7 +376,7 @@ void GenerateForest(Game * game, int seed, int width)
     }
     SpawnActor(game, ACTOR_WELL, exit_coord);
 
-    for ( int i = 0; i < area / 5; i++ ) {
+    for ( int i = 0; i < area / 10; i++ ) {
         // TODO: tweak
         if ( Chance(0.05) ) {
             SpawnActorAtRandomLocation(game, ACTOR_GHOST, num_coords - 1);

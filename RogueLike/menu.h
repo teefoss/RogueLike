@@ -13,6 +13,8 @@
 enum {
     MENU_NONE,
     MENU_MAIN,
+    MENU_VIDEO,
+    NUM_MENUS,
 };
 
 void MenuToggle(Game * game);

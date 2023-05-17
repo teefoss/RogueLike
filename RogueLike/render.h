@@ -13,10 +13,11 @@
 
 #define DRAW_SCALE 4
 
-#define GAME_WIDTH (256 * DRAW_SCALE)  // 32 tile wide
-#define GAME_HEIGHT (144 * DRAW_SCALE) // 18 tiles high
-#define TILES_WIDE (GAME_WIDTH / SCALED(TILE_SIZE)) // 32
-#define TILES_HIGH (GAME_HEIGHT / SCALED(TILE_SIZE)) // 18
+//#define GAME_WIDTH (256 * DRAW_SCALE)  // 32 tile wide
+//#define GAME_HEIGHT (144 * DRAW_SCALE) // 18 tiles high
+//#define GAME_HEIGHT (160 * DRAW_SCALE) // 18 tiles high
+//#define TILES_WIDE (GAME_WIDTH / SCALED(TILE_SIZE)) // 32
+//#define TILES_HIGH (GAME_HEIGHT / SCALED(TILE_SIZE)) // 18
 
 #define HUD_MARGIN 16
 
@@ -47,8 +48,13 @@ typedef enum {
 } PaletteColor;
 
 typedef struct {
+    int width;
+    int height;
+    float window_scale;
+
     vec2_t camera; // world focus point in scaled coordinates
     float inventory_x; // the left side of the inventory panel
+
     SDL_Texture * stars;
     SDL_Texture * actor_texture;
     SDL_Texture * tile_texture;
@@ -65,7 +71,12 @@ vec2_t GetRenderOffset(const RenderInfo * render_info);
 
 void SetColor(PaletteColor color);
 
-RenderInfo InitRenderInfo(void);
+RenderInfo InitRenderInfo(int width, int height);
 void FreeRenderAssets(RenderInfo * info);
+
+SDL_Rect GetRenderSize(void);
+
+/// Get how many tiles wide and tiles high the render area is.
+SDL_Rect GetRenderSizeInTiles(void);
 
 #endif /* render_h */

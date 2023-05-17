@@ -148,8 +148,8 @@ void RenderInventory(const Inventory * inv, const RenderInfo * info)
     SDL_Rect inventory_panel = {
         .x = info->inventory_x,
         .y = 0,
-        .w = GAME_WIDTH - info->inventory_x,
-        .h = GAME_HEIGHT
+        .w = info->width - info->inventory_x,
+        .h = info->height
     };
     SDL_RenderSetViewport(renderer, &inventory_panel);
 

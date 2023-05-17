@@ -24,6 +24,7 @@ Forest teleporters don't spawn so close together
 
 Food = strength
 
+weaker enemies can't kill stronger
 
 # BUGS
 

@@ -21,7 +21,7 @@ typedef struct {
 
     // Unused actor list. Where actors go when they're removed.
     // Actors and are added back from here when spawning new ones.
-    Actor * unused;
+    Actor * free_list;
 } ActorList;
 
 // List operations.

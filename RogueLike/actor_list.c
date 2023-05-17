@@ -73,7 +73,7 @@ void DestroyActorList(ActorList * list)
     list->tail = NULL;
     list->count = 0;
 
-    actor = list->unused;
+    actor = list->free_list;
     while ( actor ) {
         temp = actor;
         actor = actor->prev;
@@ -104,8 +104,8 @@ void RemoveAllActors(ActorList * list)
     Actor * actor = list->head;
 
     while ( actor ) {
-        actor->prev = list->unused;
-        list->unused = actor;
+        actor->prev = list->free_list;
+        list->free_list = actor;
         actor = actor->next;
     }
 

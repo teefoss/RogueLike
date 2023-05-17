@@ -33,8 +33,8 @@ void DeathScreen_Render(const Game * game)
     int width = V_PrintString(0, 0, game->kill_message);
 
     V_SetColor(palette[GOLINE_RED]);
-    int x = (GAME_WIDTH - width) / 2;
-    int y = (GAME_HEIGHT - V_CharHeight()) / 2;
+    int x = (game->render_info.width - width) / 2;
+    int y = (game->render_info.height - V_CharHeight()) / 2;
     V_PrintString(x, y, game->kill_message);
 }
 

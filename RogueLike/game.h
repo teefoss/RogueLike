@@ -25,6 +25,8 @@
 #include <SDL_events.h>
 #include <stdbool.h>
 
+#define GAME_NAME "Untitled Rogue-like"
+
 #define FPS 30.0f
 #define MAP_MAX 100
 #define INITIAL_TURNS 0
@@ -90,9 +92,9 @@ struct game {
     float forest_high;
 };
 
-Game * InitGame(void);
+Game * InitGame(int width, int height);
 void DoFrame(Game * game, float dt);
-vec2_t GetWindowScale(void);
+//vec2_t GetWindowScale(void);
 void NewGame(Game * game);
 void LoadLevel(Game * game, int level_num, bool persist_player_stats);
 void StartFadeIn(FadeState * fade_state, float seconds);
