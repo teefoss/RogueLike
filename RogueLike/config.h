@@ -23,7 +23,6 @@ typedef struct {
 extern int     cfg_fullscreen;
 extern float   cfg_window_scale;
 
-
 void LoadConfigFile(void);
 void SaveConfigFile(void);
 
