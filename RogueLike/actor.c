@@ -106,7 +106,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
         .flags = { .takes_damage = true, },
         .max_health = 2,
         .damage = 2,
-        .action = A_SpiderChase,
+        .action = A_TargetAndChasePlayerIfVisible,
         .contact = C_Monster,
         .attack_sound = "o3 l32 f b c+",
         .particle_color_palette_index = GOLINE_PURPLE,
@@ -225,6 +225,22 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
             .y_offset = -1,
         },
     },
+    [ACTOR_SHACK_CLOSED] = {
+        .name = "Closed Shack",
+        .flags = { .no_shadow = true, .no_draw_offset = true },
+        .sprite = {
+            .cell = { 1, 6 },
+            .height = 2,
+        }
+    },
+    [ACTOR_SHACK_OPEN] = {
+        .name = "Open Shack",
+        .flags = { .no_shadow = true, .no_draw_offset = true },
+        .sprite = {
+            .cell = { 2, 6 },
+            .height = 2,
+        }
+    },
     [ACTOR_VASE] = {
         .name = "Vase",
         .flags = { .takes_damage = true, },
@@ -240,7 +256,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
 Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
 {
     Actor * actor;
-    ActorList * list = &game->world.actor_list;
+    ActorList * list = &game->world.map->actor_list;
 
     // If there are actors available in the unused list, grab one from there.
     // Otherwise, allocate a new one.
@@ -353,7 +369,7 @@ void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int ga
     SDL_Texture * actor_sheet = actor->game->render_info.actor_texture;
     const ActorSprite * sprite = &actor->info->sprite;
 
-    Tile * tile = GetTile(&actor->game->world.map, actor->tile);
+    Tile * tile = GetTile(actor->game->world.map, actor->tile);
     if ( !debug ) {
         SDL_SetTextureColorMod(actor_sheet, tile->light, tile->light, tile->light);
     } else {
@@ -425,7 +441,7 @@ void CastLight(World * world, const Actor * actor)
     TileCoord coord;
     for ( coord.y = actor->tile.y - r; coord.y <= actor->tile.y + r; coord.y++ ) {
         for ( coord.x = actor->tile.x - r; coord.x <= actor->tile.x + r; coord.x++ ) {
-            Tile * t = GetTile(&world->map, coord);
+            Tile * t = GetTile(world->map, coord);
 
 //            if ( t && LineOfSight(&game->map, actor->tile, coord, false))
 
@@ -433,7 +449,7 @@ void CastLight(World * world, const Actor * actor)
                 continue;
             }
 
-            if ( t && ManhattenPathsAreClear(&world->map,
+            if ( t && ManhattenPathsAreClear(world->map,
                                              actor->tile.x,
                                              actor->tile.y,
                                              coord.x,
@@ -472,7 +488,7 @@ void MoveActor(Actor * actor, TileCoord coord)
 bool TryMoveActor(Actor * actor, TileCoord coord)
 {
 //    Tile * tile = GetAdjacentTile(&actor->game->world.map, actor->tile, direction);
-    Tile * tile = GetTile(&actor->game->world.map, coord);
+    Tile * tile = GetTile(actor->game->world.map, coord);
 //    TileCoord try_coord = AdjacentTileCoord(actor->tile, direction);
     TileCoord try_coord = coord;
 
@@ -493,7 +509,7 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
     UpdateActorFacing(actor, dx);
 
     // Check if there's an actor at try_x, try_y
-    FOR_EACH_ACTOR(hit, actor->game->world.actor_list) {
+    FOR_EACH_ACTOR(hit, actor->game->world.map->actor_list) {
 
         if ( hit != actor && TileCoordsEqual(hit->tile, try_coord) ) {
 
@@ -530,7 +546,7 @@ void UpdateActorFacing(Actor * actor, int dx)
 // TODO: telefrag?
 void Teleport(Actor * actor)
 {
-    Map * map = &actor->game->world.map;
+    Map * map = actor->game->world.map;
 
     Tile * entry_tile = GetTile(map, actor->tile);
     int tag = entry_tile->tag;
@@ -556,7 +572,7 @@ void Teleport(Actor * actor)
 
 void RemoveActor(Actor * actor)
 {
-    ActorList * list = &actor->game->world.actor_list;
+    ActorList * list = &actor->game->world.map->actor_list;
 
     // Remove from actor list.
     if ( actor == list->tail ) {
@@ -586,7 +602,7 @@ Actor ** GetVisibleActors(const World * world,
                           const RenderInfo * render_info,
                           int * count)
 {
-    Box vis_rect = GetCameraVisibleRegion(&world->map, render_info);
+    Box vis_rect = GetCameraVisibleRegion(world->map, render_info);
     int w = (vis_rect.right - vis_rect.left) + 1;
     int h = (vis_rect.bottom - vis_rect.top) + 1;
     int area = w * h;
@@ -610,8 +626,8 @@ Actor ** GetVisibleActors(const World * world,
 
     *count = 0;
 
-    FOR_EACH_ACTOR_CONST(actor, world->actor_list) {
-        const Tile * tile = GetTile(&world->map, actor->tile);
+    FOR_EACH_ACTOR_CONST(actor, world->map->actor_list) {
+        const Tile * tile = GetTile(world->map, actor->tile);
 
         if ( tile->flags.visible && TileInBox(actor->tile, vis_rect) ) {
             visible_actors[(*count)++] = (Actor *)actor; // fuck it

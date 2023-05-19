@@ -7,26 +7,29 @@
 
 #include "game.h"
 #include "actor.h"
-
+#include "astar.h"
 
 #include "mathlib.h"
 
 #include <limits.h>
 
+#if 1
 /// From tile `start`, find the adjacent tile with the smallest distance
 /// to target tile `end`.
-static Direction PathFindToTile(World * world, TileCoord start, TileCoord end)
+static Direction PathFindToTile(Map * map, TileCoord start, TileCoord end, bool player)
 {
-    CalculateDistances(&world->map, end, 0);
+//    float start_time = ProgramTime();
+//    CalculateDistances(&world->map, end, 0, false);
+//    printf("CalcDist: %.2f ms\n", (ProgramTime() - start_time) * 1000.0f);
 
     Direction best_direction = NO_DIRECTION;
     int min_distance = INT_MAX;
 
     for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
-        Tile * adj = GetAdjacentTile(&world->map, start, d);
+        Tile * adj = GetAdjacentTile(map, start, d);
         TileCoord tc = AdjacentTileCoord(start, d);
-
-        Actor * a = GetActorAtTile(&world->actor_list, tc);
+        s16 distance = player ? adj->player_distance : adj->distance;
+        Actor * a = GetActorAtTile(&map->actor_list, tc);
 
         // TODO: JT
         // Don't move there if:
@@ -36,7 +39,7 @@ static Direction PathFindToTile(World * world, TileCoord start, TileCoord end)
         && !TileCoordsEqual(a->tile, end); //...and it not the target
 
         if ( !adj->flags.blocks_movement
-            && adj->distance < min_distance
+            && distance < min_distance
             && !blocked )
         {
             min_distance = adj->distance;
@@ -47,13 +50,47 @@ static Direction PathFindToTile(World * world, TileCoord start, TileCoord end)
     return best_direction;
 }
 
+// TODO: combine with PathFindTo
+static Direction
+PathFindAwayFromTile(Map * map, TileCoord subject, TileCoord away_from, bool player)
+{
+//    CalculateDistances(&world->map, away_from, 0, false);
+
+    Direction best_direction = NO_DIRECTION;
+    int max_distance = INT_MIN;
+
+    for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+        Tile * adj = GetAdjacentTile(map, subject, d);
+        TileCoord tc = AdjacentTileCoord(subject, d);
+        s16 distance = player ? adj->player_distance : adj->distance;
+        Actor * a = GetActorAtTile(&map->actor_list, tc);
+
+        // TODO: JT
+        // Don't move there if:
+        bool blocked =
+        a // there's an actor there...
+        && !a->info->flags.no_collision // ... that is collidable ...
+        && !TileCoordsEqual(a->tile, away_from); //...and it not the target
+
+        if ( !adj->flags.blocks_movement
+            && distance > max_distance
+            && !blocked )
+        {
+            max_distance = adj->distance;
+            best_direction = d;
+        }
+    }
+
+    return best_direction;
+}
+#endif
 
 /// Actor targets player tile if visible. Take one step toward target, NSEW only.
 void A_TargetAndChasePlayerIfVisible(Actor * actor)
 {
     World * world = &actor->game->world;
-    Map * map = &world->map;
-    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+    Map * map = world->map;
+    Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
 
     if ( LineOfSight(map, actor->tile, player->tile) ) {
         actor->target_tile = player->tile;
@@ -61,7 +98,8 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
     }
 
     if ( actor->flags.has_target ) {
-        Direction d = PathFindToTile(world, actor->tile, actor->target_tile);
+        CalculateDistances(map, actor->target_tile, 0, false);
+        Direction d = PathFindToTile(map, actor->tile, actor->target_tile, false);
         TileCoord coord = AdjacentTileCoord(actor->tile, d);
         TryMoveActor(actor, coord);
 
@@ -76,12 +114,16 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
 void A_ChasePlayerIfVisible(Actor * actor)
 {
     World * world = &actor->game->world;
-    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
 
-    if ( LineOfSight(&world->map, actor->tile, player->tile) ) {
-        Direction d = PathFindToTile(world, actor->tile, player->tile);
+    if ( LineOfSight(world->map, actor->tile, player->tile) ) {
+//        Path path = FindPath(world, actor->tile, player->tile, true);
+        Direction d = PathFindToTile(world->map, actor->tile, player->tile, true);
         TileCoord coord = AdjacentTileCoord(actor->tile, d);
         TryMoveActor(actor, coord);
+//        if ( path.size > 0 ) {
+//            TryMoveActor(actor, path.coords[path.size - 1]);
+//        }
     }
 }
 
@@ -89,9 +131,9 @@ void A_ChasePlayerIfVisible(Actor * actor)
 void A_StupidChasePlayerIfVisible(Actor * actor)
 {
     World * world = &actor->game->world;
-    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
 
-    if ( LineOfSight(&world->map, actor->tile, player->tile) ) {
+    if ( LineOfSight(world->map, actor->tile, player->tile) ) {
         int dx = SIGN(player->tile.x - actor->tile.x);
         int dy = SIGN(player->tile.y - actor->tile.y);
         Direction d = GetDirection(dx, dy);
@@ -104,24 +146,31 @@ void A_StupidChasePlayerIfVisible(Actor * actor)
 void A_SpiderChase(Actor * spider)
 {
     World * world = &spider->game->world;
-    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
 
-    if ( LineOfSight(&world->map, spider->tile, player->tile) ) {
+    if ( LineOfSight(world->map, spider->tile, player->tile) ) {
+        // Try to step in the basic direction of the player
         int dx = SIGN(player->tile.x - spider->tile.x);
         int dy = SIGN(player->tile.y - spider->tile.y);
         Direction d = GetDirection(dx, dy);
+        Tile * tile = GetAdjacentTile(world->map, spider->tile, d);
+
         TileCoord coord;
 
-        Tile * tile = GetAdjacentTile(&world->map, spider->tile, d);
-        if ( tile->light <= world->info->revealed_light
-            || spider->type == ACTOR_SUPER_SPIDER )
-        {
+        if ( tile->light <= world->info->revealed_light ) {
             coord = AdjacentTileCoord(spider->tile, d);
+            TryMoveActor(spider, coord);
         } else {
-            coord = AdjacentTileCoord(spider->tile, OppositeDirection(d));
+            // Regular light
+            Direction d2 = PathFindAwayFromTile(world->map, spider->tile, player->tile, true);
+            coord = AdjacentTileCoord(spider->tile, d2);
+            TryMoveActor(spider, coord);
+//            TileCoord away = { spider->tile.x + dx * 8, spider->tile.y + dy * 8 };
+//            Path path = FindPath(world, spider->tile, away, false);
+//            if ( path.size > 0 ) {
+//                TryMoveActor(spider, path.coords[1]);
+//            }
         }
-
-        TryMoveActor(spider, coord);
     }
 }
 
@@ -131,9 +180,9 @@ void A_SpiderChase(Actor * spider)
 void A_GhostChase(Actor * ghost)
 {
     World * world = &ghost->game->world;
-    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
 
-    if ( LineOfSight(&world->map, ghost->tile, player->tile) ) {
+    if ( LineOfSight(world->map, ghost->tile, player->tile) ) {
         ghost->target_tile = player->tile;
         ghost->flags.has_target = true;
     }
@@ -144,7 +193,7 @@ void A_GhostChase(Actor * ghost)
         if ( distance > GHOST_RADIUS ) {
             // Get a list of potential tiles around the player to teleport to.
             TileCoord coords[(GHOST_RADIUS * 2 + 1) * (GHOST_RADIUS * 2 + 1)];
-            int num_coords = 0;;
+            int num_coords = 0;
 
             for ( int y = ghost->target_tile.y - GHOST_RADIUS;
                  y <= ghost->target_tile.y + GHOST_RADIUS;
@@ -170,9 +219,13 @@ void A_GhostChase(Actor * ghost)
             TryMoveActor(ghost, coords[index]);
 
         } else {
-            Direction d = PathFindToTile(world, ghost->tile, player->tile);
+            Direction d = PathFindToTile(world->map, ghost->tile, player->tile, true);
             TileCoord coord = AdjacentTileCoord(ghost->tile, d);
             TryMoveActor(ghost, coord);
+//            Path path = FindPath(world, ghost->tile, player->tile, false);
+//            if ( path.size > 0 ) {
+//                TryMoveActor(ghost, path.coords[1]);
+//            }
         }
     }
 }

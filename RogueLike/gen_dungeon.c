@@ -78,7 +78,7 @@ void RenderTilesWithDelay(Game * game)
     if ( show_map_gen ) {
         CheckForShowMapGenCancel();
         V_ClearRGB(0, 0, 0);
-        DebugRenderTiles(&game->world.map,
+        DebugRenderTiles(game->world.map,
                          game->world.area,
                          game->world.info->debug_map_tile_size,
                          &game->render_info);
@@ -309,10 +309,10 @@ TileCoord GetRoomCenter(SDL_Rect room)
 ///
 static void GetValidRoomTiles(const World * world, int room_num)
 {
-    const Map * map = &world->map;
+    const Map * map = world->map;
     bool * occupied = calloc(map->width * map->height, sizeof(*occupied));
 
-    FOR_EACH_ACTOR_CONST(actor, world->actor_list) {
+    FOR_EACH_ACTOR_CONST(actor, world->map->actor_list) {
         int x = actor->tile.x;
         int y = actor->tile.y;
         occupied[y * map->width + x] = true;
@@ -360,7 +360,7 @@ static void GetValidRoomTiles(const World * world, int room_num)
 
 static void GetReachableTiles(Map * map, TileCoord start, int ignore_flags)
 {
-    CalculateDistances(map, start, ignore_flags);
+//    CalculateDistances(map, start, ignore_flags);
 
     BufferClear();
     for ( int i = 0; i < map->width * map->height; i++ ) {
@@ -575,18 +575,18 @@ void SpawnDoors(Map * map, TileCoord * potentials, int array_len)
 
 void SpawnPlayerAndStartTile(Game * game)
 {
-    TileCoord pt = GetRoomCenter(game->world.map.rooms[0]);
+    TileCoord pt = GetRoomCenter(game->world.map->rooms[0]);
     printf("player start: %d, %d\n", pt.x, pt.y);
 
     SpawnActor(game, ACTOR_PLAYER, pt);
-    *GetTile(&game->world.map, pt) = CreateTile(TILE_START);
+    *GetTile(game->world.map, pt) = CreateTile(TILE_START);
 }
 
 
 void SpawnGoldKey(Game * game)
 {
-    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
-    Map * map = &game->world.map;
+    Actor * player = FindActor(&game->world.map->actor_list, ACTOR_PLAYER);
+    Map * map = game->world.map;
 
     GetReachableTiles(map, player->tile, FLAG(TILE_DOOR));
 
@@ -624,7 +624,7 @@ void SpawnGoldKey(Game * game)
 ///
 void SpawnExit(Game * game)
 {
-    Map * map = &game->world.map;
+    Map * map = game->world.map;
 
     int exit_room = map->num_rooms - 1;
 
@@ -707,7 +707,7 @@ void GenerateDungeon(Game * game, int width, int height)
 
     game->world.area = AREA_DUNGEON;
 
-    Map * map = &game->world.map;
+    Map * map = game->world.map;
     map->width = width;
     map->height = height;
 

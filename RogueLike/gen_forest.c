@@ -185,7 +185,7 @@ void GenerateForest(Game * game, int seed, int width)
 //    SDL_memset(region_areas, 0, sizeof(region_areas));
     SDL_memset(regions, 0, sizeof(regions));
 
-    Map * map = &world->map;
+    Map * map = world->map;
 
     map->width = width;
     map->height = width;
@@ -298,7 +298,7 @@ void GenerateForest(Game * game, int seed, int width)
     CalculateTileDistancesFrom(map, player->tile);
     SortCoordsByDistance(map);
     int num_viable = area / 10;
-    Tile * tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER, num_viable, NULL);
+    Tile * tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 0;
 
 
@@ -311,14 +311,14 @@ void GenerateForest(Game * game, int seed, int width)
 
     // Create first teleporter.
     TileCoord tp_coord;
-    tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER, num_coords - 1, & tp_coord);
+    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_coords - 1, & tp_coord);
     tp->tag = 0;
 
     // Create second teleporter.
     CalculateTileDistancesFrom(map, tp_coord);
     SortCoordsByDistance(map);
     num_viable = area / 10;
-    tp = CreateTileAtRandomLocation(&world->map, TILE_TELEPORTER, num_viable, NULL);
+    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 1;
 
     for ( int i = 0; i < area / 20; i++ ) {

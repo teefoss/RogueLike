@@ -36,7 +36,7 @@ const AreaInfo area_info[NUM_AREAS] = {
 World InitWorld(void)
 {
     World world = { 0 };
-
+    
     InitParticleArray(&world.particles);
 
     return world;
@@ -46,7 +46,7 @@ World InitWorld(void)
 void GenerateWorld(Game * game, Area area, int seed, int width, int height)
 {
     // Free up all previously loaded actors.
-    RemoveAllActors(&game->world.actor_list);
+    RemoveAllActors(&game->world.map->actor_list);
 
     game->world.area = area;
     game->world.info = &area_info[area];
@@ -91,7 +91,7 @@ void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
     }
 
     vec2_t offset = GetRenderLocation(render_info, render_info->camera);
-    Box vis_rect = GetCameraVisibleRegion(&world->map, render_info);
+    Box vis_rect = GetCameraVisibleRegion(world->map, render_info);
 
     RenderTiles(world, &vis_rect, offset, false, render_info);
     RenderParticles(&world->particles, DRAW_SCALE, offset);
@@ -120,4 +120,80 @@ void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
     actors_msec = ProgramTime() - start;
 
     SDL_RenderSetViewport(renderer, NULL);
+}
+
+
+/// - parameter region: the rectangular area of the map to draw or NULL to draw
+/// entire map.
+void RenderTiles(const World * world,
+                 const Box * region,
+                 vec2_t offset,
+                 bool debug,
+                 const RenderInfo * render_info)
+{
+    float start = ProgramTime();
+
+    const Map * map = world->map;
+
+    int tile_size;
+    if ( debug ) {
+//        tile_size = area_info[world->area].debug_map_tile_size;
+        tile_size = render_info->height / map->height;
+    } else {
+        tile_size = SCALED(TILE_SIZE);
+    }
+
+    Box use;
+    if ( region == NULL ) {
+        use = (Box){ 0, 0, map->width - 1, map->height - 1 };
+    } else {
+        use = *region;
+    }
+
+    TileCoord coord;
+    for ( coord.y = use.top; coord.y <= use.bottom; coord.y++ ) {
+        for ( coord.x = use.left; coord.x <= use.right; coord.x++ ) {
+            const Tile * tile = GetTile((Map *)map, coord);
+
+            int signature = CalculateWallSignature(map, coord, false);
+
+            int pixel_x = coord.x * tile_size - offset.x;
+            int pixel_y = coord.y * tile_size - offset.y;
+
+            RenderTile(tile,
+                       world->area,
+                       signature,
+                       pixel_x,
+                       pixel_y,
+                       tile_size,
+                       debug,
+                       render_info);
+
+            if ( show_debug_info && TileCoordsEqual(coord, world->mouse_tile) ) {
+                SDL_Rect highlight = { pixel_x, pixel_y, tile_size, tile_size };
+                V_SetRGB(255, 80, 80);
+                V_DrawRect(&highlight);
+            }
+        }
+    }
+
+    tiles_msec = ProgramTime() - start;
+}
+
+
+void ResetTileVisibility(World * world,
+                         TileCoord player_tile,
+                         const RenderInfo * render_info)
+{
+    Box vis = GetCameraVisibleRegion(world->map, render_info);
+
+    TileCoord coord;
+    for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
+        for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
+            Tile * tile = GetTile(world->map, coord);
+            if ( !world->info->reveal_all ) {
+                tile->flags.visible = false;
+            }
+        }
+    }
 }

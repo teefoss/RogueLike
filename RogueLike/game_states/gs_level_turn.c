@@ -29,7 +29,7 @@ void LevelTurn_Update(Game * game, float dt)
 
 
     // Do all actor animations.
-    FOR_EACH_ACTOR(actor, game->world.actor_list) {
+    FOR_EACH_ACTOR(actor, game->world.map->actor_list) {
         if ( actor->animation ) {
             actor->animation(actor, game->move_timer);
             if ( game->move_timer == 1.0f ) {

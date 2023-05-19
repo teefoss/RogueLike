@@ -24,18 +24,18 @@ void TitleScreen_OnEnter(Game * game)
     GenerateWorld(game, AREA_FOREST, seed, game->forest_size, game->forest_size);
 
     // TODO: check if this is still needed.
-    for ( int i = 0; i < game->world.map.width * game->world.map.height; i++ ) {
-        Tile * tile = &game->world.map.tiles[i];
+    for ( int i = 0; i < game->world.map->width * game->world.map->height; i++ ) {
+        Tile * tile = &game->world.map->tiles[i];
         tile->light = game->world.info->revealed_light;
     }
 
     // Remove all actors.
-    RemoveAllActors(&game->world.actor_list);
+    RemoveAllActors(&game->world.map->actor_list);
 
     // Center camera in world.
     TileCoord center = {
-        game->world.map.width / 2,
-        game->world.map.height / 2
+        game->world.map->width / 2,
+        game->world.map->height / 2
     };
     game->render_info.camera = TileCoordToScaledWorldCoord(center, vec2_zero);
 

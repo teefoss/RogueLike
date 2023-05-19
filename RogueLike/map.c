@@ -121,64 +121,6 @@ TileCoord GetCoordinate(const Map * map, int index)
 }
 
 
-/// - parameter region: the rectangular area of the map to draw or NULL to draw
-/// entire map.
-void RenderTiles(const World * world,
-                 const Box * region,
-                 vec2_t offset,
-                 bool debug,
-                 const RenderInfo * render_info)
-{
-    float start = ProgramTime();
-
-    const Map * map = &world->map;
-
-    int tile_size;
-    if ( debug ) {
-//        tile_size = area_info[world->area].debug_map_tile_size;
-        tile_size = render_info->height / map->height;
-    } else {
-        tile_size = SCALED(TILE_SIZE);
-    }
-
-    Box use;
-    if ( region == NULL ) {
-        use = (Box){ 0, 0, map->width - 1, map->height - 1 };
-    } else {
-        use = *region;
-    }
-
-    TileCoord coord;
-    for ( coord.y = use.top; coord.y <= use.bottom; coord.y++ ) {
-        for ( coord.x = use.left; coord.x <= use.right; coord.x++ ) {
-            const Tile * tile = GetTile((Map *)map, coord);
-
-            int signature = CalculateWallSignature(map, coord, false);
-
-            int pixel_x = coord.x * tile_size - offset.x;
-            int pixel_y = coord.y * tile_size - offset.y;
-
-            RenderTile(tile,
-                       world->area,
-                       signature,
-                       pixel_x,
-                       pixel_y,
-                       tile_size,
-                       debug,
-                       render_info);
-
-            if ( show_debug_info && TileCoordsEqual(coord, world->mouse_tile) ) {
-                SDL_Rect highlight = { pixel_x, pixel_y, tile_size, tile_size };
-                V_SetRGB(255, 80, 80);
-                V_DrawRect(&highlight);
-            }
-        }
-    }
-
-    tiles_msec = ProgramTime() - start;
-}
-
-
 /// Is `t2` visible from `t1`?
 bool LineOfSight(Map * map, TileCoord t1, TileCoord t2)
 {
@@ -358,24 +300,6 @@ bool TileIsAdjacentTo(const Map * map,
 }
 
 
-void ResetTileVisibility(World * world,
-                         TileCoord player_tile,
-                         const RenderInfo * render_info)
-{
-    Box vis = GetCameraVisibleRegion(&world->map, render_info);
-
-    TileCoord coord;
-    for ( coord.y = vis.top; coord.y <= vis.bottom; coord.y++ ) {
-        for ( coord.x = vis.left; coord.x <= vis.right; coord.x++ ) {
-            Tile * tile = GetTile(&world->map, coord);
-            if ( !world->info->reveal_all ) {
-                tile->flags.visible = false;
-            }
-        }
-    }
-}
-
-
 #pragma mark - DISTANCE MAP
 
 typedef struct {
@@ -414,56 +338,133 @@ void FreeDistanceMapQueue(void)
     }
 }
 
+#if 1
 /// For all walkable tiles, update tile `distance` property
 /// with distance to x, y.
 /// - parameter coord: The tile from which distances are calculated.
 /// - parameter ignore_flags: The tile types to be ignored, as bit flags.
-void CalculateDistances(Map * map, TileCoord coord, int ignore_flags)
+void CalculateDistances(Map * map, TileCoord coord, int ignore_flags, bool player)
 {
     queue_size = 0;
 
-    TileCoord c;
-    for ( c.y = 0; c.y < map->height; c.y++ ) {
-        for ( c.x = 0; c.x < map->width; c.x++ ) {
-            Tile * tile = GetTile(map, c);
+//    float start_time = ProgramTime();
 
-            // TODO: the queue was occasionally the wrong size (too small)
-//            if ( (ignore_flags & FLAG(tile->type)) || !tile->flags.blocks_movement ) {
-//                queue_size++;
-                tile->distance = -1;
-//            }
+    for ( int i = 0; i < map->width * map->height; i++ ) {
+        if ( player ) {
+            map->tiles[i].player_distance = -1;
+        } else {
+            map->tiles[i].distance = -1;
         }
     }
 
-    queue_size = map->width * map->height;
+    int size_needed = map->width * map->height;
+    if ( queue_size < size_needed ) {
+        size_t new_size = size_needed * sizeof(*queue);
+        if ( queue == NULL ) {
+            queue = malloc(new_size);
+        } else {
+            queue = realloc(queue, new_size);
+        }
 
-    FreeDistanceMapQueue();
-    queue = calloc(queue_size, sizeof(*queue));
+        ASSERT(queue != NULL);
+        queue_size = size_needed;
+    }
+
     head = 0;
     tail = 0;
 
-    Tile * tile = GetTile(map, coord);
-    tile->distance = 0;
-    qtile_t start = { tile, coord };
-    Put(start);
+    {
+        Tile * tile = GetTile(map, coord);
+        tile->distance = 0;
+        qtile_t start = { tile, coord };
+        Put(start);
+    }
 
+    int num_visited = 0;
     while ( head != tail ) {
+        num_visited++;
         qtile_t qtile = Get();
         int distance = qtile.tile->distance;
 
         for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
             Tile * edge = GetAdjacentTile(map, qtile.coord, d);
             TileCoord edge_coord = AdjacentTileCoord(qtile.coord, d);
+            s16 * dist = player ? &edge->player_distance : &edge->distance;
 
-            if ( edge // inbounds
-                && edge->distance == -1 // not yet visited
-                && ( (ignore_flags & FLAG(tile->type)) || !tile->flags.blocks_movement ) )
-            {
-                // open and not yet visited
-                edge->distance = distance + 1;
-                qtile_t next_qtile = { edge, edge_coord };
-                Put(next_qtile);
+            if ( edge == NULL ) continue; // out of bounds
+            if ( *dist != -1 ) continue; // already visited
+
+            // This tile blocks movement and is not of a type to be ignored.
+            bool ignore = ignore_flags & FLAG(edge->type);
+            if ( edge->flags.blocks_movement && !ignore ) continue;
+
+            // Nothing blocking this tile and not yet visited:
+            *dist = distance + 1;
+
+            qtile_t next_qtile = { edge, edge_coord };
+            Put(next_qtile);
+        }
+    }
+
+//    printf("%s: %.2f ms (%d tiles)\n",
+//           __func__,
+//           (ProgramTime() - start_time) * 1000.0f,
+//           num_visited);
+}
+#endif
+
+#if 0
+int num_visited = 0;
+
+static void VisitTile_r(Map * map,
+                        Tile * tile,
+                        TileCoord coord,
+                        int distance,
+                        int ignore_flags)
+{
+    if ( tile == NULL ) {
+        return; // Out of bounds.
+    }
+
+    if ( tile->distance != -1 ) {
+        return; // Already visited.
+    }
+
+//    bool ignore = ignore_flags & FLAG(tile->type);
+
+    if ( tile->flags.blocks_movement ) {
+        return;
+    }
+
+    tile->distance = distance;
+    num_visited++;
+
+    for ( int d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+        Tile * adj_tile = GetAdjacentTile(map, coord, d);
+        TileCoord adj_coord = AdjacentTileCoord(coord, d);
+
+        VisitTile_r(map, adj_tile, adj_coord, distance + 1, ignore_flags);
+    }
+}
+
+void CalculateDistances2(Map * map, TileCoord coord, int ignore_flags)
+{
+    float start_time = ProgramTime();
+    TileCoord c;
+    for ( c.y = 0; c.y < map->height; c.y++ ) {
+        for ( c.x = 0; c.x < map->width; c.x++ ) {
+            Tile * tile = GetTile(map, c);
+            tile->distance = -1;
+            if ( tile->flags.blocks_movement ) {
+//                printf("tile at %d, %d blocks movement\n", c.x, c.y);
             }
         }
     }
+
+    num_visited = 0;
+    Tile * tile = GetTile(map, coord);
+    VisitTile_r(map, tile, coord, 0, ignore_flags);
+    printf("num visited: %d\n", num_visited);
+    printf("%s: %.2f ms\n", __func__, (ProgramTime() - start_time) * 1000.0f);
 }
+#endif

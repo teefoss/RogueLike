@@ -84,6 +84,11 @@ void C_Player(Actor * player, Actor * hit)
 
 void C_Monster(Actor * monster, Actor * hit)
 {
+    // Monsters cannot damage ghosts.
+    if ( hit->type == ACTOR_GHOST ) {
+        return;
+    }
+
     // Monsters can damage other monsters, but not of the same type
     if ( hit->info->flags.takes_damage && monster->type != hit->type ) {
         DamageActor(hit, monster, monster->stats.damage);

@@ -10,15 +10,19 @@
 
 #include "tile.h"
 #include "render.h"
+#include "coord.h"
+#include "direction.h"
+#include "actor_list.h"
 
 #include "mathlib.h"
 
-#define MAX_ROOMS 200
+#define MAX_ROOMS 64
 
 typedef struct {
     int width;
     int height;
 
+    ActorList actor_list;
     Tile * tiles;
     TileID * tile_ids;
 
@@ -34,21 +38,11 @@ Box GetCameraVisibleRegion(const Map * map, const RenderInfo * render_info);
 Box GetPlayerVisibleRegion(const Map * map, TileCoord player_coord);
 bool IsInBounds(const Map * map, int x, int y);
 bool LineOfSight(Map * map, TileCoord t1, TileCoord t2);
-void CalculateDistances(Map * map, TileCoord coord, int ignore_flags);
+void CalculateDistances(Map * map, TileCoord coord, int ignore_flags, bool player);
 bool ManhattenPathsAreClear(Map * map, int x0, int y0, int x1, int y1);
 void FreeDistanceMapQueue(void);
 bool TileIsAdjacentTo(const Map * map, TileCoord coord, TileType type, int num_directions);
-void RenderTiles(const World * world,
-                 const Box * region,
-                 vec2_t offset,
-                 bool debug,
-                 const RenderInfo * render_info);
-
-
-void ResetTileVisibility(World * world,
-                         TileCoord player_tile,
-                         const RenderInfo * render_info);
-
+int CalculateWallSignature(const Map * map, TileCoord coord, bool ignore_reveal);
 
 #define GetTile(map, coord) _Generic((map), \
     const Map *: GetTileConst,              \

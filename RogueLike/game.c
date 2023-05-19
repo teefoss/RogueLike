@@ -38,12 +38,12 @@ static vec2_t GetWindowScale(const RenderInfo * info)
 void SetTileLight(World * world, const RenderInfo * render_info)
 {
     const AreaInfo * info = world->info;
-    Box vis = GetCameraVisibleRegion(&world->map, render_info);
+    Box vis = GetCameraVisibleRegion(world->map, render_info);
 
     for ( int y = vis.top; y <= vis.bottom; y++ ) {
         for ( int x = vis.left; x <= vis.right; x++ ) {
             TileCoord coord = { x, y };
-            Tile * tile = GetTile(&world->map, coord);
+            Tile * tile = GetTile(world->map, coord);
 
             if ( tile == NULL ) {
                 Error("error: somehow NULL tile in vis rect!");
@@ -76,7 +76,7 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 
     ActorsStats saved_player_stats = { 0 };
     if ( persist_player_stats ) {
-        Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+        Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
         if ( player ) {
             saved_player_stats = player->stats;
         }
@@ -89,10 +89,10 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
         GenerateWorld(game, AREA_DUNGEON, seed, 31, 31);
     }
 
-    printf("num actors: %d\n", game->world.actor_list.count);
+    printf("num actors: %d\n", game->world.map->actor_list.count);
 
     // Focus camera on player.
-    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+    Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
     game->render_info.camera = TileCoordToScaledWorldCoord(player->tile, vec2_zero);
 
     // Carry over player's stats from the previous level.
@@ -104,7 +104,7 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
     PlayerCastSight(world, &game->render_info);
     SetTileLight(&game->world, &game->render_info);
 
-    FOR_EACH_ACTOR(actor, world->actor_list) {
+    FOR_EACH_ACTOR(actor, world->map->actor_list) {
         CastLight(world, actor);
     }
 
@@ -145,7 +145,7 @@ void UpdateLevel(Game * game, float dt)
 {
     // Update camera.
 
-    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
+    Actor * player = FindActor(&game->world.map->actor_list, ACTOR_PLAYER);
     vec2_t player_pt; // world scaled
     player_pt.x = player->tile.x * SCALED(TILE_SIZE) + player->offset_current.x;
     player_pt.y = player->tile.y * SCALED(TILE_SIZE) + player->offset_current.y;
@@ -238,7 +238,7 @@ void TryMovePlayer(Actor * player,
 //            player->flags.on_teleporter = false;
 //        }
 
-        CalculateDistances(map, player->tile, 0);
+        CalculateDistances(map, player->tile, 0, true);
     }
 
     --player_info->turns;
@@ -253,9 +253,13 @@ void TryMovePlayer(Actor * player,
 
 void StartTurn(Game * game, TileCoord destination, Direction direction)
 {
+    printf("--- START TURN ---\n");
+
+    float start_time = ProgramTime();
+
     World * world = &game->world;
-    Map * map = &world->map;
-    Actor * player = FindActor(&world->actor_list, ACTOR_PLAYER);
+    Map * map = world->map;
+    Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
     PlayerInfo * player_info = &game->player_info;
 
     game->log[0] = '\0'; // Clear the log.
@@ -283,7 +287,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
 
         case TILE_BUTTON_NOT_PRESSED: {
             Actor * pillars[2] = { NULL };
-            FindActors(&world->actor_list, ACTOR_PILLAR, pillars);
+            FindActors(&world->map->actor_list, ACTOR_PILLAR, pillars);
 
             // Lower pillars.
             for ( int i = 0; i < 2; i++ ) {
@@ -344,7 +348,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
         player_info->turns = INITIAL_TURNS;
 
         // Do all actor turns.
-        FOR_EACH_ACTOR(actor, world->actor_list) {
+        FOR_EACH_ACTOR(actor, world->map->actor_list) {
             if ( !actor->flags.was_attacked && actor->info->action ) {
                 actor->info->action(actor);
             }
@@ -352,6 +356,8 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
             actor->flags.was_attacked = false; // reset
         }
     }
+
+    printf("%s: %.2f ms\n", __func__, (ProgramTime() - start_time) * 1000.0f);
 }
 
 
@@ -473,7 +479,7 @@ void RenderDebugInfo(const World * world,
                      const Actor * player,
                      TileCoord mouse_tile)
 {
-    const Map * map = &world->map;
+    const Map * map = world->map;
 
     DEBUG_PRINT("Frame time: %.1f (max: %.1f)",
                 frame_msec * 1000.0f,
@@ -511,11 +517,11 @@ void GamePlayRender(const Game * game)
 
     if ( show_debug_map ) {
 //        int size = area_info[world->area].debug_map_tile_size;
-        int size = game->render_info.height / world->map.height;
+        int size = game->render_info.height / world->map->height;
 
         RenderTiles(world, NULL, vec2_zero, true, &game->render_info);
 
-        Box vis = GetCameraVisibleRegion(&world->map, &game->render_info);
+        Box vis = GetCameraVisibleRegion(world->map, &game->render_info);
 
         SDL_Rect box = {
             .x = vis.left * size,
@@ -527,7 +533,7 @@ void GamePlayRender(const Game * game)
         V_SetRGB(255, 80, 80);
         V_DrawRect(&box);
 
-        FOR_EACH_ACTOR_CONST(actor, world->actor_list) {
+        FOR_EACH_ACTOR_CONST(actor, world->map->actor_list) {
             int x = actor->tile.x * size;
             int y = actor->tile.y * size;
             RenderActor(actor, x, y, size, true, game->ticks);
@@ -537,7 +543,7 @@ void GamePlayRender(const Game * game)
 
         if ( menu_state == MENU_NONE ) {
             if ( !show_debug_info ) {
-                const Actor * player = FindActorConst(&world->actor_list,
+                const Actor * player = FindActorConst(&world->map->actor_list,
                                                       ACTOR_PLAYER);
                 RenderHUD(game, player);
             }
@@ -549,7 +555,7 @@ void GamePlayRender(const Game * game)
     }
 
     if ( show_debug_info ) {
-        const Actor * player = FindActorConst(&world->actor_list, ACTOR_PLAYER);
+        const Actor * player = FindActorConst(&world->map->actor_list, ACTOR_PLAYER);
         RenderDebugInfo(&game->world, player, world->mouse_tile);
     }
 
@@ -592,6 +598,8 @@ Game * InitGame(int width, int height)
     game->inventory_open = false;
 
     game->world = InitWorld();
+    game->world.map = &game->world.maps[0];
+    
     game->state_stack_top = -1;
     game->render_info = InitRenderInfo(width, height);
 
@@ -702,7 +710,7 @@ void DoFrame(Game * game, float dt)
                         break;
 #endif 
                     case SDLK_k:
-                        FOR_EACH_ACTOR(actor, game->world.actor_list) {
+                        FOR_EACH_ACTOR(actor, game->world.map->actor_list) {
                             if ( actor->type != ACTOR_PLAYER ) {
                                 RemoveActor(actor);
                             }
@@ -716,7 +724,7 @@ void DoFrame(Game * game, float dt)
                 switch ( event.button.button ) {
                     case SDL_BUTTON_LEFT:
                         if ( event.button.clicks == 2 && show_debug_info ) {
-                            Actor * player = FindActor(&game->world.actor_list,
+                            Actor * player = FindActor(&game->world.map->actor_list,
                                                        ACTOR_PLAYER);
                             player->tile = game->world.mouse_tile;
                         }

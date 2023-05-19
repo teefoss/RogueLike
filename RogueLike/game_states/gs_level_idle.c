@@ -32,7 +32,7 @@ static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
                     ChangeInventorySelection(inv, EAST);
                     return true;
                 case SDLK_RETURN: {
-                    Actor * player = FindActor(&game->world.actor_list,
+                    Actor * player = FindActor(&game->world.map->actor_list,
                                                ACTOR_PLAYER);
                     UseItem(player);
                     return true;
@@ -117,7 +117,7 @@ void LevelIdle_Update(Game * game, float dt)
 {
     // Update actor standing animations, etc.
 
-    FOR_EACH_ACTOR(actor, game->world.actor_list) {
+    FOR_EACH_ACTOR(actor, game->world.map->actor_list) {
         const ActorSprite * sprite = &actor->info->sprite;
         if (sprite->num_frames > 1 &&
             game->ticks % MS2TICKS(sprite->frame_msec, FPS) == 0 )
@@ -132,8 +132,8 @@ void LevelIdle_Update(Game * game, float dt)
 
 void LevelIdle_OnEnter(Game * game)
 {
-    Actor * player = FindActor(&game->world.actor_list, ACTOR_PLAYER);
-    Tile * player_tile = GetTile(&game->world.map, player->tile);
+    Actor * player = FindActor(&game->world.map->actor_list, ACTOR_PLAYER);
+    Tile * player_tile = GetTile(game->world.map, player->tile);
 
     // Check if the player has moved onto a tile that requires action:
 

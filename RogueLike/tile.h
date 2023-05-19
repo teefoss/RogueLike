@@ -9,6 +9,7 @@
 #define tile_h
 
 #include "render.h"
+#include "shorttypes.h"
 
 #define MAX_LIGHT 255
 
@@ -48,6 +49,7 @@ typedef struct {
 
     u8 light; // Current light level.
     s16 distance; // For pathfinding. Updated via CalculateDistances()
+    s16 player_distance; // "   "
     u8 tag;
 } Tile;
 

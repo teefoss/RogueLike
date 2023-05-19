@@ -12,7 +12,6 @@
 #include "map.h"
 #include "particle.h"
 #include "render.h"
-#include "actor_list.h"
 
 typedef enum area {
     AREA_FOREST,
@@ -35,8 +34,8 @@ typedef struct world {
     Area area;
     const AreaInfo * info;
 
-    Map map;
-    ActorList actor_list;
+    Map * map;
+    Map maps[2];
     ParticleArray particles;
 
     TileCoord mouse_tile;
@@ -50,5 +49,14 @@ void RenderWorld(const World * world, const RenderInfo * render_info, int ticks)
 void GenerateWorld(Game * game, Area area, int seed, int width, int height);
 void GenerateForest(Game * game, int seed, int width);
 void GenerateDungeon(Game * game, int width, int height);
+
+void RenderTiles(const World * world,
+                 const Box * region,
+                 vec2_t offset,
+                 bool debug,
+                 const RenderInfo * render_info);
+void ResetTileVisibility(World * world,
+                         TileCoord player_tile,
+                         const RenderInfo * render_info);
 
 #endif /* world_h */

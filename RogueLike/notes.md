@@ -28,7 +28,7 @@ weaker enemies can't kill stronger
 
 # BUGS
 
-blob 'stutter'
+blob 'stutter' (?)
 * key got placed in exit room! / beyond exit room
 particle lighting
 fix map mouse...

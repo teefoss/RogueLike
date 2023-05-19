@@ -85,11 +85,11 @@ int main(void)
     SaveConfigFile();
 
     FreeDistanceMapQueue();
-    DestroyActorList(&game->world.actor_list);
+    DestroyActorList(&game->world.map->actor_list);
     FreeRenderAssets(&game->render_info);
     FreeVisibleActorsArray();
-    free(game->world.map.tiles);
-    free(game->world.map.tile_ids);
+    free(game->world.map->tiles);
+    free(game->world.map->tile_ids);
     free(game);
 
     return 0;

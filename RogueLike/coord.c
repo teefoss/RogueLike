@@ -5,9 +5,8 @@
 //  Created by Thomas Foster on 3/27/23.
 //
 
-#include "game.h"
+#include "render.h"
 #include "coord.h"
-#include "mathlib.h"
 
 bool TileInBox(TileCoord coord, Box box)
 {
