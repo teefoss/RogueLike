@@ -21,88 +21,81 @@ static struct tile_info {
     u8 height; // in tiles, unspecified (0) is treated as 1 tile
     s8 y_offset; // in tiles
     u8 num_variants;
-} _info[NUM_TILE_TYPES][NUM_AREAS] = {
-    [TILE_FLOOR] = {
-        [AREA_FOREST] = {
-            .sprite_cell = { 0, 5 },
-            .height = 2,
-            .num_variants = 9,
-        },
-        [AREA_DUNGEON] = {
-            .sprite_cell = { 0, 1 },
-            .num_variants = 8,
-        }
+} _info[NUM_TILE_TYPES] = {
+    [TILE_NULL] = {
+        .sprite_cell = { 1, 0 },
+    },
+    [TILE_FOREST_GROUND] = {
+        .sprite_cell = { 0, 5 },
+        .height = 2,
+        .num_variants = 9,
+    },
+    [TILE_DUNGEON_FLOOR] = {
+        .sprite_cell = { 0, 1 },
+        .num_variants = 8,
     },
     [TILE_TREE] = {
-        [AREA_FOREST] = {
-            .sprite_cell = { 9, 5 },
-            .num_variants = 2,
-            .height = 2,
-        }
+        .sprite_cell = { 9, 5 },
+        .num_variants = 2,
+        .height = 2,
     },
-    [TILE_WALL] = {
-        [AREA_FOREST] = {
-            .sprite_cell = { 0, 5 },
-            .height = 2,
-        },
-        [AREA_DUNGEON] = {
-            .sprite_cell = { 1, 0 },
-        }
+    [TILE_DUNGEON_WALL] = {
+        .sprite_cell = { 1, 0 },
     },
-    [TILE_DOOR] = {
-        [AREA_DUNGEON] = {
-            .sprite_cell = { 3, 3 },
-        },
+    [TILE_DUNGEON_DOOR] = {
+        .sprite_cell = { 3, 3 },
     },
-    [TILE_EXIT] = {
-        [AREA_FOREST] = {
-            .sprite_cell = { 0, 5 },
-        },
-        [AREA_DUNGEON] = {
-            .sprite_cell = { 0, 3 },
-        },
+    [TILE_FOREST_EXIT] = {
+        .sprite_cell = { 0, 5 },
+    },
+    [TILE_DUNGEON_EXIT] = {
+        .sprite_cell = { 0, 3 },
     },
     [TILE_GOLD_DOOR] = {
-        [AREA_DUNGEON] = {
-            .sprite_cell = { 2, 3 },
-        },
+        .sprite_cell = { 2, 3 },
     },
     [TILE_START] = {
-        [AREA_DUNGEON] = {
-            .sprite_cell = { 4, 3 },
-        },
+        .sprite_cell = { 4, 3 },
     },
     [TILE_WATER] = {
-        [AREA_FOREST] = {
-            .sprite_cell = { 0, 7 },
-            .num_variants = 8,
-        },
+        .sprite_cell = { 0, 7 },
+        .num_variants = 8,
     },
     [TILE_TELEPORTER] = {
-        [AREA_FOREST] = {
-            .sprite_cell = { 1, 8 },
-        },
+        .sprite_cell = { 1, 8 },
     },
     [TILE_BUTTON_NOT_PRESSED] = {
-        [AREA_DUNGEON] = { .sprite_cell = { 6, 3 }, }
+        .sprite_cell = { 6, 3 },
     },
     [TILE_BUTTON_PRESSED] = {
-        [AREA_DUNGEON] = { .sprite_cell = { 5, 3 }, }
+        .sprite_cell = { 5, 3 },
+    },
+    [TILE_WOODEN_FLOOR] = {
+        .sprite_cell = { 0, 10 },
+    },
+    [TILE_WHITE_OPENING] = {
+        .sprite_cell = { 1, 10 },
     },
 };
 
 
 static Tile tile_templates[NUM_TILE_TYPES] = {
-    [TILE_WALL] = {
+    [TILE_NULL] = {
+        .flags = { .blocks_movement = true, .blocks_sight = true },
+    },
+    [TILE_DUNGEON_WALL] = {
         .flags = { .blocks_movement = true, .blocks_sight = true },
     },
     [TILE_TREE] = {
         .flags = { .blocks_movement = true, .blocks_sight = true }
     },
-    [TILE_DOOR] = {
+    [TILE_DUNGEON_DOOR] = {
         .flags = { .blocks_movement = true, .blocks_sight = true },
     },
-    [TILE_EXIT] = {
+    [TILE_FOREST_EXIT] = {
+        .flags = { .player_only = true, },
+    },
+    [TILE_DUNGEON_EXIT] = {
         .flags = { .player_only = true, },
     },
     [TILE_GOLD_DOOR] = {
@@ -133,11 +126,14 @@ Tile CreateTile(TileType type)
 const char * TileName(TileType type)
 {
     switch ( type ) {
-            CASE_RETURN_STRING(TILE_FLOOR);
+            CASE_RETURN_STRING(TILE_NULL);
+            CASE_RETURN_STRING(TILE_FOREST_GROUND);
+            CASE_RETURN_STRING(TILE_DUNGEON_FLOOR);
             CASE_RETURN_STRING(TILE_TREE);
-            CASE_RETURN_STRING(TILE_WALL);
-            CASE_RETURN_STRING(TILE_DOOR);
-            CASE_RETURN_STRING(TILE_EXIT);
+            CASE_RETURN_STRING(TILE_DUNGEON_WALL);
+            CASE_RETURN_STRING(TILE_DUNGEON_DOOR);
+            CASE_RETURN_STRING(TILE_FOREST_EXIT);
+            CASE_RETURN_STRING(TILE_DUNGEON_EXIT);
             CASE_RETURN_STRING(TILE_GOLD_DOOR);
             CASE_RETURN_STRING(TILE_START);
             CASE_RETURN_STRING(TILE_WATER);
@@ -145,6 +141,8 @@ const char * TileName(TileType type)
             CASE_RETURN_STRING(NUM_TILE_TYPES);
             CASE_RETURN_STRING(TILE_BUTTON_NOT_PRESSED);
             CASE_RETURN_STRING(TILE_BUTTON_PRESSED);
+            CASE_RETURN_STRING(TILE_WOODEN_FLOOR);
+            CASE_RETURN_STRING(TILE_WHITE_OPENING);
     }
 }
 
@@ -160,7 +158,7 @@ void RenderTile(const Tile * tile,
                 const RenderInfo * render_info)
 {
     SDL_Texture * tiles = render_info->tile_texture;
-    tile_info_t * info = &_info[tile->type][area];
+    tile_info_t * info = &_info[tile->type];
 
     if ( debug || tile->flags.bright ) {
         // In debug, always draw at full light.
@@ -194,7 +192,7 @@ void RenderTile(const Tile * tile,
     }
 
     switch ( (TileType)tile->type ) {
-        case TILE_WALL:
+        case TILE_DUNGEON_WALL:
             if ( area == AREA_DUNGEON ) {
                 src.x = 1 * TILE_SIZE;
                 src.y = 0 * TILE_SIZE;
@@ -223,17 +221,16 @@ void RenderTile(const Tile * tile,
                 return;
             }
             break;
-        case TILE_FLOOR:
-            if ( area == AREA_FOREST ) {
-                if ( tile->variety == 012 ) {
-                    src.x += (info->num_variants - 1) * TILE_SIZE; // flower
-                } else if ( tile->variety < 170 ) {
-                    src.x += (tile->variety % (info->num_variants - 1)) * TILE_SIZE;
-                }
-            } else {
-                if ( tile->variety > 112 ) {
-                    src.x += (tile->variety % info->num_variants) * TILE_SIZE;
-                }
+        case TILE_FOREST_GROUND:
+            if ( tile->variety == 012 ) {
+                src.x += (info->num_variants - 1) * TILE_SIZE; // flower
+            } else if ( tile->variety < 170 ) {
+                src.x += (tile->variety % (info->num_variants - 1)) * TILE_SIZE;
+            }
+            break;
+        case TILE_DUNGEON_FLOOR:
+            if ( tile->variety > 112 ) {
+                src.x += (tile->variety % info->num_variants) * TILE_SIZE;
             }
             break;
         case TILE_WATER:

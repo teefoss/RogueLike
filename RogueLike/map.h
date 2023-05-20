@@ -43,6 +43,7 @@ bool ManhattenPathsAreClear(Map * map, int x0, int y0, int x1, int y1);
 void FreeDistanceMapQueue(void);
 bool TileIsAdjacentTo(const Map * map, TileCoord coord, TileType type, int num_directions);
 int CalculateWallSignature(const Map * map, TileCoord coord, bool ignore_reveal);
+void AllocateMapTiles(Map * map, int width, int height, TileType fill);
 
 #define GetTile(map, coord) _Generic((map), \
     const Map *: GetTileConst,              \

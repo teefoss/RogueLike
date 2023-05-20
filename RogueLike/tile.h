@@ -14,17 +14,22 @@
 #define MAX_LIGHT 255
 
 typedef enum {
-    TILE_FLOOR,
+    TILE_NULL,
+    TILE_FOREST_GROUND,
+    TILE_DUNGEON_FLOOR,
     TILE_TREE,
-    TILE_WALL,
-    TILE_DOOR,
-    TILE_EXIT, // Level exit stairs
+    TILE_DUNGEON_WALL,
+    TILE_DUNGEON_DOOR,
+    TILE_FOREST_EXIT,
+    TILE_DUNGEON_EXIT,
     TILE_GOLD_DOOR, // Exit room locked door
     TILE_START, // Just a floor with a symbol, to mark player's start tile
     TILE_WATER,
     TILE_TELEPORTER,
     TILE_BUTTON_NOT_PRESSED,
     TILE_BUTTON_PRESSED,
+    TILE_WOODEN_FLOOR,
+    TILE_WHITE_OPENING,
 
     NUM_TILE_TYPES,
 } TileType;

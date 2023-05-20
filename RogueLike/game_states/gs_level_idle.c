@@ -145,7 +145,8 @@ void LevelIdle_OnEnter(Game * game)
                 S_Play("o0 t160 l32 c g > d a > e b > f+ > c+ g+ > d+ a+ > f > c ");
             }
             break;
-        case TILE_EXIT:
+        case TILE_FOREST_EXIT: // TODO: maybe exit is a flag
+        case TILE_DUNGEON_EXIT:
             ++game->level;
             FadeOutAndChangeState(game, &gs_intermission, 0.25f);
             break;

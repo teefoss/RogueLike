@@ -468,3 +468,21 @@ void CalculateDistances2(Map * map, TileCoord coord, int ignore_flags)
     printf("%s: %.2f ms\n", __func__, (ProgramTime() - start_time) * 1000.0f);
 }
 #endif
+
+
+void AllocateMapTiles(Map * map, int width, int height, TileType fill)
+{
+    map->width = width;
+    map->height = height;
+
+    if ( map->tiles ) {
+        free(map->tiles);
+    }
+
+    int size = width * height;
+    map->tiles = calloc(size, sizeof(map->tiles[0]));
+
+    for ( int i = 0; i < size; i++ ) {
+        map->tiles[i] = CreateTile(fill);
+    }
+}

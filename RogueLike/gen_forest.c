@@ -97,7 +97,7 @@ static void FloodFillGroundTiles_r(Map * map, TileCoord coord, int region)
         return;
     }
 
-    if ( tile->type == TILE_FLOOR && tile->id == -1 ) {
+    if ( tile->type == TILE_FOREST_GROUND && tile->id == -1 ) {
         tile->id = region;
 //        region_areas[region]++;
         regions[region].region = region;
@@ -187,21 +187,13 @@ void GenerateForest(Game * game, int seed, int width)
 
     Map * map = world->map;
 
-    map->width = width;
-    map->height = width;
+    AllocateMapTiles(map, width, width, TILE_TREE);
+
     int map_size = width * width;
     printf("Forest size: %d (%d x %d)\n", map_size, map->width, map->height);
+
     int radius = (width / 2) * 0.75;
     printf("Outside radius: %d tiles\n", width / 2 - radius);
-
-    if ( map->tiles ) {
-        free(map->tiles);
-    }
-    map->tiles = calloc(map_size, sizeof(*map->tiles));
-
-    for ( int i = 0; i < map_size; i++ ) {
-        map->tiles[i] = CreateTile(TILE_WALL);
-    }
 
     RandomizeNoise(seed);
     num_coords = 0;
@@ -238,14 +230,14 @@ void GenerateForest(Game * game, int seed, int width)
             if ( noise < game->forest_low || noise > game->forest_high ) {
                 *tile = CreateTile(TILE_TREE);
             } else {
-                *tile = CreateTile(TILE_FLOOR);
+                *tile = CreateTile(TILE_FOREST_GROUND);
             }
 
             if ( water_noise > game->forest_high ) {
                 *tile = CreateTile(TILE_WATER);
             }
 
-            if ( tile->type == TILE_FLOOR ) {
+            if ( tile->type == TILE_FOREST_GROUND ) {
                 AddTile(coord);
             }
 
@@ -370,7 +362,7 @@ void GenerateForest(Game * game, int seed, int width)
     int index = Random(0, num_viable);
     TileCoord exit_coord = coords[index];
     Tile * tile = GetTile(map, exit_coord);
-    *tile = CreateTile(TILE_EXIT);
+    *tile = CreateTile(TILE_FOREST_EXIT);
     if ( area_info[AREA_FOREST].reveal_all ) {
         tile->flags.revealed = true;
     }
@@ -384,6 +376,23 @@ void GenerateForest(Game * game, int seed, int width)
             SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, num_coords - 1);
         } else {
             SpawnActorAtRandomLocation(game, ACTOR_SPIDER, num_coords - 1);
+        }
+    }
+
+    //
+    // Generate shack interior
+
+    map = &world->maps[1];
+
+    AllocateMapTiles(map, 9, 10, TILE_WOODEN_FLOOR);
+
+    for ( int x = 0; x < map->width; x++ ) {
+        TileCoord coord = { x, 0 }; // Top row
+        tile = GetTile(map, coord);
+        if ( x == map->width / 2 ) {
+            *tile = CreateTile(TILE_WHITE_OPENING);
+        } else {
+            *tile = CreateTile(TILE_NULL);
         }
     }
 }

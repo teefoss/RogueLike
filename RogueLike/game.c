@@ -278,7 +278,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
     switch ( (TileType)tile->type ) {
 
         case TILE_TREE:
-        case TILE_WALL:
+        case TILE_DUNGEON_WALL:
             SetUpBumpAnimation(player, direction);
             S_Play(SOUND_BUMP);
 
@@ -304,10 +304,10 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
             break;
         }
 
-        case TILE_DOOR:
+        case TILE_DUNGEON_DOOR:
             SetUpBumpAnimation(player, direction);
             S_Play("l32o2c+f+b");
-            *tile = CreateTile(TILE_FLOOR); // Open (remove) the door.
+            *tile = CreateTile(TILE_DUNGEON_FLOOR); // Open (remove) the door.
 
             // Make sure to reveal what's behind the door.
             PlayerCastSight(world, &game->render_info);
@@ -317,7 +317,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
             SetUpBumpAnimation(player, direction);
             if ( player_info->has_gold_key ) {
                 S_Play("l32o2 c+g+dae-b-");
-                *tile = CreateTile(TILE_FLOOR);
+                *tile = CreateTile(TILE_DUNGEON_FLOOR);
             } else {
                 S_Play("l32o2 gc+");
                 strncpy(game->log, "You need the Gold Key!", sizeof(game->log));
@@ -329,11 +329,13 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
             // Fallthough:
         case TILE_BUTTON_PRESSED:
         case TILE_START:
-        case TILE_FLOOR:
+        case TILE_DUNGEON_FLOOR:
+        case TILE_FOREST_GROUND:
             TryMovePlayer(player, map, destination, player_info);
             break;
 
-        case TILE_EXIT:
+        case TILE_FOREST_EXIT:
+        case TILE_DUNGEON_EXIT:
             MoveActor(player, destination);
             S_Play("l32o3bb-a-fd-<a-d<g");
             break;
