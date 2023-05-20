@@ -7,6 +7,7 @@
 
 #include "game.h"
 #include "sound.h"
+#include "game_log.h"
 
 static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
 {
@@ -49,7 +50,7 @@ static bool InventoryProcessEvent(Game * game, const SDL_Event * event)
 
 static bool LevelProcessEvent(Game * game, const SDL_Event * event)
 {
-    const float elevation_change = 0.05f;
+//    const float elevation_change = 0.05f;
     TileCoord dummy_coord = { 0, 0 };
 
     switch ( event->type ) {
@@ -67,10 +68,14 @@ static bool LevelProcessEvent(Game * game, const SDL_Event * event)
                 case SDLK_d:
                     StartTurn(game, dummy_coord, EAST);
                     return true;
-                case SDLK_1: {
+                case SDLK_1:
                     game->player_info.fuel++;
                     return true;
-                }
+                case SDLK_l:
+                    Log("Test String!");
+                    Log("Test String 2!");
+                    Log("Test String Three!");
+                    return true;
 #if 0
                 case SDLK_UP:
                         game->forest_high += elevation_change;

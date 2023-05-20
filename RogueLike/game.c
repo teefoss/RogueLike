@@ -14,6 +14,7 @@
 #include "icon.h"
 #include "menu.h"
 #include "config.h"
+#include "game_log.h"
 
 #include "mathlib.h"
 #include "sound.h"
@@ -262,7 +263,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
     Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
     PlayerInfo * player_info = &game->player_info;
 
-    game->log[0] = '\0'; // Clear the log.
+    ResetLog();
 
     // Do player-tile collisions:
 
@@ -320,26 +321,21 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
                 *tile = CreateTile(TILE_DUNGEON_FLOOR);
             } else {
                 S_Play("l32o2 gc+");
-                strncpy(game->log, "You need the Gold Key!", sizeof(game->log));
+                Log("You need the Gold Key!");
             }
-            break;
 
-        case TILE_TELEPORTER:
-            player->flags.on_teleporter = true;
-            // Fallthough:
-        case TILE_BUTTON_PRESSED:
-        case TILE_START:
-        case TILE_DUNGEON_FLOOR:
-        case TILE_FOREST_GROUND:
-            TryMovePlayer(player, map, destination, player_info);
+            PlayerCastSight(world, &game->render_info);
             break;
-
         case TILE_FOREST_EXIT:
         case TILE_DUNGEON_EXIT:
             MoveActor(player, destination);
             S_Play("l32o3bb-a-fd-<a-d<g");
             break;
+        case TILE_TELEPORTER:
+            player->flags.on_teleporter = true;
+            // Fallthough:
         default:
+            TryMovePlayer(player, map, destination, player_info);
             break;
     }
 
@@ -370,7 +366,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
 void RenderHUD(const Game * game, const Actor * player)
 {
     const int margin = HUD_MARGIN;
-    const int char_w = V_CharWidth();
+//    const int char_w = V_CharWidth();
     const int char_h = V_CharHeight();
     V_SetGray(255);
 
@@ -388,7 +384,9 @@ void RenderHUD(const Game * game, const Actor * player)
     }
 
     // Log
-
+    RenderLog(game, &game->render_info);
+    
+#if 0
     int log_len = (int)strlen(game->log);
     if ( log_len ) {
         int log_x = game->render_info.inventory_x - (log_len * char_w + margin);
@@ -401,6 +399,7 @@ void RenderHUD(const Game * game, const Actor * player)
             V_PrintString(log_x, margin, game->log);
         }
     }
+#endif
 
 
 

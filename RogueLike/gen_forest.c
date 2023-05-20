@@ -8,6 +8,7 @@
 #include "game.h"
 #include "tile.h"
 #include "mathlib.h"
+#include "array.h"
 
 #define FOREST_MAX_SIZE 256
 
@@ -318,7 +319,7 @@ void GenerateForest(Game * game, int seed, int width)
     }
 
     //
-    // Middle region - medium size
+    // Third region - medium size
     // Spawn second teleporter, spiders, super spiders.
     //
 
@@ -335,6 +336,29 @@ void GenerateForest(Game * game, int seed, int width)
     tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 2; // connected to next region
 
+    // Spawn the shack in an open area so the player can get around it.
+    Array * viable_shack_spots = NewArray(num_coords, sizeof(TileCoord), 0);
+    for ( int i = 0; i < num_coords; i++ ) {
+        TileCoord coord = coords[i];
+        for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
+            Tile * adj = GetAdjacentTile(map, coord, d);
+            if ( adj->type != TILE_FOREST_GROUND ) {
+                goto next_coord;
+            }
+        }
+        // This tile is completely surrounded by ground.
+        Push(viable_shack_spots, &coord);
+    next_coord:
+        ;
+    }
+
+    int shack_index = Random(0, viable_shack_spots->count - 1);
+    TileCoord * spawn_spot = Get(viable_shack_spots, shack_index);
+    SpawnActor(game, ACTOR_SHACK_CLOSED, *spawn_spot);
+
+    FreeArray(viable_shack_spots);
+
+    // Spawn spiders
     for ( int i = 0; i < area / 10; i++ ) {
         if ( Chance(0.2) ) {
             SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, num_coords - 1);
@@ -344,7 +368,7 @@ void GenerateForest(Game * game, int seed, int width)
     }
 
     //
-    // Final region - largest
+    // Fourth & Final region - largest
     // Spawn ...
     // Spawn the exit.
     //

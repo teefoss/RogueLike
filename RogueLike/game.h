@@ -41,6 +41,7 @@
 typedef struct {
     Inventory inventory;
     bool has_gold_key;
+    bool has_shack_key;
     int turns;
     int strength_buff;
 
@@ -66,7 +67,7 @@ struct game {
     PlayerInfo player_info;
     int level;
 
-    char log[100];
+//    char log[100];
 
     int state_timer;
     int state_stack_top;

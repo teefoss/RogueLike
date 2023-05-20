@@ -57,7 +57,9 @@ PathFindAwayFromTile(Map * map, TileCoord subject, TileCoord away_from, bool pla
 //    CalculateDistances(&world->map, away_from, 0, false);
 
     Direction best_direction = NO_DIRECTION;
-    int max_distance = INT_MIN;
+
+    Tile * self_tile = GetTile(map, subject);
+    int max_distance = self_tile->player_distance;
 
     for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
         Tile * adj = GetAdjacentTile(map, subject, d);
@@ -143,6 +145,7 @@ void A_StupidChasePlayerIfVisible(Actor * actor)
 }
 
 
+// TODO: FIX THIS!
 void A_SpiderChase(Actor * spider)
 {
     World * world = &spider->game->world;
@@ -165,11 +168,6 @@ void A_SpiderChase(Actor * spider)
             Direction d2 = PathFindAwayFromTile(world->map, spider->tile, player->tile, true);
             coord = AdjacentTileCoord(spider->tile, d2);
             TryMoveActor(spider, coord);
-//            TileCoord away = { spider->tile.x + dx * 8, spider->tile.y + dy * 8 };
-//            Path path = FindPath(world, spider->tile, away, false);
-//            if ( path.size > 0 ) {
-//                TryMoveActor(spider, path.coords[1]);
-//            }
         }
     }
 }

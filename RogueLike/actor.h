@@ -141,6 +141,7 @@ extern const ActorInfo actor_info_list[NUM_ACTOR_TYPES];
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
 void CastLight(World * world, const Actor * actor);
+void SetActorType(Actor * actor, ActorType type);
 Actor * SpawnActor(Game * game, ActorType type, TileCoord coord);
 void RenderActor(const Actor * actor, int x, int y, int size, bool debug, int game_ticks);
 void MoveActor(Actor * actor, TileCoord coord);

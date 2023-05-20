@@ -7,6 +7,7 @@
 
 #include "game.h"
 #include "sound.h"
+#include "game_log.h"
 
 void C_Player(Actor * player, Actor * hit)
 {
@@ -35,28 +36,25 @@ void C_Player(Actor * player, Actor * hit)
     if ( hit->info->flags.collectible ) {
         if ( AddToInventory(player, hit, hit->info->item) ) {
 
-            char * log = player->game->log;
-            size_t log_size = sizeof(player->game->log);
-
             switch ( hit->info->item ) {
                 case ITEM_HEALTH:
-                    strncpy(log, "Picked up a Health Potion!", log_size);
+                    Log("Picked up a Health Potion!");
                     S_Play("l32 o2 e b g+ > d+");
                     break;
                 case ITEM_TURN:
-                    strncpy(log, "Picked up a Turn Potion!", log_size);
+                    Log("Picked up a Turn Potion!");
                     S_Play("l32 o2 a b > f+");
                     break;
                 case ITEM_STRENGTH:
-                    strncpy(log, "Picked up a Strength Potion!", log_size);
+                    Log("Picked up a Strength Potion!");
                     S_Play("l32 t100 o1 c e g+ c+ f a d f+ b-");
                     break;
                 case ITEM_FUEL_SMALL:
-                    strncpy(log, "Picked up Small Lamp Fuel!", log_size);
+                    Log("Picked up Small Lamp Fuel!");
                     S_Play("o3 l16 t160 e- b");
                     break;
                 case ITEM_FUEL_BIG:
-                    strncpy(log, "Picked up Large Lamp Fuel!", log_size);
+                    Log("Picked up Large Lamp Fuel!");
                     S_Play("o2 l16 t160 e- b");
                     break;
                 default:
@@ -68,13 +66,22 @@ void C_Player(Actor * player, Actor * hit)
     // Bump into other things
     switch ( hit->type ) {
         case ACTOR_GOLD_KEY:
-            strncpy(player->game->log, "Got the golden key!", sizeof(player->game->log));
+            Log("Got the golden key!");
             player->game->player_info.has_gold_key = true;
             RemoveActor(hit);
             S_Play("l32 t100 o1 a > a > a");
             break;
         case ACTOR_PILLAR:
             S_Play(SOUND_BUMP);
+            break;
+        case ACTOR_SHACK_CLOSED:
+            if ( player->game->player_info.has_shack_key ) {
+                S_Play("l32 o2 f b-");
+                SetActorType(hit, ACTOR_SHACK_OPEN);
+            } else {
+//                strncpy(log, "It's locked!", log_size);
+                S_Play(SOUND_BUMP);
+            }
             break;
         default:
             break;

@@ -231,6 +231,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
         .sprite = {
             .cell = { 1, 6 },
             .height = 2,
+            .y_offset = -1,
         }
     },
     [ACTOR_SHACK_OPEN] = {
@@ -239,6 +240,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
         .sprite = {
             .cell = { 2, 6 },
             .height = 2,
+            .y_offset = -1,
         }
     },
     [ACTOR_VASE] = {
@@ -251,6 +253,17 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
         },
     }
 };
+
+
+void SetActorType(Actor * actor, ActorType type)
+{
+    actor->info = &actor_info_list[type];
+    actor->type = type;
+
+    // Reset stats on change.
+    actor->stats.health = actor->info->max_health;
+    actor->stats.damage = actor->info->damage;
+}
 
 
 Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
@@ -289,11 +302,8 @@ Actor * SpawnActor(Game * game, ActorType type, TileCoord coord)
     // Init.
 
     actor->game = game;
-    actor->info = &actor_info_list[type];
-    actor->type = type;
     actor->tile = coord;
-    actor->stats.health = actor->info->max_health;
-    actor->stats.damage = actor->info->damage;
+    SetActorType(actor, type);
 
     return actor;
 }
