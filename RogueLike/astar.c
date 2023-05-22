@@ -66,7 +66,7 @@ Path FindPath(World * world, TileCoord start, TileCoord end, bool diagonal)
     }
 
     FOR_EACH_ACTOR(actor, world->map->actor_list) {
-        if ( !actor->info->flags.no_collision ) {
+        if ( ActorBlocksAll(actor) ) {
             grid[actor->tile.y * map->width + actor->tile.x].blocked = true;
         }
     }

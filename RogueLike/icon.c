@@ -19,6 +19,7 @@ static struct {
     [ICON_DOWN_ARROW]       = { 3, 0 },
     [ICON_DAMAGE]           = { 4, 0 },
     [ICON_GOLD_KEY]         = { 5, 0 },
+    [ICON_OLD_KEY]          = { 4, 1 },
     [ICON_HEALTH_POTION]    = { 0, 1 },
     [ICON_TURN_POTION]      = { 1, 1 },
     [ICON_STRENGTH_POTION]  = { 5, 1 },
@@ -35,12 +36,10 @@ static SDL_Rect dst = { .w = SCALED(ICON_SIZE), .h = SCALED(ICON_SIZE) };
 
 void RenderIcon(Icon icon, int x, int y, const RenderInfo * render_info)
 {
-    SDL_Texture * icons_texture = render_info->icon_texture;
-
     src.x = info[icon].x * ICON_SIZE;
     src.y = info[icon].y * ICON_SIZE;
     dst.x = x;
     dst.y = y;
 
-    V_DrawTexture(icons_texture, &src, &dst);
+    V_DrawTexture(render_info->icon_texture, &src, &dst);
 }

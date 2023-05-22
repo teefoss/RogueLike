@@ -38,6 +38,7 @@ typedef enum {
     ACTOR_ITEM_TURN,
     ACTOR_ITEM_STRENGTH,
     ACTOR_GOLD_KEY,
+    ACTOR_OLD_KEY,
     ACTOR_BLOCK,
     ACTOR_VASE,
     ACTOR_CLOSED_CHEST,
@@ -89,14 +90,15 @@ typedef struct {
     const char * kill_message; // What you see when this actor kills you.
 
     struct {
-        bool directional      : 1; // Look at 'facing_left' for sprite flip.
-        bool takes_damage     : 1; // Can be hurt by other actors.
-        bool blocks_sight     : 1;
-        bool no_collision     : 1;
-        bool collectible      : 1; // Actors can walk through (no bump anim).
-        bool floats           : 1; // Hovers in the air.
-        bool no_shadow        : 1;
-        bool no_draw_offset   : 1;
+        bool directional        : 1; // Look at 'facing_left' for sprite flip.
+        bool takes_damage       : 1; // Can be hurt by other actors.
+        bool blocks_sight       : 1;
+        bool blocks_monsters    : 1;
+        bool blocks_player      : 1;
+        bool collectible        : 1; // Actors can walk through (no bump anim).
+        bool floats             : 1; // Hovers in the air.
+        bool no_shadow          : 1;
+        bool no_draw_offset     : 1;
     } flags;
 
     void (* contact)(Actor * self, Actor * other);
@@ -116,7 +118,7 @@ struct actor {
         bool was_attacked     : 1;
         bool has_target       : 1;
         bool on_teleporter    : 1;
-        bool remove           : 1; // Deleted
+        bool enter_sublevel   : 1;
     } flags;
 
     TileCoord tile;
@@ -138,6 +140,7 @@ struct actor {
 
 extern const ActorInfo actor_info_list[NUM_ACTOR_TYPES];
 
+bool ActorBlocksAll(const Actor * actor);
 /// Propogate actor's light to surrounding tiles by setting their `light_target`
 /// value.
 void CastLight(World * world, const Actor * actor);

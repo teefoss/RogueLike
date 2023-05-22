@@ -355,6 +355,7 @@ void GenerateForest(Game * game, int seed, int width)
     int shack_index = Random(0, viable_shack_spots->count - 1);
     TileCoord * spawn_spot = Get(viable_shack_spots, shack_index);
     SpawnActor(game, ACTOR_SHACK_CLOSED, *spawn_spot);
+    player->tile = *spawn_spot;
 
     FreeArray(viable_shack_spots);
 
@@ -403,20 +404,31 @@ void GenerateForest(Game * game, int seed, int width)
         }
     }
 
+    SpawnActorAtRandomLocation(game, ACTOR_OLD_KEY, num_coords - 1);
+
     //
     // Generate shack interior
+    //
 
     map = &world->maps[1];
 
-    AllocateMapTiles(map, 9, 10, TILE_WOODEN_FLOOR);
+    AllocateMapTiles(map, 11, 11, TILE_WOODEN_FLOOR);
 
-    for ( int x = 0; x < map->width; x++ ) {
-        TileCoord coord = { x, 0 }; // Top row
-        tile = GetTile(map, coord);
-        if ( x == map->width / 2 ) {
-            *tile = CreateTile(TILE_WHITE_OPENING);
-        } else {
+    for ( int i = 0; i < map->width * map->height; i++ ) {
+        TileCoord coord = GetCoordinate(map, i);
+        tile = &map->tiles[i];
+
+        if (   coord.x == 0
+            || coord.x == map->width - 1
+            || coord.y == map->height - 1 )
+        {
             *tile = CreateTile(TILE_NULL);
+        } else if ( coord.y == 0 ) {
+            if ( coord.x == map->width / 2 ) {
+                *tile = CreateTile(TILE_WHITE_OPENING);
+            } else {
+                *tile = CreateTile(TILE_WOODEN_WALL);
+            }
         }
     }
 }

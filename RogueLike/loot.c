@@ -18,7 +18,7 @@ const Loot loot_tables[NUM_ACTOR_TYPES][20] = {
         { 0, -1 } // Terminator
     },
     [ACTOR_SPIDER] = {
-//        { ACTOR_NONE,               80 },
+        { ACTOR_NONE,               80 },
         { ACTOR_ITEM_HEALTH,        7 },
         { ACTOR_ITEM_TURN,          7 },
         { ACTOR_ITEM_FUEL_SMALL,    7 },

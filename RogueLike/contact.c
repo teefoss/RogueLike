@@ -71,17 +71,28 @@ void C_Player(Actor * player, Actor * hit)
             RemoveActor(hit);
             S_Play("l32 t100 o1 a > a > a");
             break;
+        case ACTOR_OLD_KEY:
+            Log("Picked up an old key");
+            player->game->player_info.has_shack_key = true;
+            RemoveActor(hit);
+            S_Play("l32 t100 o1 a > a > a"); // TODO: define key sound
+            break;
         case ACTOR_PILLAR:
             S_Play(SOUND_BUMP);
             break;
         case ACTOR_SHACK_CLOSED:
             if ( player->game->player_info.has_shack_key ) {
                 S_Play("l32 o2 f b-");
-                SetActorType(hit, ACTOR_SHACK_OPEN);
+                TileCoord coord = hit->tile;
+                RemoveActor(hit);
+                SpawnActor(player->game, ACTOR_SHACK_OPEN, coord);
             } else {
-//                strncpy(log, "It's locked!", log_size);
-                S_Play(SOUND_BUMP);
+                Log("It's locked!");
+                S_Play(SOUND_BUMP); // TODO: locked sound
             }
+            break;
+        case ACTOR_SHACK_OPEN:
+            player->flags.enter_sublevel = true;
             break;
         default:
             break;

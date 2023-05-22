@@ -43,10 +43,8 @@ void ResetLog(void)
 void RenderLog(const Game * game, const RenderInfo * info)
 {
     const int char_w = V_CharWidth();
-    const int char_h = V_CharHeight();
     const int margin = HUD_MARGIN;
     const int line_height = V_CharHeight() * 1.5f;
-    const int total_height = margin + line_height * STATUS_ROWS;
 
     // Print status rows.
 

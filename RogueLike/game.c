@@ -280,6 +280,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
 
         case TILE_TREE:
         case TILE_DUNGEON_WALL:
+        case TILE_NULL:
             SetUpBumpAnimation(player, direction);
             S_Play(SOUND_BUMP);
 
@@ -326,11 +327,13 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
 
             PlayerCastSight(world, &game->render_info);
             break;
+
         case TILE_FOREST_EXIT:
         case TILE_DUNGEON_EXIT:
             MoveActor(player, destination);
             S_Play("l32o3bb-a-fd-<a-d<g");
             break;
+
         case TILE_TELEPORTER:
             player->flags.on_teleporter = true;
             // Fallthough:
@@ -383,24 +386,14 @@ void RenderHUD(const Game * game, const Actor * player)
         RenderIcon(ICON_GOLD_KEY, x, y, &game->render_info);
     }
 
+    if ( game->player_info.has_shack_key ) {
+        int x = margin + SCALED(ICON_SIZE) + 2;
+        int y = margin * 2 + SCALED(1);
+        RenderIcon(ICON_OLD_KEY, x, y, &game->render_info);
+    }
+
     // Log
     RenderLog(game, &game->render_info);
-    
-#if 0
-    int log_len = (int)strlen(game->log);
-    if ( log_len ) {
-        int log_x = game->render_info.inventory_x - (log_len * char_w + margin);
-
-        if ( GetGameState(game) == &gs_level_turn ) {
-            float x = log_x;
-            float y = Lerp(-margin, margin, game->move_timer);
-            V_PrintString(x, y, game->log);
-        } else {
-            V_PrintString(log_x, margin, game->log);
-        }
-    }
-#endif
-
 
 
     //

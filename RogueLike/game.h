@@ -36,7 +36,7 @@
 #define SOUND_BUMP "l32o0de-"
 
 #define MAX_FUEL 10
-#define FUEL_STEPS 20
+#define FUEL_STEPS 25
 
 typedef struct {
     Inventory inventory;

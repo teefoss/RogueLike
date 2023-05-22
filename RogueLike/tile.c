@@ -26,6 +26,7 @@ static struct tile_info {
         .sprite_cell = { 1, 0 },
     },
     [TILE_FOREST_GROUND] = {
+        // TODO: define this
         .sprite_cell = { 0, 5 },
         .height = 2,
         .num_variants = 9,
@@ -76,6 +77,9 @@ static struct tile_info {
     [TILE_WHITE_OPENING] = {
         .sprite_cell = { 1, 10 },
     },
+    [TILE_WOODEN_WALL] = {
+        .sprite_cell = { 2, 10 },
+    }
 };
 
 
@@ -110,6 +114,9 @@ static Tile tile_templates[NUM_TILE_TYPES] = {
     [TILE_BUTTON_NOT_PRESSED] = {
         .flags = { .blocks_movement = true, .player_only = true },
     },
+    [TILE_WOODEN_WALL] = {
+        .flags = { .blocks_movement = true, .blocks_sight = true },
+    }
 };
 
 
@@ -143,6 +150,7 @@ const char * TileName(TileType type)
             CASE_RETURN_STRING(TILE_BUTTON_PRESSED);
             CASE_RETURN_STRING(TILE_WOODEN_FLOOR);
             CASE_RETURN_STRING(TILE_WHITE_OPENING);
+            CASE_RETURN_STRING(TILE_WOODEN_WALL);
     }
 }
 

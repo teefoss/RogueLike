@@ -15,6 +15,7 @@
 
 typedef enum area {
     AREA_FOREST,
+    AREA_FOREST_SHACK,
     AREA_DUNGEON,
     NUM_AREAS,
 } Area;
@@ -31,6 +32,7 @@ typedef struct {
 } AreaInfo;
 
 typedef struct world {
+    // TODO: this dumb having both.
     Area area;
     const AreaInfo * info;
 

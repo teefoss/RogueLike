@@ -30,6 +30,7 @@ typedef enum {
     TILE_BUTTON_PRESSED,
     TILE_WOODEN_FLOOR,
     TILE_WHITE_OPENING,
+    TILE_WOODEN_WALL,
 
     NUM_TILE_TYPES,
 } TileType;
@@ -49,7 +50,6 @@ typedef struct {
         bool visible            : 1;
         bool revealed           : 1;
         bool bright             : 1;
-        bool tree_present       : 1; // In the forest, there a tree here.
     } flags;
 
     u8 light; // Current light level.

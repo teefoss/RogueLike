@@ -22,6 +22,14 @@ const AreaInfo area_info[NUM_AREAS] = {
         .reveal_all = true,
         .render_clear_color = { 0, 0, 64 }
     },
+    [AREA_FOREST_SHACK] = {
+        .unrevealed_light = FOREST_LIGHT,
+        .revealed_light = FOREST_LIGHT,
+        .visible_light = FOREST_LIGHT,
+        .debug_map_tile_size = 8,
+        .reveal_all = true,
+        .render_clear_color = { 0, 0, 0 },
+    },
     [AREA_DUNGEON] = {
         .unrevealed_light = 0,
         .revealed_light = 10, // was 20

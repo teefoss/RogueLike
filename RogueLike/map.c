@@ -272,6 +272,11 @@ Box GetPlayerVisibleRegion(const Map * map, TileCoord player_coord)
     box.top     = player_coord.y - (18 + 2) / 2;
     box.bottom  = player_coord.y + (18 + 2) / 2;
 
+    CLAMP(box.left, 0, map->width - 1);
+    CLAMP(box.right, 0, map->width - 1);
+    CLAMP(box.top, 0, map->height - 1);
+    CLAMP(box.bottom, 0, map->height - 1);
+
     return box;
 }
 
@@ -388,21 +393,23 @@ void CalculateDistances(Map * map, TileCoord coord, int ignore_flags, bool playe
 
         for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
             Tile * edge = GetAdjacentTile(map, qtile.coord, d);
-            TileCoord edge_coord = AdjacentTileCoord(qtile.coord, d);
-            s16 * dist = player ? &edge->player_distance : &edge->distance;
-
-            if ( edge == NULL ) continue; // out of bounds
-            if ( *dist != -1 ) continue; // already visited
-
-            // This tile blocks movement and is not of a type to be ignored.
-            bool ignore = ignore_flags & FLAG(edge->type);
-            if ( edge->flags.blocks_movement && !ignore ) continue;
-
-            // Nothing blocking this tile and not yet visited:
-            *dist = distance + 1;
-
-            qtile_t next_qtile = { edge, edge_coord };
-            Put(next_qtile);
+            if ( edge ) {
+                TileCoord edge_coord = AdjacentTileCoord(qtile.coord, d);
+                s16 * dist = player ? &edge->player_distance : &edge->distance;
+                
+                if ( edge == NULL ) continue; // out of bounds
+                if ( *dist != -1 ) continue; // already visited
+                
+                // This tile blocks movement and is not of a type to be ignored.
+                bool ignore = ignore_flags & FLAG(edge->type);
+                if ( edge->flags.blocks_movement && !ignore ) continue;
+                
+                // Nothing blocking this tile and not yet visited:
+                *dist = distance + 1;
+                
+                qtile_t next_qtile = { edge, edge_coord };
+                Put(next_qtile);
+            }
         }
     }
 

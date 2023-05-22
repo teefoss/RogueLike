@@ -37,12 +37,15 @@ void A_StupidChasePlayerIfVisible(Actor *);
 void A_SpiderChase(Actor *);
 void A_GhostChase(Actor *);
 
-#define ITEM_FLAGS { .collectible = true, .no_collision = true }
-
 const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     [ACTOR_PLAYER] = {
         .name = "Player",
-        .flags = { .directional = true, .takes_damage = true },
+        .flags = {
+            .directional = true,
+            .takes_damage = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .max_health = 10,
         .damage = 1,
         .light = 255,
@@ -57,6 +60,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_TORCH] = {
         .name = "Torch",
+        .flags = { .blocks_monsters = true, .blocks_player = true },
         .light = 255,
         .light_radius = 2,
         .sprite = {
@@ -67,7 +71,11 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_BLOB] = {
         .name = "Blob",
-        .flags = { .takes_damage = true, },
+        .flags = {
+            .takes_damage = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .max_health = 2,
         .damage = 1,
         .action = A_TargetAndChasePlayerIfVisible,
@@ -86,7 +94,11 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_SPIDER] = {
         .name = "Spider",
-        .flags = { .takes_damage = true, },
+        .flags = {
+            .takes_damage = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .max_health = 1,
         .damage = 1,
         .action = A_SpiderChase,
@@ -103,9 +115,13 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_SUPER_SPIDER] = {
         .name = "Super Spider",
-        .flags = { .takes_damage = true, },
+        .flags = {
+            .takes_damage = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .max_health = 2,
-        .damage = 2,
+        .damage = 1,
         .action = A_TargetAndChasePlayerIfVisible,
         .contact = C_Monster,
         .attack_sound = "o3 l32 f b c+",
@@ -120,9 +136,14 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_GHOST] = {
         .name = "Ghost",
-        .flags = { .takes_damage = true, .floats = true },
+        .flags = {
+            .takes_damage = true,
+            .floats = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .max_health = 3,
-        .damage = 3,
+        .damage = 2,
         .action = A_GhostChase,
         .contact = C_Monster,
         .attack_sound = "o1 l32 c e a- > d- f",
@@ -137,7 +158,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     [ACTOR_ITEM_HEALTH] = {
         .name = "Health Potion",
         .item = ITEM_HEALTH,
-        .flags = ITEM_FLAGS,
+        .flags = { .collectible = true },
         .sprite = {
             .cell = { 0, 1 },
             .draw_priority = DRAW_PRIORITY_ITEM,
@@ -146,7 +167,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     [ACTOR_ITEM_TURN] = {
         .name = "Turn Potion",
         .item = ITEM_TURN,
-        .flags = ITEM_FLAGS,
+        .flags = { .collectible = true },
         .sprite = {
             .cell = { 1, 1 },
             .draw_priority = DRAW_PRIORITY_ITEM,
@@ -155,7 +176,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     [ACTOR_ITEM_STRENGTH] = {
         .name = "Strength Potion",
         .item = ITEM_STRENGTH,
-        .flags = ITEM_FLAGS,
+        .flags = { .collectible = true },
         .sprite = {
             .cell = { 3, 1 },
             .draw_priority = DRAW_PRIORITY_ITEM,
@@ -164,7 +185,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     [ACTOR_ITEM_FUEL_SMALL] = {
         .name = "Small Lamp Fuel",
         .item = ITEM_FUEL_SMALL,
-        .flags = ITEM_FLAGS,
+        .flags = { .collectible = true },
         .sprite = {
             .cell = { 4, 1 },
             .draw_priority = DRAW_PRIORITY_ITEM,
@@ -173,7 +194,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     [ACTOR_ITEM_FUEL_BIG] = {
         .name = "Large Lamp Fuel",
         .item = ITEM_FUEL_BIG,
-        .flags = ITEM_FLAGS,
+        .flags = { .collectible = true },
         .sprite = {
             .cell = { 5, 1 },
             .draw_priority = DRAW_PRIORITY_ITEM,
@@ -181,14 +202,26 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_GOLD_KEY] = {
         .name = "Gold Key",
-        .flags = ITEM_FLAGS,
         .sprite = {
             .cell = { 2, 1 },
             .draw_priority = DRAW_PRIORITY_KEY,
         },
     },
+    [ACTOR_OLD_KEY] = {
+        .name = "Old Key",
+        .light = 160,
+        .light_radius = 1,
+        .sprite = {
+            .cell = { 8, 1 },
+            .draw_priority = DRAW_PRIORITY_KEY,
+        },
+    },
     [ACTOR_BLOCK] = {
         .name = "Block",
+        .flags = {
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .contacted = C_Block,
         .sprite = {
             .cell = { 4, 3 }
@@ -196,7 +229,11 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_CLOSED_CHEST] = {
         .name = "Closed Chest",
-        .flags = { .takes_damage = true, },
+        .flags = {
+            .takes_damage = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .max_health = 1,
         .sprite = {
             .cell = { 0, 3 }
@@ -204,21 +241,27 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_OPEN_CHEST] = {
         .name = "Chest",
-        .flags = { .no_collision = true },
         .sprite = {
             .cell = { 1, 3 }
         },
     },
     [ACTOR_PILLAR] = {
         .name = "Pillar",
-        .flags = { .no_shadow = true },
+        .flags = {
+            .no_shadow = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .sprite = {
             .cell = { 0, 6 }
         },
     },
     [ACTOR_WELL] = {
         .name = "Well",
-        .flags = { .no_shadow = true, .no_draw_offset = true },
+        .flags = {
+            .no_shadow = true,
+            .no_draw_offset = true,
+        },
         .sprite = {
             .cell = { 3, 6 },
             .height = 2,
@@ -227,7 +270,12 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_SHACK_CLOSED] = {
         .name = "Closed Shack",
-        .flags = { .no_shadow = true, .no_draw_offset = true },
+        .flags = {
+            .no_shadow = true,
+            .no_draw_offset = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .sprite = {
             .cell = { 1, 6 },
             .height = 2,
@@ -236,7 +284,11 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_SHACK_OPEN] = {
         .name = "Open Shack",
-        .flags = { .no_shadow = true, .no_draw_offset = true },
+        .flags = {
+            .no_shadow = true,
+            .no_draw_offset = true,
+            .blocks_monsters = true,
+        },
         .sprite = {
             .cell = { 2, 6 },
             .height = 2,
@@ -245,7 +297,11 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_VASE] = {
         .name = "Vase",
-        .flags = { .takes_damage = true, },
+        .flags = {
+            .takes_damage = true,
+            .blocks_monsters = true,
+            .blocks_player = true,
+        },
         .particle_color_palette_index = GOLINE_PURPLE,
         .max_health = 1,
         .sprite = {
@@ -495,6 +551,13 @@ void MoveActor(Actor * actor, TileCoord coord)
 }
 
 
+bool ActorBlocksAll(const Actor * actor)
+{
+    const ActorInfo * info = actor->info;
+    return info->flags.blocks_monsters && info->flags.blocks_player;
+}
+
+
 bool TryMoveActor(Actor * actor, TileCoord coord)
 {
 //    Tile * tile = GetAdjacentTile(&actor->game->world.map, actor->tile, direction);
@@ -518,12 +581,25 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
 
     UpdateActorFacing(actor, dx);
 
+    bool bumped = false;
+
     // Check if there's an actor at try_x, try_y
     FOR_EACH_ACTOR(hit, actor->game->world.map->actor_list) {
 
         if ( hit != actor && TileCoordsEqual(hit->tile, try_coord) ) {
 
             // There's an actor on this spot:
+
+            // Bump into it?
+            bool block =
+            ( hit->info->flags.blocks_monsters && actor->type != ACTOR_PLAYER )
+            ||
+            ( hit->info->flags.blocks_player && actor->type == ACTOR_PLAYER );
+
+            if ( block ) {
+                SetUpBumpAnimation(actor, direction);
+                bumped = true; // TODO: dumb?
+            }
 
             if ( actor->info->contact ) {
                 actor->info->contact(actor, hit);
@@ -532,17 +608,15 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
             if ( hit->info->contacted ) {
                 hit->info->contacted(hit, actor);
             }
-
-            // Bump into it?
-            if ( !hit->info->flags.no_collision ) {
-                SetUpBumpAnimation(actor, direction);
-                return false;
-            }
         }
     }
 
-    MoveActor(actor, coord);
-    return true;
+    if ( bumped ) {
+        return false;
+    } else {
+        MoveActor(actor, coord);
+        return true;
+    }
 }
 
 void UpdateActorFacing(Actor * actor, int dx)

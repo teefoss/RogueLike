@@ -56,21 +56,37 @@ static bool LevelProcessEvent(Game * game, const SDL_Event * event)
     switch ( event->type ) {
         case SDL_KEYDOWN:
             switch ( event->key.keysym.sym ) {
+
                 case SDLK_w:
                     StartTurn(game, dummy_coord, NORTH);
                     return true;
+
                 case SDLK_s:
                     StartTurn(game, dummy_coord, SOUTH);
                     return true;
+
                 case SDLK_a:
                     StartTurn(game, dummy_coord, WEST);
                     return true;
+
                 case SDLK_d:
                     StartTurn(game, dummy_coord, EAST);
                     return true;
+
                 case SDLK_1:
                     game->player_info.fuel++;
                     return true;
+
+                case SDLK_2: {
+                    Actor * player = FindActor(&game->world.map->actor_list, ACTOR_PLAYER);
+                    player->stats.health++;
+                    return true;
+                }
+
+                case SDLK_3:
+                    game->player_info.has_shack_key = true;
+                    return true;
+
                 case SDLK_l:
                     Log("Test String!");
                     Log("Test String 2!");
@@ -81,14 +97,17 @@ static bool LevelProcessEvent(Game * game, const SDL_Event * event)
                         game->forest_high += elevation_change;
                         LoadLevel(game, game->level, false);
                     return true;
+
                 case SDLK_DOWN:
                         game->forest_high -= elevation_change;
                         LoadLevel(game, game->level, false);
                     return true;
+
                 case SDLK_LEFT:
                         game->forest_low -= elevation_change;
                         LoadLevel(game, game->level, false);
                     return true;
+
                 case SDLK_RIGHT:
                         game->forest_low += elevation_change;
                         LoadLevel(game, game->level, false);
@@ -157,6 +176,39 @@ void LevelIdle_OnEnter(Game * game)
             break;
         default:
             break;
+    }
+
+    // TODO: NEXT, figure out how to merge with LoadLevel
+    if ( player->flags.enter_sublevel ) {
+        player->flags.enter_sublevel = false;
+
+        Actor * upper_player = FindActor(&game->world.map->actor_list, ACTOR_PLAYER);
+        ActorsStats stats = upper_player->stats; // Save and transfer to new player.
+
+        if ( game->world.area == AREA_FOREST ) {
+            game->world.area = AREA_FOREST_SHACK;
+            game->world.info = &area_info[game->world.area];
+        }
+
+        game->world.map++; // Descend.
+
+        // Find the tile to place the player at.
+        TileCoord spawn_coord = { -1, -1 };
+        Map * map = game->world.map;
+        for ( int i = 0; i < map->width * map->height; i++ ) {
+            if ( map->tiles[i].type == TILE_WHITE_OPENING ) {
+                spawn_coord = GetCoordinate(map, i);
+            }
+        }
+
+        ASSERT(spawn_coord.x != -1);
+
+        Actor * new_player = SpawnActor(game, ACTOR_PLAYER, spawn_coord);
+        new_player->stats = stats;
+
+        game->render_info.camera = TileCoordToScaledWorldCoord(player->tile, vec2_zero);
+
+        FadeOutAndChangeState(game, &gs_level_idle, 0.5f);
     }
 }
 
