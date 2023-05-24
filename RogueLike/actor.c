@@ -27,8 +27,8 @@ enum {
     DRAW_PRIORITY_PLAYER,
 };
 
-void C_Player(Actor *, Actor *);
-void C_Monster(Actor *, Actor *);
+bool C_Player(Actor *, Actor *);
+bool C_Monster(Actor *, Actor *);
 void C_Block(Actor *, Actor *);
 
 void A_TargetAndChasePlayerIfVisible(Actor *);
@@ -98,6 +98,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
             .takes_damage = true,
             .blocks_monsters = true,
             .blocks_player = true,
+            .moves_diagonally = true,
         },
         .max_health = 1,
         .damage = 1,
@@ -119,6 +120,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
             .takes_damage = true,
             .blocks_monsters = true,
             .blocks_player = true,
+            .moves_diagonally = true,
         },
         .max_health = 2,
         .damage = 1,
@@ -599,9 +601,11 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
 
             // There's an actor on this spot:
 
-
             if ( actor->info->contact ) {
-                actor->info->contact(actor, hit);
+                if ( actor->info->contact(actor, hit) == false) {
+                    SetUpBumpAnimation(actor, direction);
+                    return false;
+                }
             }
 
             if ( hit->info->contacted ) {
@@ -609,10 +613,13 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
             }
 
             // Bump into it?
+            bool blocks_monsters = hit->info->flags.blocks_monsters;
+            bool blocks_player = hit->info->flags.blocks_player;
+            bool is_player = actor->type == ACTOR_PLAYER;
+
             bool block =
-            ( hit->info->flags.blocks_monsters && actor->type != ACTOR_PLAYER )
-            ||
-            ( hit->info->flags.blocks_player && actor->type == ACTOR_PLAYER );
+                (blocks_monsters && !is_player) ||
+                (blocks_player && is_player);
 
             if ( block ) {
                 SetUpBumpAnimation(actor, direction);

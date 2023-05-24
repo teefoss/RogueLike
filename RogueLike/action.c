@@ -16,7 +16,7 @@
 #if 1
 /// From tile `start`, find the adjacent tile with the smallest distance
 /// to target tile `end`.
-static Direction PathFindToTile(Map * map, TileCoord start, TileCoord end, bool player)
+static Direction PathFindToTile(Map * map, TileCoord start, TileCoord end, bool player, bool diagonals)
 {
 //    float start_time = ProgramTime();
 //    CalculateDistances(&world->map, end, 0, false);
@@ -25,7 +25,8 @@ static Direction PathFindToTile(Map * map, TileCoord start, TileCoord end, bool 
     Direction best_direction = NO_DIRECTION;
     int min_distance = INT_MAX;
 
-    for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
+    int num_directions = diagonals ? NUM_DIRECTIONS : NUM_CARDINAL_DIRECTIONS;
+    for ( Direction d = 0; d < num_directions; d++ ) {
         Tile * adj = GetAdjacentTile(map, start, d);
         if ( adj == NULL ) {
             continue;
@@ -104,7 +105,7 @@ void A_TargetAndChasePlayerIfVisible(Actor * actor)
 
     if ( actor->flags.has_target ) {
         CalculateDistances(map, actor->target_tile, 0, false);
-        Direction d = PathFindToTile(map, actor->tile, actor->target_tile, false);
+        Direction d = PathFindToTile(map, actor->tile, actor->target_tile, false, actor->info->flags.moves_diagonally);
         TileCoord coord = AdjacentTileCoord(actor->tile, d);
         TryMoveActor(actor, coord);
 
@@ -123,7 +124,7 @@ void A_ChasePlayerIfVisible(Actor * actor)
 
     if ( LineOfSight(world->map, actor->tile, player->tile) ) {
 //        Path path = FindPath(world, actor->tile, player->tile, true);
-        Direction d = PathFindToTile(world->map, actor->tile, player->tile, true);
+        Direction d = PathFindToTile(world->map, actor->tile, player->tile, true, actor->info->flags.moves_diagonally);
         TileCoord coord = AdjacentTileCoord(actor->tile, d);
         TryMoveActor(actor, coord);
 //        if ( path.size > 0 ) {
@@ -222,7 +223,7 @@ void A_GhostChase(Actor * ghost)
             TryMoveActor(ghost, coords[index]);
 
         } else {
-            Direction d = PathFindToTile(world->map, ghost->tile, player->tile, true);
+            Direction d = PathFindToTile(world->map, ghost->tile, player->tile, true, ghost->info->flags.moves_diagonally);
             TileCoord coord = AdjacentTileCoord(ghost->tile, d);
             TryMoveActor(ghost, coord);
 //            Path path = FindPath(world, ghost->tile, player->tile, false);

@@ -356,7 +356,7 @@ void GenerateForest(Game * game, int seed, int width)
     int shack_index = Random(0, viable_shack_spots->count - 1);
     TileCoord * spawn_spot = Get(viable_shack_spots, shack_index);
     SpawnActor(game, ACTOR_SHACK_CLOSED, *spawn_spot);
-//    player->tile = *spawn_spot; DEBUG
+//    player->tile = *spawn_spot; // DEBUG
 
     FreeArray(viable_shack_spots);
 

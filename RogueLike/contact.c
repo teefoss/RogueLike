@@ -9,7 +9,7 @@
 #include "sound.h"
 #include "game_log.h"
 
-void C_Player(Actor * player, Actor * hit)
+bool C_Player(Actor * player, Actor * hit)
 {
     if ( hit->info->flags.takes_damage ) {
         int damage = player->stats.damage;
@@ -93,6 +93,7 @@ void C_Player(Actor * player, Actor * hit)
                 RemoveActor(hit);
                 SpawnActor(player->game, ACTOR_SHACK_OPEN, coord);
                 player->game->player_info.has_shack_key = false;
+                return false;
             } else {
                 Log("It's locked!");
                 S_Play(SOUND_BUMP); // TODO: locked sound
@@ -104,14 +105,16 @@ void C_Player(Actor * player, Actor * hit)
         default:
             break;
     }
+
+    return true;
 }
 
 
-void C_Monster(Actor * monster, Actor * hit)
+bool C_Monster(Actor * monster, Actor * hit)
 {
     // Monsters cannot damage ghosts.
     if ( hit->type == ACTOR_GHOST ) {
-        return;
+        return true;
     }
 
     // Monsters can damage other monsters, but not of the same type
@@ -123,6 +126,8 @@ void C_Monster(Actor * monster, Actor * hit)
             // TODO: default sound
         }
     }
+
+    return true;
 }
 
 

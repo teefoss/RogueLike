@@ -100,9 +100,10 @@ typedef struct {
         bool floats             : 1; // Hovers in the air.
         bool no_shadow          : 1;
         bool no_draw_offset     : 1;
+        bool moves_diagonally   : 1;
     } flags;
 
-    void (* contact)(Actor * self, Actor * other);
+    bool (* contact)(Actor * self, Actor * other);
     void (* contacted)(Actor * self, Actor * other); // When hit by something else.
     void (* action)(Actor *);
 
