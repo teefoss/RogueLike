@@ -295,6 +295,7 @@ void GenerateForest(Game * game, int seed, int width)
     Tile * tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 0;
 
+    SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, num_coords / 20);
 
     //
     // Second region - small area
