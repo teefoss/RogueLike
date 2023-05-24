@@ -65,6 +65,12 @@ void C_Player(Actor * player, Actor * hit)
 
     // Bump into other things
     switch ( hit->type ) {
+        case ACTOR_BUCKET:
+            Log("Woah! Got a Bucket");
+            player->game->player_info.has_bucket = true;
+            RemoveActor(hit);
+            S_Play("o2 l32 f a < b-");
+            break;
         case ACTOR_GOLD_KEY:
             Log("Got the golden key!");
             player->game->player_info.has_gold_key = true;
@@ -86,13 +92,14 @@ void C_Player(Actor * player, Actor * hit)
                 TileCoord coord = hit->tile;
                 RemoveActor(hit);
                 SpawnActor(player->game, ACTOR_SHACK_OPEN, coord);
+                player->game->player_info.has_shack_key = false;
             } else {
                 Log("It's locked!");
                 S_Play(SOUND_BUMP); // TODO: locked sound
             }
             break;
         case ACTOR_SHACK_OPEN:
-            player->flags.enter_sublevel = true;
+            player->game->player_info.level_state = LEVEL_ENTER_SUB;
             break;
         default:
             break;

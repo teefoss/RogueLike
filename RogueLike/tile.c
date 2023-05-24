@@ -255,11 +255,11 @@ void RenderTile(const Tile * tile,
 
     V_DrawTexture(tiles, &src, &dst);
 
-    // F1 - show tile distance to player
+    // Show tile distance to player
     if ( !tile->flags.blocks_movement ) {
         if ( show_distances ) {
             V_SetGray(255);
-            V_PrintString(dst.x, dst.y, "%d", tile->distance);
+            V_PrintString(dst.x, dst.y, "%d", tile->player_distance);
         }
     }
 }

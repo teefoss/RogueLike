@@ -50,6 +50,7 @@ typedef enum {
     ACTOR_SHACK_OPEN,
     ACTOR_ITEM_FUEL_SMALL,
     ACTOR_ITEM_FUEL_BIG,
+    ACTOR_BUCKET,
 
     NUM_ACTOR_TYPES
 } ActorType;
@@ -114,11 +115,10 @@ struct actor {
     u8 type;
 
     struct {
-        bool facing_left      : 1;
-        bool was_attacked     : 1;
-        bool has_target       : 1;
-        bool on_teleporter    : 1;
-        bool enter_sublevel   : 1;
+        bool facing_left        : 1;
+        bool was_attacked       : 1;
+        bool has_target         : 1;
+        bool on_teleporter      : 1; // TODO: move to PlayerInfo
     } flags;
 
     TileCoord tile;

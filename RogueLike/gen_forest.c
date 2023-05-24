@@ -9,6 +9,7 @@
 #include "tile.h"
 #include "mathlib.h"
 #include "array.h"
+#include "genlib.h"
 
 #define FOREST_MAX_SIZE 256
 
@@ -20,7 +21,7 @@ struct region {
 //int region_areas[FOREST_MAX_SIZE * FOREST_MAX_SIZE];
 
 static int num_coords;
-static TileCoord coords[FOREST_MAX_SIZE * FOREST_MAX_SIZE];
+static TileCoord coords[FOREST_MAX_SIZE * FOREST_MAX_SIZE]; // TODO: Use Array
 
 static void GetTilesInRegion(const Map * map, int region)
 {
@@ -49,10 +50,10 @@ static void RemoveTile(int index)
 }
 
 
-static int RandomIndex(void)
-{
-    return Random(0, num_coords - 1);
-}
+//static int RandomIndex(void)
+//{
+//    return Random(0, num_coords - 1);
+//}
 
 
 static Actor * SpawnActorAtRandomLocation(Game * game, ActorType type, int max_index)
@@ -182,16 +183,16 @@ void GenerateForest(Game * game, int seed, int width)
 
     World * world = &game->world;
     world->area = AREA_FOREST;
+    world->map = &world->maps[0];
 
 //    SDL_memset(region_areas, 0, sizeof(region_areas));
     SDL_memset(regions, 0, sizeof(regions));
 
-    Map * map = world->map;
-
-    AllocateMapTiles(map, width, width, TILE_TREE);
+    AllocateMapTiles(world->map, width, width, TILE_TREE);
+    RemoveAllActors(&world->map->actor_list);
 
     int map_size = width * width;
-    printf("Forest size: %d (%d x %d)\n", map_size, map->width, map->height);
+    printf("Forest size: %d (%d x %d)\n", map_size, width, width);
 
     int radius = (width / 2) * 0.75;
     printf("Outside radius: %d tiles\n", width / 2 - radius);
@@ -201,8 +202,8 @@ void GenerateForest(Game * game, int seed, int width)
 
     // Generate forest (tree), ground, and water terrain.
     // Add all ground tile coords to the array.
-    for ( int y = 0; y < map->height; y++ ) {
-        for ( int x = 0; x < map->width; x++ ) {
+    for ( int y = 0; y < width; y++ ) {
+        for ( int x = 0; x < width; x++ ) {
             TileCoord coord = { x, y };
 
             // Distance from this tile to center of map.
@@ -226,7 +227,7 @@ void GenerateForest(Game * game, int seed, int width)
                 water_noise = -1.0f;
             }
 
-            Tile * tile = GetTile(map, coord);
+            Tile * tile = GetTile(world->map, coord);
 
             if ( noise < game->forest_low || noise > game->forest_high ) {
                 *tile = CreateTile(TILE_TREE);
@@ -252,11 +253,11 @@ void GenerateForest(Game * game, int seed, int width)
     // For all ground tiles, sort into connected regions.
     int region = -1;
     for ( int i = 0; i < num_coords; i++ ) {
-        Tile * tile = GetTile(map, coords[i]);
+        Tile * tile = GetTile(world->map, coords[i]);
 
         if ( tile->id == -1 ) { // Not yet visited
             region++;
-            FloodFillGroundTiles_r(map, coords[i], region);
+            FloodFillGroundTiles_r(world->map, coords[i], region);
         }
     }
 
@@ -284,12 +285,12 @@ void GenerateForest(Game * game, int seed, int width)
     // Just the player and a teleporter.
     //
 
-    int area = GetTilesInFirstRegionSmallerThan(map, 80, 3, num_regions);
+    int area = GetTilesInFirstRegionSmallerThan(world->map, 80, 3, num_regions);
 
     Actor * player = SpawnActorAtRandomLocation(game, ACTOR_PLAYER, num_coords - 1);
 
-    CalculateTileDistancesFrom(map, player->tile);
-    SortCoordsByDistance(map);
+    CalculateTileDistancesFrom(world->map, player->tile);
+    SortCoordsByDistance(world->map);
     int num_viable = area / 10;
     Tile * tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 0;
@@ -300,7 +301,7 @@ void GenerateForest(Game * game, int seed, int width)
     // Spawn spiders, and teleporter
     //
 
-    area = GetTilesInFirstRegionSmallerThan(map, 128, 2, num_regions);
+    area = GetTilesInFirstRegionSmallerThan(world->map, 128, 2, num_regions);
 
     // Create first teleporter.
     TileCoord tp_coord;
@@ -308,8 +309,8 @@ void GenerateForest(Game * game, int seed, int width)
     tp->tag = 0;
 
     // Create second teleporter.
-    CalculateTileDistancesFrom(map, tp_coord);
-    SortCoordsByDistance(map);
+    CalculateTileDistancesFrom(world->map, tp_coord);
+    SortCoordsByDistance(world->map);
     num_viable = area / 10;
     tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 1;
@@ -323,17 +324,17 @@ void GenerateForest(Game * game, int seed, int width)
     // Spawn second teleporter, spiders, super spiders.
     //
 
-    area = GetTilesInFirstRegionSmallerThan(map, 256, 1, num_regions);
+    area = GetTilesInFirstRegionSmallerThan(world->map, 256, 1, num_regions);
 
     // Create first teleporter.
-    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER, num_coords - 1, &tp_coord);
+    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_coords - 1, &tp_coord);
     tp->tag = 1; // connected to previous region
 
     // Create second teleporter.
-    CalculateTileDistancesFrom(map, tp_coord);
-    SortCoordsByDistance(map);
+    CalculateTileDistancesFrom(world->map, tp_coord);
+    SortCoordsByDistance(world->map);
     num_viable = area / 10;
-    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER, num_viable, NULL);
+    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
     tp->tag = 2; // connected to next region
 
     // Spawn the shack in an open area so the player can get around it.
@@ -341,7 +342,7 @@ void GenerateForest(Game * game, int seed, int width)
     for ( int i = 0; i < num_coords; i++ ) {
         TileCoord coord = coords[i];
         for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
-            Tile * adj = GetAdjacentTile(map, coord, d);
+            Tile * adj = GetAdjacentTile(world->map, coord, d);
             if ( adj->type != TILE_FOREST_GROUND ) {
                 goto next_coord;
             }
@@ -355,7 +356,7 @@ void GenerateForest(Game * game, int seed, int width)
     int shack_index = Random(0, viable_shack_spots->count - 1);
     TileCoord * spawn_spot = Get(viable_shack_spots, shack_index);
     SpawnActor(game, ACTOR_SHACK_CLOSED, *spawn_spot);
-    player->tile = *spawn_spot;
+//    player->tile = *spawn_spot; DEBUG
 
     FreeArray(viable_shack_spots);
 
@@ -374,19 +375,19 @@ void GenerateForest(Game * game, int seed, int width)
     // Spawn the exit.
     //
 
-    GetTilesInRegion(map, regions[0].region);
+    GetTilesInRegion(world->map, regions[0].region);
     area = regions[0].area;
 
-    tp = CreateTileAtRandomLocation(map, TILE_TELEPORTER, num_coords - 1, &tp_coord);
+    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_coords - 1, &tp_coord);
     tp->tag = 2; // connected to previos region
 
-    CalculateTileDistancesFrom(map, tp_coord);
-    SortCoordsByDistance(map);
+    CalculateTileDistancesFrom(world->map, tp_coord);
+    SortCoordsByDistance(world->map);
     num_viable = area / 10;
 
     int index = Random(0, num_viable);
     TileCoord exit_coord = coords[index];
-    Tile * tile = GetTile(map, exit_coord);
+    Tile * tile = GetTile(world->map, exit_coord);
     *tile = CreateTile(TILE_FOREST_EXIT);
     if ( area_info[AREA_FOREST].reveal_all ) {
         tile->flags.revealed = true;
@@ -410,25 +411,79 @@ void GenerateForest(Game * game, int seed, int width)
     // Generate shack interior
     //
 
-    map = &world->maps[1];
+#define SHACK_WIDTH 11
+#define SHACK_HEIGHT 11
 
-    AllocateMapTiles(map, 11, 11, TILE_WOODEN_FLOOR);
+    // Extremely sophisticated design technique!
+    // TODO: expand this, more interesting shape:
+    // TODO: decoration actors: cobwebs,
+    // (eg two rooms connected by corridor)
+    const char shack_map[SHACK_WIDTH * SHACK_HEIGHT] = {
+        "0XXXX@XXX00"
+        "0........00"
+        "0........X0"
+        "0.........0"
+        "0.........0"
+        "0.........0"
+        "00........0"
+        "00........0"
+        "00........0"
+        "000......00"
+        "00000000000"
+    };
 
-    for ( int i = 0; i < map->width * map->height; i++ ) {
-        TileCoord coord = GetCoordinate(map, i);
-        tile = &map->tiles[i];
+    world->map++;
 
-        if (   coord.x == 0
-            || coord.x == map->width - 1
-            || coord.y == map->height - 1 )
-        {
-            *tile = CreateTile(TILE_NULL);
-        } else if ( coord.y == 0 ) {
-            if ( coord.x == map->width / 2 ) {
-                *tile = CreateTile(TILE_WHITE_OPENING);
-            } else {
+    int shack_size = SHACK_WIDTH * SHACK_HEIGHT;
+    AllocateMapTiles(world->map, SHACK_WIDTH, SHACK_HEIGHT, TILE_WOODEN_FLOOR);
+    RemoveAllActors(&world->map->actor_list);
+
+    // A list of possible spawn locations for mobs and the bucket.
+    Array * shack_coords_array = NewArray(shack_size, sizeof(TileCoord), 0);
+
+    const char * c = shack_map;
+    for ( int i = 0; i < shack_size; i++, c++ ) {
+        TileCoord coord = GetCoordinate(world->map, i);
+        tile = &world->map->tiles[i];
+
+        switch ( *c ) {
+            case '0':
+                *tile = CreateTile(TILE_NULL);
+                break;
+            case 'X':
                 *tile = CreateTile(TILE_WOODEN_WALL);
+                break;
+            case '.':
+                if ( TileDistance(player->tile, coord) >= 3 ) {
+                    Push(shack_coords_array, &coord);
+                }
+                break;
+            case '@':
+                *tile = CreateTile(TILE_WHITE_OPENING);
+                player = SpawnActor(game, ACTOR_PLAYER, coord);
+                break;
+            default: {
+                ASSERT("Weird character in shack!");
             }
         }
+
     }
+
+    // Spawn the bucket.
+    TileCoord * shack_coords = shack_coords_array->data;
+    index = Random(0, shack_coords_array->count - 1);
+    SpawnActor(game, ACTOR_BUCKET, shack_coords[index]);
+    Remove(shack_coords_array, index);
+
+    // Spawn a couple ghosts
+    int num_ghosts = Random(2, 3);
+    for ( int i = 0; i < num_ghosts; i++ ) {
+        index = Random(0, shack_coords_array->count - 1);
+        SpawnActor(game, ACTOR_GHOST, shack_coords[index]);
+        Remove(shack_coords_array, index);
+    }
+
+    FreeArray(shack_coords_array);
+
+    world->map--;
 }

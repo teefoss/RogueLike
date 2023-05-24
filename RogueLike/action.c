@@ -27,22 +27,25 @@ static Direction PathFindToTile(Map * map, TileCoord start, TileCoord end, bool 
 
     for ( Direction d = 0; d < NUM_CARDINAL_DIRECTIONS; d++ ) {
         Tile * adj = GetAdjacentTile(map, start, d);
+        if ( adj == NULL ) {
+            continue;
+        }
+
         TileCoord tc = AdjacentTileCoord(start, d);
         s16 distance = player ? adj->player_distance : adj->distance;
         Actor * a = GetActorAtTile(&map->actor_list, tc);
 
-        // TODO: JT
         // Don't move there if:
         bool blocked =
         a // there's an actor there...
         && ActorBlocksAll(a) // ... that is collidable ...
-        && !TileCoordsEqual(a->tile, end); //...and it not the target
+        && !TileCoordsEqual(a->tile, end); //...and it is not the target
 
         if ( !adj->flags.blocks_movement
             && distance < min_distance
             && !blocked )
         {
-            min_distance = adj->distance;
+            min_distance = distance;
             best_direction = d;
         }
     }
@@ -204,7 +207,9 @@ void A_GhostChase(Actor * ghost)
                     // Tile distance from player
                     int tile_dist = DISTANCE(ghost->target_tile.x, ghost->target_tile.y, x, y);
 
-                    if ( tile_dist >= 1 && tile_dist <= GHOST_RADIUS ) {
+                    if ( IsInBounds(world->map, x, y)
+                        && tile_dist >= 1
+                        && tile_dist <= GHOST_RADIUS ) {
                         coords[num_coords].x = x;
                         coords[num_coords].y = y;
                         num_coords++;

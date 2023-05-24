@@ -209,7 +209,7 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
     },
     [ACTOR_OLD_KEY] = {
         .name = "Old Key",
-        .light = 160,
+        .light = 196,
         .light_radius = 1,
         .sprite = {
             .cell = { 8, 1 },
@@ -307,7 +307,16 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
         .sprite = {
             .cell = { 5, 0 }
         },
-    }
+    },
+    [ACTOR_BUCKET] = {
+        .name = "Bucket",
+        .flags = {
+            .blocks_monsters = true,
+        },
+        .sprite = {
+            .cell = { 4, 7 }
+        }
+    },
 };
 
 
@@ -581,7 +590,7 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
 
     UpdateActorFacing(actor, dx);
 
-    bool bumped = false;
+//    bool bumped = false;
 
     // Check if there's an actor at try_x, try_y
     FOR_EACH_ACTOR(hit, actor->game->world.map->actor_list) {
@@ -589,6 +598,15 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
         if ( hit != actor && TileCoordsEqual(hit->tile, try_coord) ) {
 
             // There's an actor on this spot:
+
+
+            if ( actor->info->contact ) {
+                actor->info->contact(actor, hit);
+            }
+
+            if ( hit->info->contacted ) {
+                hit->info->contacted(hit, actor);
+            }
 
             // Bump into it?
             bool block =
@@ -598,25 +616,17 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
 
             if ( block ) {
                 SetUpBumpAnimation(actor, direction);
-                bumped = true; // TODO: dumb?
-            }
-
-            if ( actor->info->contact ) {
-                actor->info->contact(actor, hit);
-            }
-
-            if ( hit->info->contacted ) {
-                hit->info->contacted(hit, actor);
+                return false;
             }
         }
     }
 
-    if ( bumped ) {
-        return false;
-    } else {
+//    if ( bumped ) {
+//        return false;
+//    } else {
         MoveActor(actor, coord);
         return true;
-    }
+//    }
 }
 
 void UpdateActorFacing(Actor * actor, int dx)

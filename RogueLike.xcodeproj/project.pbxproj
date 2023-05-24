@@ -27,6 +27,7 @@
 		6041A51429F71C4E002E2E92 /* actor_list.c in Sources */ = {isa = PBXBuildFile; fileRef = 6041A51329F71C4E002E2E92 /* actor_list.c */; };
 		6041A51729F8AB26002E2E92 /* blob.c in Sources */ = {isa = PBXBuildFile; fileRef = 6041A51629F8AB26002E2E92 /* blob.c */; };
 		6041A51A29F94CAD002E2E92 /* loot.c in Sources */ = {isa = PBXBuildFile; fileRef = 6041A51929F94CAD002E2E92 /* loot.c */; };
+		604B92D12A1BF53F00ECA3CF /* gs_sublevel_transit.c in Sources */ = {isa = PBXBuildFile; fileRef = 604B92D02A1BF53F00ECA3CF /* gs_sublevel_transit.c */; };
 		604F1CA32A16677B00DC1988 /* astar.c in Sources */ = {isa = PBXBuildFile; fileRef = 604F1CA22A16677B00DC1988 /* astar.c */; };
 		60558AAA291AF9CC00814C16 /* contact.c in Sources */ = {isa = PBXBuildFile; fileRef = 60558AA9291AF9CC00814C16 /* contact.c */; };
 		60558AAC291B08F400814C16 /* action.c in Sources */ = {isa = PBXBuildFile; fileRef = 60558AAB291B08F400814C16 /* action.c */; };
@@ -108,6 +109,7 @@
 		6041A51629F8AB26002E2E92 /* blob.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = blob.c; sourceTree = "<group>"; };
 		6041A51829F8AC45002E2E92 /* loot.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = loot.h; sourceTree = "<group>"; };
 		6041A51929F94CAD002E2E92 /* loot.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = loot.c; sourceTree = "<group>"; };
+		604B92D02A1BF53F00ECA3CF /* gs_sublevel_transit.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gs_sublevel_transit.c; sourceTree = "<group>"; };
 		604F1CA12A16677B00DC1988 /* astar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = astar.h; sourceTree = "<group>"; };
 		604F1CA22A16677B00DC1988 /* astar.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = astar.c; sourceTree = "<group>"; };
 		60558AA9291AF9CC00814C16 /* contact.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = contact.c; sourceTree = "<group>"; };
@@ -297,6 +299,7 @@
 				60761FB12A0D278C0003F34E /* gs_level_idle.c */,
 				60761FB32A0D2E3B0003F34E /* gs_level_turn.c */,
 				60761FAF2A0C9E530003F34E /* gs_title_screen.c */,
+				604B92D02A1BF53F00ECA3CF /* gs_sublevel_transit.c */,
 			);
 			path = game_states;
 			sourceTree = "<group>";
@@ -370,6 +373,7 @@
 				60373EEF29FAB6B5001CCE44 /* vector.c in Sources */,
 				60558AAC291B08F400814C16 /* action.c in Sources */,
 				60558AAA291AF9CC00814C16 /* contact.c in Sources */,
+				604B92D12A1BF53F00ECA3CF /* gs_sublevel_transit.c in Sources */,
 				607AFE6529EB10D20007D55E /* inventory.c in Sources */,
 				60373EEC29FAB6B5001CCE44 /* array.c in Sources */,
 				6011214029189F4B004A0AF3 /* actor.c in Sources */,

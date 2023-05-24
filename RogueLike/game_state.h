@@ -45,7 +45,7 @@ extern const GameState gs_level_idle;
 extern const GameState gs_level_turn;
 extern const GameState gs_menu;
 extern const GameState gs_title_screen;
-
+extern const GameState gs_sublevel_enter;
 
 const GameState * GetGameState(const Game * game);
 void PushState(Game * game, const GameState * new_state);

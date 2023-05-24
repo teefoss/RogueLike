@@ -42,11 +42,19 @@ typedef struct {
     Inventory inventory;
     bool has_gold_key;
     bool has_shack_key;
+    bool has_bucket;
     int turns;
     int strength_buff;
 
     int fuel;
     int fuel_steps; // Every FUEL_STEPS steps, exhaust one fuel unit.
+
+    enum {
+        LEVEL_UPPER,
+        LEVEL_ENTER_SUB,
+        LEVEL_SUB,
+        LEVEL_EXIT_SUB
+    } level_state;
 } PlayerInfo;
 
 
@@ -56,6 +64,9 @@ typedef struct {
     float duration_sec;
 } FadeState;
 
+// Used as a level number to indicate moving to the current level's sublevel.
+#define ENTER_SUBLEVEL (-1)
+#define EXIT_SUBLEVEL (-2)
 
 struct game {
     bool is_running;

@@ -172,43 +172,16 @@ void LevelIdle_OnEnter(Game * game)
         case TILE_FOREST_EXIT: // TODO: maybe exit is a flag
         case TILE_DUNGEON_EXIT:
             ++game->level;
-            FadeOutAndChangeState(game, &gs_intermission, 0.25f);
+            FadeOutAndChangeState(game, &gs_intermission, 3.0f);
             break;
         default:
             break;
     }
 
-    // TODO: NEXT, figure out how to merge with LoadLevel
-    if ( player->flags.enter_sublevel ) {
-        player->flags.enter_sublevel = false;
-
-        Actor * upper_player = FindActor(&game->world.map->actor_list, ACTOR_PLAYER);
-        ActorsStats stats = upper_player->stats; // Save and transfer to new player.
-
-        if ( game->world.area == AREA_FOREST ) {
-            game->world.area = AREA_FOREST_SHACK;
-            game->world.info = &area_info[game->world.area];
-        }
-
-        game->world.map++; // Descend.
-
-        // Find the tile to place the player at.
-        TileCoord spawn_coord = { -1, -1 };
-        Map * map = game->world.map;
-        for ( int i = 0; i < map->width * map->height; i++ ) {
-            if ( map->tiles[i].type == TILE_WHITE_OPENING ) {
-                spawn_coord = GetCoordinate(map, i);
-            }
-        }
-
-        ASSERT(spawn_coord.x != -1);
-
-        Actor * new_player = SpawnActor(game, ACTOR_PLAYER, spawn_coord);
-        new_player->stats = stats;
-
-        game->render_info.camera = TileCoordToScaledWorldCoord(player->tile, vec2_zero);
-
-        FadeOutAndChangeState(game, &gs_level_idle, 0.5f);
+    if ( game->player_info.level_state == LEVEL_ENTER_SUB
+        || game->player_info.level_state == LEVEL_EXIT_SUB )
+    {
+        FadeOutAndChangeState(game, &gs_sublevel_enter, 0.5f);
     }
 }
 

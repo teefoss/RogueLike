@@ -350,8 +350,6 @@ void FreeDistanceMapQueue(void)
 /// - parameter ignore_flags: The tile types to be ignored, as bit flags.
 void CalculateDistances(Map * map, TileCoord coord, int ignore_flags, bool player)
 {
-    queue_size = 0;
-
 //    float start_time = ProgramTime();
 
     for ( int i = 0; i < map->width * map->height; i++ ) {
@@ -380,7 +378,11 @@ void CalculateDistances(Map * map, TileCoord coord, int ignore_flags, bool playe
 
     {
         Tile * tile = GetTile(map, coord);
-        tile->distance = 0;
+        if ( player ) {
+            tile->player_distance = 0;
+        } else {
+            tile->distance = 0;
+        }
         qtile_t start = { tile, coord };
         Put(start);
     }
@@ -389,7 +391,7 @@ void CalculateDistances(Map * map, TileCoord coord, int ignore_flags, bool playe
     while ( head != tail ) {
         num_visited++;
         qtile_t qtile = Get();
-        int distance = qtile.tile->distance;
+        int distance = player ? qtile.tile->player_distance : qtile.tile->distance;
 
         for ( int d = 0; d < NUM_DIRECTIONS; d++ ) {
             Tile * edge = GetAdjacentTile(map, qtile.coord, d);

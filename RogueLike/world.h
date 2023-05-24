@@ -37,7 +37,7 @@ typedef struct world {
     const AreaInfo * info;
 
     Map * map;
-    Map maps[2];
+    Map maps[2]; // Main level and sublevel.
     ParticleArray particles;
 
     TileCoord mouse_tile;

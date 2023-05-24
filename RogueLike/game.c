@@ -73,8 +73,6 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
 {
     World * world = &game->world;
 
-    game->level = level_num;
-
     ActorsStats saved_player_stats = { 0 };
     if ( persist_player_stats ) {
         Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
@@ -84,10 +82,35 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
     }
 
     int seed = (int)time(NULL);
-    if ( level_num == 1 ) {
-        GenerateWorld(game, AREA_FOREST, (int)time(NULL), game->forest_size, game->forest_size);
+
+    if ( level_num == ENTER_SUBLEVEL ) {
+        game->world.map++;
+        if ( game->world.area == AREA_FOREST ) { // TODO: refactor
+            game->world.area = AREA_FOREST_SHACK;
+            game->world.info = &area_info[game->world.area];
+        }
+    } else if ( level_num == EXIT_SUBLEVEL ) {
+        game->world.map--;
+        if ( game->world.area == AREA_FOREST_SHACK ) {
+            game->world.area = AREA_FOREST;
+            game->world.info = &area_info[game->world.area];
+        }
     } else {
-        GenerateWorld(game, AREA_DUNGEON, seed, 31, 31);
+        game->level = level_num;
+
+        if ( level_num == 1 ) {
+            GenerateWorld(game,
+                          AREA_FOREST,
+                          (int)time(NULL),
+                          game->forest_size,
+                          game->forest_size);
+        } else {
+            GenerateWorld(game, AREA_DUNGEON, seed, 31, 31);
+        }
+
+        // Some things to reset when entering a new level:
+        game->player_info.turns = INITIAL_TURNS; // TODO: maybe not?
+        game->player_info.has_gold_key = false;
     }
 
     printf("num actors: %d\n", game->world.map->actor_list.count);
@@ -108,9 +131,6 @@ void LoadLevel(Game * game, int level_num, bool persist_player_stats)
     FOR_EACH_ACTOR(actor, world->map->actor_list) {
         CastLight(world, actor);
     }
-
-    game->player_info.turns = INITIAL_TURNS;
-    game->player_info.has_gold_key = false;
 }
 
 
@@ -259,7 +279,6 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
     float start_time = ProgramTime();
 
     World * world = &game->world;
-    Map * map = world->map;
     Actor * player = FindActor(&world->map->actor_list, ACTOR_PLAYER);
     PlayerInfo * player_info = &game->player_info;
 
@@ -270,10 +289,10 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
     // The tile we are moving to.
     Tile * tile;
     if ( direction != NO_DIRECTION ) {
-        tile = GetAdjacentTile(map, player->tile, direction);
+        tile = GetAdjacentTile(world->map, player->tile, direction);
         destination = AdjacentTileCoord(player->tile, direction);
     } else {
-        tile = GetTile(map, destination);
+        tile = GetTile(world->map, destination);
     }
 
     switch ( (TileType)tile->type ) {
@@ -293,7 +312,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
 
             // Lower pillars.
             for ( int i = 0; i < 2; i++ ) {
-                Tile * pillar_tile = GetTile(map, pillars[i]->tile);
+                Tile * pillar_tile = GetTile(world->map, pillars[i]->tile);
                 *pillar_tile = CreateTile(TILE_BUTTON_PRESSED);
                 RemoveActor(pillars[i]);
             }
@@ -302,7 +321,7 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
             S_Play("l32 o1 b- c");
             *tile = CreateTile(TILE_BUTTON_PRESSED);
 
-            TryMovePlayer(player, map, destination, player_info);
+            TryMovePlayer(player, world->map, destination, player_info);
             break;
         }
 
@@ -329,16 +348,25 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
             break;
 
         case TILE_FOREST_EXIT:
+            if ( !player_info->has_bucket ) {
+                SetUpBumpAnimation(player, direction);
+                Log("You need a bucket to descend!");
+                break;
+            }
         case TILE_DUNGEON_EXIT:
             MoveActor(player, destination);
             S_Play("l32o3bb-a-fd-<a-d<g");
+            break;
+        case TILE_WHITE_OPENING:
+            game->player_info.level_state = LEVEL_EXIT_SUB;
+            MoveActor(player, destination);
             break;
 
         case TILE_TELEPORTER:
             player->flags.on_teleporter = true;
             // Fallthough:
         default:
-            TryMovePlayer(player, map, destination, player_info);
+            TryMovePlayer(player, world->map, destination, player_info);
             break;
     }
 
