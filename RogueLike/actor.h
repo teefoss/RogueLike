@@ -103,7 +103,7 @@ typedef struct {
         bool moves_diagonally   : 1;
     } flags;
 
-    bool (* contact)(Actor * self, Actor * other);
+    void (* contact)(Actor * self, Actor * other);
     void (* contacted)(Actor * self, Actor * other); // When hit by something else.
     void (* action)(Actor *);
 
@@ -154,7 +154,14 @@ int DamageActor(Actor * actor, Actor * inflictor, int damage);
 void KillActor(Actor * actor, Actor * killer);
 void UpdateActorFacing(Actor * actor, int dx);
 void Teleport(Actor * actor);
+
+/// Remove actor from linked list and return it to the free list.
+///
+/// When in a loop, if removing then immediately adding an actor, make sure
+/// to add the new actor first, then remove the old one. That way, the current
+/// pointer will remain pointing to the same actor (now in the free list).
 void RemoveActor(Actor * actor);
+
 Actor ** GetVisibleActors(const World * world,
                           const RenderInfo * render_info,
                           int * count);

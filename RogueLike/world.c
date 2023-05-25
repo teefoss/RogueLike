@@ -11,7 +11,7 @@
 
 #include "video.h"
 
-#define FOREST_LIGHT 40
+#define FOREST_LIGHT 64
 
 const AreaInfo area_info[NUM_AREAS] = {
     [AREA_FOREST] = {

@@ -9,7 +9,7 @@
 #include "sound.h"
 #include "game_log.h"
 
-bool C_Player(Actor * player, Actor * hit)
+void C_Player(Actor * player, Actor * hit)
 {
     if ( hit->info->flags.takes_damage ) {
         int damage = player->stats.damage;
@@ -90,10 +90,9 @@ bool C_Player(Actor * player, Actor * hit)
             if ( player->game->player_info.has_shack_key ) {
                 S_Play("l32 o2 f b-");
                 TileCoord coord = hit->tile;
-                RemoveActor(hit);
                 SpawnActor(player->game, ACTOR_SHACK_OPEN, coord);
+                RemoveActor(hit);
                 player->game->player_info.has_shack_key = false;
-                return false;
             } else {
                 Log("It's locked!");
                 S_Play(SOUND_BUMP); // TODO: locked sound
@@ -105,16 +104,14 @@ bool C_Player(Actor * player, Actor * hit)
         default:
             break;
     }
-
-    return true;
 }
 
 
-bool C_Monster(Actor * monster, Actor * hit)
+void C_Monster(Actor * monster, Actor * hit)
 {
     // Monsters cannot damage ghosts.
     if ( hit->type == ACTOR_GHOST ) {
-        return true;
+        return;
     }
 
     // Monsters can damage other monsters, but not of the same type
@@ -126,8 +123,6 @@ bool C_Monster(Actor * monster, Actor * hit)
             // TODO: default sound
         }
     }
-
-    return true;
 }
 
 

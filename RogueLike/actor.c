@@ -27,8 +27,8 @@ enum {
     DRAW_PRIORITY_PLAYER,
 };
 
-bool C_Player(Actor *, Actor *);
-bool C_Monster(Actor *, Actor *);
+void C_Player(Actor *, Actor *);
+void C_Monster(Actor *, Actor *);
 void C_Block(Actor *, Actor *);
 
 void A_TargetAndChasePlayerIfVisible(Actor *);
@@ -571,10 +571,7 @@ bool ActorBlocksAll(const Actor * actor)
 
 bool TryMoveActor(Actor * actor, TileCoord coord)
 {
-//    Tile * tile = GetAdjacentTile(&actor->game->world.map, actor->tile, direction);
     Tile * tile = GetTile(actor->game->world.map, coord);
-//    TileCoord try_coord = AdjacentTileCoord(actor->tile, direction);
-    TileCoord try_coord = coord;
 
     if ( tile->flags.blocks_movement ) {
         return false;
@@ -585,27 +582,21 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
         return false;
     }
 
-//    Direction direction = NO_DIRECTION;
     int dx = coord.x - actor->tile.x;
     int dy = coord.y - actor->tile.y;
     Direction direction = GetDirection(dx, dy);
 
     UpdateActorFacing(actor, dx);
 
-//    bool bumped = false;
-
     // Check if there's an actor at try_x, try_y
     FOR_EACH_ACTOR(hit, actor->game->world.map->actor_list) {
 
-        if ( hit != actor && TileCoordsEqual(hit->tile, try_coord) ) {
+        if ( hit != actor && TileCoordsEqual(hit->tile, coord) ) {
 
             // There's an actor on this spot:
 
             if ( actor->info->contact ) {
-                if ( actor->info->contact(actor, hit) == false) {
-                    SetUpBumpAnimation(actor, direction);
-                    return false;
-                }
+                actor->info->contact(actor, hit);
             }
 
             if ( hit->info->contacted ) {
@@ -628,12 +619,8 @@ bool TryMoveActor(Actor * actor, TileCoord coord)
         }
     }
 
-//    if ( bumped ) {
-//        return false;
-//    } else {
-        MoveActor(actor, coord);
-        return true;
-//    }
+    MoveActor(actor, coord);
+    return true;
 }
 
 void UpdateActorFacing(Actor * actor, int dx)
