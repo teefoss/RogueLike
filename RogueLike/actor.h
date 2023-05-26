@@ -50,7 +50,7 @@ typedef enum {
     ACTOR_SHACK_OPEN,
     ACTOR_ITEM_FUEL_SMALL,
     ACTOR_ITEM_FUEL_BIG,
-    ACTOR_BUCKET,
+    ACTOR_ROPE,
 
     NUM_ACTOR_TYPES
 } ActorType;

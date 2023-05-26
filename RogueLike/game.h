@@ -42,7 +42,7 @@ typedef struct {
     Inventory inventory;
     bool has_gold_key;
     bool has_shack_key;
-    bool has_bucket;
+    bool has_rope;
     int turns;
     int strength_buff;
 

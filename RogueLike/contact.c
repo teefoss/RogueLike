@@ -65,9 +65,9 @@ void C_Player(Actor * player, Actor * hit)
 
     // Bump into other things
     switch ( hit->type ) {
-        case ACTOR_BUCKET:
-            Log("Woah! Got a Bucket");
-            player->game->player_info.has_bucket = true;
+        case ACTOR_ROPE:
+            Log("Picked up the rope");
+            player->game->player_info.has_rope = true;
             RemoveActor(hit);
             S_Play("o2 l32 f a < b-");
             break;

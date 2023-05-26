@@ -473,7 +473,7 @@ void GenerateForest(Game * game, int seed, int width)
     // Spawn the bucket.
     TileCoord * shack_coords = shack_coords_array->data;
     index = Random(0, shack_coords_array->count - 1);
-    SpawnActor(game, ACTOR_BUCKET, shack_coords[index]);
+    SpawnActor(game, ACTOR_ROPE, shack_coords[index]);
     Remove(shack_coords_array, index);
 
     // Spawn a couple ghosts

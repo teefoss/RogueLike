@@ -348,11 +348,12 @@ void StartTurn(Game * game, TileCoord destination, Direction direction)
             break;
 
         case TILE_FOREST_EXIT:
-            if ( !player_info->has_bucket ) {
+            if ( !player_info->has_rope ) {
                 SetUpBumpAnimation(player, direction);
-                Log("You need a bucket to descend!");
+                Log("You need a rope to descend!");
                 break;
             }
+            // Fallthrough:
         case TILE_DUNGEON_EXIT:
             MoveActor(player, destination);
             S_Play("l32o3bb-a-fd-<a-d<g");

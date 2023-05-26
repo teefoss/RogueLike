@@ -310,13 +310,10 @@ const ActorInfo actor_info_list[NUM_ACTOR_TYPES] = {
             .cell = { 5, 0 }
         },
     },
-    [ACTOR_BUCKET] = {
-        .name = "Bucket",
-        .flags = {
-            .blocks_monsters = true,
-        },
+    [ACTOR_ROPE] = {
+        .name = "Rope",
         .sprite = {
-            .cell = { 4, 7 }
+            .cell = { 5, 7 }
         }
     },
 };
