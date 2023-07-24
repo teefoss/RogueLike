@@ -172,7 +172,7 @@ void LevelIdle_OnEnter(Game * game)
         case TILE_FOREST_EXIT: // TODO: maybe exit is a flag
         case TILE_DUNGEON_EXIT:
             ++game->level;
-            FadeOutAndChangeState(game, &gs_intermission, 3.0f);
+            FadeOutAndChangeState(game, &gs_intermission, 0.5f);
             break;
         default:
             break;

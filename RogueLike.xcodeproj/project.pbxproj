@@ -67,6 +67,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		6007C1472A6E0016009264F5 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		6007C1492A6E0070009264F5 /* level1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = level1.png; sourceTree = "<group>"; };
 		6009752B29EC6D14002DF6AD /* game_state.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = game_state.h; sourceTree = "<group>"; };
 		6009752C29EC6D14002DF6AD /* game_state.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = game_state.c; sourceTree = "<group>"; };
 		600D4C2C29F480990013244B /* menu.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = menu.h; sourceTree = "<group>"; };
@@ -165,6 +167,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6007C1482A6E001D009264F5 /* screenshots */ = {
+			isa = PBXGroup;
+			children = (
+				6007C1492A6E0070009264F5 /* level1.png */,
+			);
+			path = screenshots;
+			sourceTree = "<group>";
+		};
 		60373ECB29FAB6B5001CCE44 /* cgdlib */ = {
 			isa = PBXGroup;
 			children = (
@@ -235,6 +245,7 @@
 		60637F2B29136A4200352516 /* RogueLike */ = {
 			isa = PBXGroup;
 			children = (
+				6007C1482A6E001D009264F5 /* screenshots */,
 				60373ECB29FAB6B5001CCE44 /* cgdlib */,
 				6011213E2915FDD3004A0AF3 /* assets */,
 				60558AAB291B08F400814C16 /* action.c */,
@@ -287,6 +298,7 @@
 				60577A3B29EA48B400BF0AD8 /* world.h */,
 				60577A3C29EA48B400BF0AD8 /* world.c */,
 				60F0A71429D33B200022A995 /* notes.md */,
+				6007C1472A6E0016009264F5 /* README.md */,
 			);
 			path = RogueLike;
 			sourceTree = "<group>";

@@ -56,10 +56,13 @@ static void RemoveTile(int index)
 //}
 
 
-static Actor * SpawnActorAtRandomLocation(Game * game, ActorType type, int max_index)
+static Actor * SpawnActorAtRandomLocation(Game * game,
+                                          ActorType type,
+                                          int min_index,
+                                          int max_index)
 {
     if ( num_coords != 0 ) {
-        int index = Random(0, max_index);
+        int index = Random(min_index, max_index);
         Actor * actor = SpawnActor(game, type, coords[index]);
         RemoveTile(index);
         return actor;
@@ -70,9 +73,13 @@ static Actor * SpawnActorAtRandomLocation(Game * game, ActorType type, int max_i
 }
 
 
-static Tile * CreateTileAtRandomLocation(Map * map, TileType type, int max_index, TileCoord * out)
+static Tile * CreateTileAtRandomLocation(Map * map,
+                                         TileType type,
+                                         int min_index,
+                                         int max_index,
+                                         TileCoord * out)
 {
-    int index = Random(0, max_index);
+    int index = Random(min_index, max_index);
     TileCoord coord = coords[index];
 
     if ( out ) {
@@ -153,7 +160,7 @@ void SortCoordsByDistance(Map * map)
             Tile * i_tile = GetTile(map, coords[i]);
             Tile * j_tile = GetTile(map, coords[j]);
 
-            if ( j_tile->distance > i_tile->distance ) {
+            if ( j_tile->distance < i_tile->distance ) {
                 TileCoord temp = coords[i];
                 coords[i] = coords[j];
                 coords[j] = temp;
@@ -287,15 +294,25 @@ void GenerateForest(Game * game, int seed, int width)
 
     int area = GetTilesInFirstRegionSmallerThan(world->map, 80, 3, num_regions);
 
-    Actor * player = SpawnActorAtRandomLocation(game, ACTOR_PLAYER, num_coords - 1);
+    Actor * player = SpawnActorAtRandomLocation(game,
+                                                ACTOR_PLAYER,
+                                                0,
+                                                num_coords - 1);
 
     CalculateTileDistancesFrom(world->map, player->tile);
     SortCoordsByDistance(world->map);
-    int num_viable = area / 10;
-    Tile * tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
+
+    Tile * tp = CreateTileAtRandomLocation(world->map,
+                                           TILE_TELEPORTER,
+                                           num_coords * 0.9f,
+                                           num_coords - 1,
+                                           NULL);
     tp->tag = 0;
 
-    SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, num_coords / 20);
+    SpawnActorAtRandomLocation(game,
+                               ACTOR_SUPER_SPIDER,
+                               num_coords * 0.4f,
+                               num_coords * 0.8f);
 
     //
     // Second region - small area
@@ -304,20 +321,28 @@ void GenerateForest(Game * game, int seed, int width)
 
     area = GetTilesInFirstRegionSmallerThan(world->map, 128, 2, num_regions);
 
-    // Create first teleporter.
+    // Create first teleporter at a completely random location in region.
     TileCoord tp_coord;
-    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_coords - 1, & tp_coord);
+    tp = CreateTileAtRandomLocation(world->map,
+                                    TILE_TELEPORTER,
+                                    0,
+                                    num_coords - 1,
+                                    &tp_coord);
     tp->tag = 0;
 
-    // Create second teleporter.
+    // Create second teleporter and spawn it far away from the first.
     CalculateTileDistancesFrom(world->map, tp_coord);
     SortCoordsByDistance(world->map);
-    num_viable = area / 10;
-    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
+    tp = CreateTileAtRandomLocation(world->map,
+                                    TILE_TELEPORTER,
+                                    num_coords * 0.85f,
+                                    num_coords - 1,
+                                    NULL);
     tp->tag = 1;
 
+    // Scatter some spiders.
     for ( int i = 0; i < area / 20; i++ ) {
-        SpawnActorAtRandomLocation(game, ACTOR_SPIDER, num_coords - 1);
+        SpawnActorAtRandomLocation(game, ACTOR_SPIDER, 0, num_coords - 1);
     }
 
     //
@@ -327,15 +352,22 @@ void GenerateForest(Game * game, int seed, int width)
 
     area = GetTilesInFirstRegionSmallerThan(world->map, 256, 1, num_regions);
 
-    // Create first teleporter.
-    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_coords - 1, &tp_coord);
+    // Create first teleporter and a random point in the region.
+    tp = CreateTileAtRandomLocation(world->map,
+                                    TILE_TELEPORTER,
+                                    0,
+                                    num_coords - 1,
+                                    &tp_coord);
     tp->tag = 1; // connected to previous region
 
-    // Create second teleporter.
+    // Create second teleporter and spawn it far away from the first.
     CalculateTileDistancesFrom(world->map, tp_coord);
     SortCoordsByDistance(world->map);
-    num_viable = area / 10;
-    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_viable, NULL);
+    tp = CreateTileAtRandomLocation(world->map,
+                                    TILE_TELEPORTER,
+                                    num_coords * 0.85f,
+                                    num_coords - 1,
+                                    NULL);
     tp->tag = 2; // connected to next region
 
     // Spawn the shack in an open area so the player can get around it.
@@ -357,16 +389,19 @@ void GenerateForest(Game * game, int seed, int width)
     int shack_index = Random(0, viable_shack_spots->count - 1);
     TileCoord * spawn_spot = Get(viable_shack_spots, shack_index);
     SpawnActor(game, ACTOR_SHACK_CLOSED, *spawn_spot);
-//    player->tile = *spawn_spot; // DEBUG
+    // player->tile = *spawn_spot; // TODO: TEMP, debug
 
     FreeArray(viable_shack_spots);
 
     // Spawn spiders
     for ( int i = 0; i < area / 10; i++ ) {
         if ( Chance(0.2) ) {
-            SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, num_coords - 1);
+            SpawnActorAtRandomLocation(game,
+                                       ACTOR_SUPER_SPIDER,
+                                       0,
+                                       num_coords - 1);
         } else {
-            SpawnActorAtRandomLocation(game, ACTOR_SPIDER, num_coords - 1);
+            SpawnActorAtRandomLocation(game, ACTOR_SPIDER, 0, num_coords - 1);
         }
     }
 
@@ -379,14 +414,17 @@ void GenerateForest(Game * game, int seed, int width)
     GetTilesInRegion(world->map, regions[0].region);
     area = regions[0].area;
 
-    tp = CreateTileAtRandomLocation(world->map, TILE_TELEPORTER, num_coords - 1, &tp_coord);
-    tp->tag = 2; // connected to previos region
+    tp = CreateTileAtRandomLocation(world->map,
+                                    TILE_TELEPORTER,
+                                    0,
+                                    num_coords - 1,
+                                    &tp_coord);
+    tp->tag = 2; // connected to previous region
 
     CalculateTileDistancesFrom(world->map, tp_coord);
     SortCoordsByDistance(world->map);
-    num_viable = area / 10;
 
-    int index = Random(0, num_viable);
+    int index = Random(num_coords * 0.9f, num_coords - 1);
     TileCoord exit_coord = coords[index];
     Tile * tile = GetTile(world->map, exit_coord);
     *tile = CreateTile(TILE_FOREST_EXIT);
@@ -398,15 +436,22 @@ void GenerateForest(Game * game, int seed, int width)
     for ( int i = 0; i < area / 10; i++ ) {
         // TODO: tweak
         if ( Chance(0.05) ) {
-            SpawnActorAtRandomLocation(game, ACTOR_GHOST, num_coords - 1);
+            SpawnActorAtRandomLocation(game, ACTOR_GHOST, 0, num_coords - 1);
         } else if ( Chance( 0.1 ) ) {
-            SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, num_coords - 1);
+            SpawnActorAtRandomLocation(game, ACTOR_SUPER_SPIDER, 0, num_coords - 1);
         } else {
-            SpawnActorAtRandomLocation(game, ACTOR_SPIDER, num_coords - 1);
+            SpawnActorAtRandomLocation(game, ACTOR_SPIDER, 0, num_coords - 1);
         }
     }
 
-    SpawnActorAtRandomLocation(game, ACTOR_OLD_KEY, num_coords - 1);
+    // Spawn the key near-ish to the well.
+
+    CalculateTileDistancesFrom(world->map, exit_coord);
+    SortCoordsByDistance(world->map);
+    SpawnActorAtRandomLocation(game,
+                               ACTOR_OLD_KEY,
+                               num_coords * 0.1f,
+                               num_coords * 0.2f);
 
     //
     // Generate shack interior
