@@ -1,1 +1,1 @@
-![](level1.png)
+![](screenshots/level1.png)
