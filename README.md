@@ -1,1 +1,1 @@
-![](screenshots/level1.png)
+![](RogueLike/screenshots/level1.png)
